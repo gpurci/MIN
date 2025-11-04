@@ -3,6 +3,7 @@
 import numpy as np
 import cv2
 from reshape import *
+import matplotlib.pyplot as plt
 
 def image_show(image, window_name="Test", ):
    show_image = reshape(image, height=900)
@@ -31,6 +32,3 @@ def imshow(image, name=None, filename=None):
    if (filename is not None):
       plt.savefig(filename, bbox_inches='tight', pad_inches=0.1)
    plt.show()
-
-
-

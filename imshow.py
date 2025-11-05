@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import numpy as np
 import cv2
 from reshape import *
 import matplotlib.pyplot as plt

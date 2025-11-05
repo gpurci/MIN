@@ -38,6 +38,37 @@ class TestGaoTTP(object):
             raise NameError("Orasul de start '{}' nu a fost corect initializat '{}'".format(start_city, result[:, 0]))
         print("result {}".format(result))
 
+    def initPopulationBeam(self):
+        nodes = "./NODE_COORD_SECTION.csv"
+        items = "./ITEMS_SECTION.csv"
+
+        # testăm pe ga_obj
+        pop = self.ga_obj.initPopulationBeamTTP(
+            nodes_csv_path = nodes,
+            items_csv_path = items,
+            population_target = 200,
+            beam_width = 8,
+            lambda_time = 1.0,
+            seed = 123,
+            allow_pick_in_start_city = False
+        )
+
+        print("pop shape:", pop.shape)
+        
+        # 1) primul = ultimul
+        if not np.all(pop[:,0] == pop[:,-1]):
+            raise NameError("Primul si ultimul oras nu sunt egale")
+
+        # 2) fiecare element e valid index
+        if pop.min() < 0 or pop.max() >= self.ga_obj.GENOME_LENGTH:
+            raise NameError("Index invalid in populatie")
+
+        # 3) nu sunt duplicate
+        if len(set(map(tuple, pop))) != pop.shape[0]:
+            raise NameError("Exista rute duplicate")
+
+        print("Beam init test OK")
+        
     def selectValidPopulation(self):
         arg_parents1 = np.random.randint(low=0, high=self.ga_obj.POPULATION_SIZE, size=5)
         fitness_values_parents1 = np.random.uniform(low=0, high=1, size=5)

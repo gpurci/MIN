@@ -1,8 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-import csv
-from math import hypot, ceil
+from builds.ttp_generator import TTPGenerator
 
 class GeneticAOTSP(object):
     # constante pentru setarea algoritmului
@@ -20,77 +19,77 @@ class GeneticAOTSP(object):
     def __init__(self, max_cities=-1):
         self.max_cities = max_cities
 
-    def __call__(self, distance:"np.array", population=None, start_city=-1):
-        # save map
-        self.__run_checks(distance)
-        # initiaizarea populatiei
-        if (population is None):
-            population = self.initPopulation(start_city)
-        print("population", population)
-        self.__run_inits(population)
-        # init fitness value
-        fitness_values = self.fitness(population)
-        # obtinerea pozitiei pentru indivizii extrimali
-        arg_extreme = self.getKExtreme(fitness_values)
-
-        # evolutia generatiilor
-        for generation in range(GeneticAOTSP.GENERATIONS):
-            # nasterea unei noi generatii
-            new_population = []
-            # selectarea unui parinte
-            size_parents = GeneticAOTSP.POPULATION_SIZE-arg_extreme.shape[0]
-            arg_parents1 = self.selectParent1(population, fitness_values, size_parents//3)
-            valid_arg_parents2 = self.selectValidPopulation(arg_parents1, fitness_values[arg_parents1])
-            valid_population_parents2 = population[valid_arg_parents2]
-            print("valid_population_parents2 {}".format(valid_population_parents2.shape))
-            valid_fitness_parents2    = fitness_values[valid_arg_parents2]
-            for arg_parent1 in arg_parents1:
-                # selectarea celui de al doilea parinte
-                childrens = []
-                for _ in range(3):
-                    arg_parent2 = self.selectParent2(valid_population_parents2, valid_fitness_parents2, fitness_values[arg_parent1])
-                    parent1 = population[arg_parent1]
-                    parent2 = valid_population_parents2[arg_parent2]
-                    print("parent1 {}, parent2 {}, arg_parent2 {}".format(parent1, parent2, arg_parent2))
-                    # incrucisarea parintilor
-                    for __ in range(3):
-                        child = self.crossover(parent1, parent2)
-                        # mutatii
-                        child = self.mutate(child)
-                        childrens.append(child)
-                childrens = np.array(childrens, dtype=np.int32)
-                childs_fitness_values = self.fitness(childrens)
-                print("childrens {}, childs_fitness_values {}, shape {}".format(childrens, childs_fitness_values, childrens.shape))
-                arg_childrens = self.getKBest(childs_fitness_values, 3)
-                print("childrens {}, shape {}".format(childrens, childrens.shape))
-                new_population.append(childrens[arg_childrens])
-            # salvarea indivizilor extrimali
-            extreme_population  = population[arg_extreme]
-            # schimbarea generatiei
-            #population = np.array(new_population, dtype=np.int32)
-            new_population.append(extreme_population)
-            # integrarea indivizilor extrimali in noua generatie
-            population = np.concatenate(new_population, axis=0)
-            # update la valorile fitness
+    def __call__(self, distance: "np.array", nodes_csv_path: str, items_csv_path: str, population=None, start_city=-1):
+            # save map
+            self.__run_checks(distance)
+            # initiaizarea populatiei
+            if (population is None):
+                population = self.initPopulation(nodes_csv_path, items_csv_path,
+                                            population_target=GeneticAOTSP.POPULATION_SIZE)
+            self.__run_inits(population)
+            # init fitness value
             fitness_values = self.fitness(population)
-            # obtinerea pozitiilor pentru indivizii extrimali din noua generatie
+            # obtinerea pozitiei pentru indivizii extrimali
             arg_extreme = self.getKExtreme(fitness_values)
-            # obtinerea celui mai bun individ
-            arg_best = self.getBestRoute(fitness_values)
-            # selectarea celei mai bune rute
-            best_route = population[arg_best]
-            distance = self.getIndividDistance(best_route)
-            number_city = self.getIndividNumberCities(best_route)
-            # selectarea celei mai mici distante din intreaga populatie
-            best_distance = self.getBestDistance(population)
-            # selectarea celui mai mare numar de orase din intreaga populatie
-            best_number_city = self.getBestNumberCities(population)
 
-            # prezinta metricile
-            metric_info ="""Generatia: {}, Distanta: {:.3f}, Numarul oraselor {}, Best Distanta: {:.3f}, Best Numarul oraselor {}, Min distance {:.3f}""".format(
-                generation, distance, number_city, best_distance, best_number_city, self.__min_distance)
-            print(metric_info)
-        return best_route, population
+            # evolutia generatiilor
+            for generation in range(GeneticAOTSP.GENERATIONS):
+                # nasterea unei noi generatii
+                new_population = []
+                # selectarea unui parinte
+                size_parents = GeneticAOTSP.POPULATION_SIZE-arg_extreme.shape[0]
+                arg_parents1 = self.selectParent1(population, fitness_values, size_parents//3)
+                valid_arg_parents2 = self.selectValidPopulation(arg_parents1, fitness_values[arg_parents1])
+                valid_population_parents2 = population[valid_arg_parents2]
+                print("valid_population_parents2 {}".format(valid_population_parents2.shape))
+                valid_fitness_parents2    = fitness_values[valid_arg_parents2]
+                for arg_parent1 in arg_parents1:
+                    # selectarea celui de al doilea parinte
+                    childrens = []
+                    for _ in range(3):
+                        arg_parent2 = self.selectParent2(valid_population_parents2, valid_fitness_parents2, fitness_values[arg_parent1])
+                        parent1 = population[arg_parent1]
+                        parent2 = valid_population_parents2[arg_parent2]
+                        print("parent1 {}, parent2 {}, arg_parent2 {}".format(parent1, parent2, arg_parent2))
+                        # incrucisarea parintilor
+                        for __ in range(3):
+                            child = self.crossover(parent1, parent2)
+                            # mutatii
+                            child = self.mutate(child)
+                            childrens.append(child)
+                    childrens = np.array(childrens, dtype=np.int32)
+                    childs_fitness_values = self.fitness(childrens)
+                    print("childrens {}, childs_fitness_values {}, shape {}".format(childrens, childs_fitness_values, childrens.shape))
+                    arg_childrens = self.getKBest(childs_fitness_values, 3)
+                    print("childrens {}, shape {}".format(childrens, childrens.shape))
+                    new_population.append(childrens[arg_childrens])
+                # salvarea indivizilor extrimali
+                extreme_population  = population[arg_extreme]
+                # schimbarea generatiei
+                #population = np.array(new_population, dtype=np.int32)
+                new_population.append(extreme_population)
+                # integrarea indivizilor extrimali in noua generatie
+                population = np.concatenate(new_population, axis=0)
+                # update la valorile fitness
+                fitness_values = self.fitness(population)
+                # obtinerea pozitiilor pentru indivizii extrimali din noua generatie
+                arg_extreme = self.getKExtreme(fitness_values)
+                # obtinerea celui mai bun individ
+                arg_best = self.getBestRoute(fitness_values)
+                # selectarea celei mai bune rute
+                best_route = population[arg_best]
+                distance = self.getIndividDistance(best_route)
+                number_city = self.getIndividNumberCities(best_route)
+                # selectarea celei mai mici distante din intreaga populatie
+                best_distance = self.getBestDistance(population)
+                # selectarea celui mai mare numar de orase din intreaga populatie
+                best_number_city = self.getBestNumberCities(population)
+
+                # prezinta metricile
+                metric_info ="""Generatia: {}, Distanta: {:.3f}, Numarul oraselor {}, Best Distanta: {:.3f}, Best Numarul oraselor {}, Min distance {:.3f}""".format(
+                    generation, distance, number_city, best_distance, best_number_city, self.__min_distance)
+                print(metric_info)
+            return best_route, population
 
     def __run_checks(self, distance):
         if (distance is not None):
@@ -108,136 +107,6 @@ class GeneticAOTSP(object):
         distances = self.getDistances(population)
         self.__min_distance = distances.min()
 
-    def initPopulation(self, start_city: int):
-        """Initializarea populatiei, cu drumuri aleatorii"""
-        size = (GeneticAOTSP.POPULATION_SIZE, GeneticAOTSP.GENOME_LENGTH)
-        arr = np.arange(np.prod(size), dtype=np.int32).reshape(*size)%GeneticAOTSP.GENOME_LENGTH
-        population = np.apply_along_axis(np.random.permutation, axis=1, arr=arr)
-        if (start_city >= 0):
-            population[:, 0] = start_city
-        population[:, -1] = population[:, 0]
-        return population
-    
-    # Citire CSV-uri TTP (coords + items)
-    def load_ttp_csv(self, nodes_csv_path: str, items_csv_path: str,
-                     expect_headers: bool = True, use_ceil_2d: bool = True):
-        """
-        Citeste:
-          - NODE_COORD_SECTION.csv  (INDEX, X, Y)
-          - ITEMS_SECTION.csv       (INDEX, PROFIT, WEIGHT, ASSIGNED_NODE_NUMBER)  -- ASSIGNED_NODE_NUMBER este 1-based
-
-        Construieste:
-          - self.coords             : np.ndarray (n,2)
-          - self.distance           : np.ndarray (n,n)   (CEIL_2D rotunjire în sus)
-          - self.item_profit        : np.ndarray (n,)    (profit pe oras; 0 dacă orasul nu are item)
-          - self.item_weight        : np.ndarray (n,)    (greutate pe oras; 0 dacă orasul nu are item)
-        Si seteaza:
-          - GeneticAOTSP.GENOME_LENGTH = n
-        """
-        # NODE_COORD_SECTION
-        coords = []
-        with open(nodes_csv_path, newline='', encoding='utf-8') as f:
-            rdr = csv.reader(f)
-            rows = [r for r in rdr if len(r) >= 2]
-
-        if expect_headers and rows and not self._is_number(rows[0][1]):
-            rows = rows[1:]
-
-        if len(rows[0]) >= 3:
-            tmp = []
-            for r in rows:
-                try:
-                    idx = int(float(r[0]))
-                    x = float(r[1]); y = float(r[2])
-                    tmp.append((idx, x, y))
-                except:
-                    continue
-            tmp.sort(key=lambda t: t[0])
-            coords = [(x, y) for _, x, y in tmp]
-        else:
-            coords = [(float(r[0]), float(r[1])) for r in rows]
-
-        self.coords = np.asarray(coords, dtype=np.float64)
-        n = self.coords.shape[0]
-        GeneticAOTSP.GENOME_LENGTH = n
-
-        # Matrice de distante -> CEIL_2D (rotunjire în sus)
-        self.distance = self._pairwise_distance(self.coords, ceil2d=use_ceil_2d)
-
-        # --- ITEMS_SECTION ---
-        # In acest set: EXACT 1 item / oras (sau 0 pentru un oras)
-        prof = np.zeros(n, dtype=np.float64)
-        wgt  = np.zeros(n, dtype=np.float64)
-
-        with open(items_csv_path, newline='', encoding='utf-8') as f:
-            rdr = csv.reader(f)
-            rows = [r for r in rdr if len(r) >= 4]
-
-        has_header = expect_headers and rows and (
-            'ASSIGNED' in ''.join(rows[0]).upper()
-            or any(not self._is_number(x) for x in rows[0])
-        )
-        if has_header:
-            header = [c.strip().lower() for c in rows[0]]
-            rows = rows[1:]
-
-            def find_col(*names):
-                for name in names:
-                    if name in header:
-                        return header.index(name)
-                return None
-
-            c_profit = find_col('profit', 'value', 'p')
-            c_weight = find_col('weight', 'w')
-            c_city   = find_col('assigned_node_number', 'city', 'node')
-            if c_profit is None or c_weight is None or c_city is None:
-                # fallback: INDEX, PROFIT, WEIGHT, ASSIGNED_NODE_NUMBER
-                c_profit, c_weight, c_city = 1, 2, 3
-
-            for r in rows:
-                try:
-                    p = float(r[c_profit]); w = float(r[c_weight]); city1 = int(float(r[c_city]))
-                    city = city1 - 1  # IMPORTANT: ASSIGNED_NODE_NUMBER este 1-based -> transformăm în 0-based
-                    if 0 <= city < n:
-                        # Se specifică 1 item/oraș → dacă dubluri, păstrăm cel mai bun în profit/greutate
-                        if w > 0 and (prof[city] == 0 or (p / w) > (prof[city] / max(wgt[city], 1e-12))):
-                            prof[city] = p; wgt[city] = w
-                except:
-                    continue
-        else:
-            # Fallback pozițional: INDEX, PROFIT, WEIGHT, ASSIGNED_NODE_NUMBER
-            for r in rows:
-                try:
-                    p = float(r[1]); w = float(r[2]); city1 = int(float(r[3]))
-                    city = city1 - 1
-                    if 0 <= city < n:
-                        if w > 0 and (prof[city] == 0 or (p / w) > (prof[city] / max(wgt[city], 1e-12))):
-                            prof[city] = p; wgt[city] = w
-                except:
-                    continue
-
-        self.item_profit = prof
-        self.item_weight = wgt
-
-    # utilitar numeric
-    def _is_number(self, x) -> bool:
-        try:
-            float(x); return True
-        except:
-            return False
-
-    # calculeaza distante perechi, aplicand CEIL_2D (rotunjire în sus, nu distanta euclidiana reala)
-    def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
-        n = coords.shape[0]
-        D = np.zeros((n, n), dtype=np.float64)
-        for i in range(n):
-            xi, yi = coords[i]
-            for j in range(i+1, n):
-                xj, yj = coords[j]
-                d = hypot(xi - xj, yi - yj)
-                D[i, j] = D[j, i] = float(ceil(d)) if ceil2d else d
-        return D
-
     # viteza TTP standard (liniara în greutatea curenta)
     @staticmethod
     def _speed_linear(vmax: float, vmin: float, Wmax: float, Wcur: float) -> float:
@@ -247,22 +116,22 @@ class GeneticAOTSP(object):
 
     # Initializare BEAM pentru populatie: scor = profit(next) - λ * travel_time(cur->next)
     # fallback random daca nu atingem targetul
-    def initPopulationBeamTTP(self,
-                              nodes_csv_path: str,
-                              items_csv_path: str,
-                              *,
+    def initPopulationTooComplexToRun( self,
+                        nodes_csv_path: str,
+                        items_csv_path: str,
+                        *,
 
-                              vmax: float = 1.0,
-                              vmin: float = 0.1,
-                              Wmax: float = 25936.0,
+                        vmax: float = 1.0,
+                        vmin: float = 0.1,
+                        Wmax: float = 25936.0,
 
-                              population_target: int | None = None,  # daca None -> 4 * n
-                              beam_width: int = 4,
-                              lambda_time: float = 1.0,
-                              start_city: int | None = None,
-                              seed: int | None = None,
-                              allow_pick_in_start_city: bool = False  # nu se stie daca se poate sau nu
-                              ) -> np.ndarray:
+                        population_target: int | None = None,  # daca None -> 4 * n
+                        beam_width: int = 2,
+                        lambda_time: float = 0.1,
+                        start_city: int | None = None,
+                        seed: int | None = None,
+                        allow_pick_in_start_city: bool = False  # nu se stie daca se poate sau nu
+                        ) -> np.ndarray:
         """
         Genereaza o populatie initiala “inteligenta” cu beam-search:
           - scor(next) = profit[next] - lambda_time * (distance[cur,next] / speed_cur)
@@ -275,14 +144,23 @@ class GeneticAOTSP(object):
         """
         if seed is not None:
             np.random.seed(seed)
+            
 
         # Citeste CSV-urile si pregateste distantele + (profit, weight) pe oras
-        self.load_ttp_csv(nodes_csv_path, items_csv_path, expect_headers=True, use_ceil_2d=True)
+        loader = TTPGenerator(0, 0)
+        loader.load_ttp_csv(nodes_csv_path, items_csv_path)
+
+        # copy into GA instance
+        self.coords       = loader.coords
+        self.distance     = loader.distance
+        self.item_profit  = loader.item_profit
+        self.item_weight  = loader.item_weight
+        GeneticAOTSP.GENOME_LENGTH = self.coords.shape[0]
         n = GeneticAOTSP.GENOME_LENGTH
 
         # Dimensionare implicita populatie -> poate fi si 2*n
         if population_target is None:
-            population_target = max(4 * n, 100)
+            population_target = 2 * n
 
         population: list[np.ndarray] = []
         seen = set()  # pentru a evita rute duplicate (tuple de orase)
@@ -292,7 +170,7 @@ class GeneticAOTSP(object):
             start_candidates = [start_city]
         else:
             # ia 20 start cities random pt diversitate
-            K_starts = 20
+            K_starts = 1
             start_candidates = np.random.choice(n, size=min(K_starts, n), replace=False)
         # Beam-search pe fiecare start pana umplem populatia
         for s in start_candidates:
@@ -330,6 +208,13 @@ class GeneticAOTSP(object):
                     cand = np.where(~visited)[0]
                     if cand.size == 0:
                         continue
+
+                    # --- LIMITAREA COMPLEXITATII ---
+                    # doar cei mai apropiati 2 orase nevizitate (in loc de toate 279)
+                    K = 2
+                    d = self.distance[cur, cand]
+                    order = np.argsort(d)
+                    cand = cand[ order[:K] ]
 
                     # viteza curenta (inainte de a te deplasa catre urmatorul oras)
                     v_cur = GeneticAOTSP._speed_linear(vmax, vmin, Wmax, Wcur)
@@ -379,6 +264,50 @@ class GeneticAOTSP(object):
         # Returnam exact population_target indivizi, ultimul == primul
         return np.stack(population[:population_target], axis=0)
 
+    def initPopulation(self,
+                    nodes_csv_path,
+                    items_csv_path,
+                    *,
+                    population_target=2,
+                    seed=None):
+
+        if seed is not None:
+            np.random.seed(seed)
+
+        # load
+        loader = TTPGenerator(0,0)
+        loader.load_ttp_csv(nodes_csv_path, items_csv_path)
+        self.coords = loader.coords
+        self.distance = loader.distance
+        self.item_profit = loader.item_profit
+        self.item_weight = loader.item_weight
+        n = loader.coords.shape[0]
+        GeneticAOTSP.GENOME_LENGTH = n
+
+        population = []
+
+        starts = np.random.choice(n, size=population_target, replace=False)
+
+        for s in starts:
+            visited = np.zeros(n, dtype=bool)
+            path = [s]
+            visited[s] = True
+            cur = s
+
+            # greedy nearest neighbour full tour
+            for _ in range(n-1):
+                cand = np.where(~visited)[0]
+                j = cand[np.argmin(self.distance[cur, cand])]
+                path.append(j)
+                visited[j] = True
+                cur = j
+
+            # close tour
+            path.append(path[0])
+
+            population.append(path)
+
+        return np.array(population, dtype=np.int32)
     # Completeaza cu rute random (ultimul = primul), daca beam nu atinge targetul
     def _fallback_random_population(self, k: int) -> list[np.ndarray]:
         n = GeneticAOTSP.GENOME_LENGTH

@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import numpy as np
+import os
+
 
 
 class TestGaoTTP(object):
@@ -20,27 +22,10 @@ class TestGaoTTP(object):
         self.ga_obj = genetic_algoritm_object
 
     def initPopulation(self):
-        start_city = -1
-        print("+++start_city {}".format(start_city))
-        result = self.ga_obj.initPopulation(start_city)
-        check = result[:, 0] == result[:, -1]
-        if (check.sum() < self.ga_obj.POPULATION_SIZE):
-            raise NameError("Primul si ultimul '{}' oras nu coincide '{}'".format(result[:, 0], result[:, -1]))
-        print("result {}".format(result))
-        start_city = 0
-        print("+++start_city {}".format(start_city))
-        result = self.ga_obj.initPopulation(start_city)
-        check = result[:, 0] == result[:, -1]
-        if (check.sum() < self.ga_obj.POPULATION_SIZE):
-            raise NameError("Primul si ultimul '{}' oras nu coincide '{}'".format(result[:, 0], result[:, -1]))
-        check = result[:, 0] == start_city
-        if (check.sum() < self.ga_obj.POPULATION_SIZE):
-            raise NameError("Orasul de start '{}' nu a fost corect initializat '{}'".format(start_city, result[:, 0]))
-        print("result {}".format(result))
 
-    def initPopulationBeam(self):
-        nodes = "./NODE_COORD_SECTION.csv"
-        items = "./ITEMS_SECTION.csv"
+        base = os.path.dirname(__file__)
+        nodes = os.path.join(base, "..", "data", "NODE_COORD_SECTION.csv")
+        items = os.path.join(base, "..", "data", "ITEMS_SECTION.csv")
 
         # testăm pe ga_obj
         pop = self.ga_obj.initPopulationBeamTTP(

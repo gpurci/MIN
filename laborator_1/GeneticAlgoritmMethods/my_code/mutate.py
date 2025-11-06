@@ -119,12 +119,12 @@ class Mutate(RootGA):
             similar_locus = np.argwhere(mask).reshape(-1)
             if (similar_locus.shape[0] > 1):
                 similar_locus = similar_locus.reshape(-1)
-                # obtine genele similare
-                similar_genes = parent1[similar_locus]
                 # obtine locusul 1
                 locus1        = np.random.permutation(similar_locus)[0]
                 # obtine locus-urile pentru genele diferite
                 not_similar_locus = np.ones(Mutate.GENOME_LENGTH, dtype=bool)
+                # obtine genele similare
+                similar_genes = parent1[similar_locus]
                 not_similar_locus[similar_genes] = False
                 # obtine o gena de pe locusuri diferite
                 not_similar_locus = np.argwhere(not_similar_locus).reshape(-1)

@@ -6,8 +6,9 @@ from my_code.root_GA import *
 class InitPopulation(RootGA):
     """
     Clasa 'InitPopulation', ofera doar metode pentru a initializa populatia.
-    Functia 'initPopulation' are 1 parametru, population size.
-    Metoda '__config_fn', returneaza functia din configuratie.
+    Functia 'initPopulation' are 1 parametru, numarul populatiei.
+    Metoda '__config_fn', selecteaza functia de initializare.
+    Metoda '__call__', aplica functia de initializare ce a fost selectata in '__config_fn'
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 

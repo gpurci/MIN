@@ -12,7 +12,8 @@ class Fitness(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, metrics):
+        self.metrics = metrics
         self.setConfig(config)
 
     def __call__(self, size):
@@ -30,55 +31,27 @@ class Fitness(RootGA):
         self.__config = config
         self.__config_fn()
 
-    def setTrainData(self, train_ds, ):
-        self.train_ds = train_ds
-
     def fitnessAbstract(self, size):
-        raise NameError("Configuratie gresita pentru functia de 'Fitness'")
+        raise NameError("Lipseste configuratia pentru functia de 'Fitness': config '{}'".format(self.__config))
 
     # TS problem------------------------------
-    def getIndividDistance(self, individ):
-        """Calculul distantei pentru un individ"""
-        distances = self.train_ds[individ[:-1], individ[1:]]
-        distance  = distances.sum()
-        return distance
-
-    def getIndividNumberCities(self, individ):
-        return np.unique(individ[:-1], return_index=False, return_inverse=False, return_counts=False, axis=None).shape[0]
-
-    def getBestNumberCities(self, population):
-        """Calculeaza cel mai mare numar de orase din intreaga populatie"""
-        number_city = self.getNumberCities(population)
-        return number_city.max()
-
-    def getDistances(self, population):
-        """Calculaza distanta pentru fiecare individ din populatiei"""
-        return np.apply_along_axis(self.getIndividDistance,
-                                        axis=1,
-                                        arr=population)
-
-    def getNumberCities(self, population):
-        """Calculeaza numarul de orase pentru fiecare individ din populatie"""
-        return np.apply_along_axis(self.getIndividNumberCities,
-                                        axis=1,
-                                        arr=population)
-
     def fitnessF1score(self, population):
         """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
         population - populatia, vector de indivizi
         """
+        metrics_values = self.metrics(population)
         # calculeaza distanta
-        distances   = self.getDistances(population)
+        distances   = metrics_values["distances"]
         # calculeaza numarul de orase unice
-        number_city = self.getNumberCities(population)
+        number_city = metrics_values["number_city"]
         # normalizeaza intervalul 0...1
-        number_city = self.cityNorm(number_city)
-        distances   = self.distanceNorm(distances)
+        number_city = self.__cityNormTSP(number_city)
+        distances   = self.__distanceNormTSP(distances)
         fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
         return fitness_values
 
-    def distanceNorm(self, distances):
+    def __distanceNormTSP(self, distances):
         mask_not_zero   = (distances!=0)
         valid_distances = distances[mask_not_zero]
         if (valid_distances.shape[0] > 0):
@@ -88,7 +61,7 @@ class Fitness(RootGA):
             distances[:] = 0.1
         return (2*self.__min_distance)/(distances+self.__min_distance)
 
-    def cityNorm(self, number_city):
+    def __cityNormTSP(self, number_city):
         mask_cities = (number_city==Fitness.GENOME_LENGTH)
         return mask_cities.astype(np.float32)
     # TP problem finish

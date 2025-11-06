@@ -33,7 +33,7 @@ class IndividRepair(RootGA):
         self.__config_fn()
 
     def individRepairAbstract(self, size):
-        raise NameError("Configuratie gresita pentru functia de 'IndividRepair'")
+        raise NameError("Lipseste configuratia pentru functia de 'IndividRepair': config '{}'".format(self.__config))
 
     def individRepairNull(self, individ):
         return individ

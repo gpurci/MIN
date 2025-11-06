@@ -12,7 +12,8 @@ class InitPopulation(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, metrics):
+        self.metrics = metrics
         self.setConfig(config)
 
     def __call__(self, size):

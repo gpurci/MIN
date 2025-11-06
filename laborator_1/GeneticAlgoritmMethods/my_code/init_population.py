@@ -31,4 +31,4 @@ class InitPopulation(RootGA):
         self.__config_fn()
 
     def initPopulationAbstract(self, size):
-        raise NameError("Configuratie gresita pentru functia de 'InitPopulation'")
+        raise NameError("Lipseste configuratia pentru functia de 'InitPopulation': config '{}'".format(self.__config))

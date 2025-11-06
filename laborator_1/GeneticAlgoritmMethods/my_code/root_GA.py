@@ -9,13 +9,12 @@ class RootGA(object):
         - initializare variabile generale, pentru rularea algoritmului genetic
         - setare variabile generale
         - scurta descriere
-
     """
     NAME = ""
     # constante pentru setarea algoritmului
     GENERATIONS     = 500 # numarul de generatii
     POPULATION_SIZE = 100 # numarul populatiei
-    GENOME_LENGTH   = 4 # numarul de alele
+    GENOME_LENGTH   = 8 # numarul de alele
     MUTATION_RATE   = 0.01  # threshold-ul pentru a face o mutatie genetica
     CROSSOVER_RATE  = 0.5   # threshold-ul pentru incrucisarea parintilor
     SELECT_RATE     = 0.8   # threshold-ul de selectie, selectare dupa compatibilitate sau dupa probabilitate

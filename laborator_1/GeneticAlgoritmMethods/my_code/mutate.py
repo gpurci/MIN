@@ -10,10 +10,12 @@ class Mutate(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-
     def __init__(self, **config):
         self.__config = config.get("mutate", None)
         self.__config_fn()
+
+    def __call__(self, parent1, parent2, offspring):
+        return self.mutate(parent1, parent2, offspring)
 
     def __config_fn(self):
         self.mutate = self.mutateAbstract
@@ -33,9 +35,10 @@ class Mutate(RootGA):
 
     def setConfig(self, config):
         self.__config = config
+        self.__config_fn()
 
     def mutateAbstract(self, parent1, parent2, offspring):
-        raise NameError("Configuratie gresita pentru functia de 'Mutatie'")
+        raise NameError("Lipseste configuratia pentru functia de 'Mutate': config '{}'".format(self.__config))
 
     def testParentClass(self, parent1, parent2, offspring):
         print("Mutate, testParentClass GENOME_LENGTH :{}".format(Mutate.GENOME_LENGTH))

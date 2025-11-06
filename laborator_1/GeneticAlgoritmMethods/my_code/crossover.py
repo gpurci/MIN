@@ -50,7 +50,6 @@ class Crossover(RootGA):
             diff_locus = diff_locus.reshape(-1)
             diff_locus = np.random.permutation(diff_locus)[:tmp_size]
             offspring[diff_locus] = parent2[diff_locus]
-
         return offspring
 
     def crossoverSplit(self, parent1, parent2):

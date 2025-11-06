@@ -23,6 +23,8 @@ class IndividRepair(RootGA):
         if (self.__config is not None):
             if   (self.__config == "mixt"):
                 self.fn = self.individRepairMixt
+            elif (self.__config == "null"):
+                self.fn = self.individRepairNull
         else:
             pass
 
@@ -32,6 +34,9 @@ class IndividRepair(RootGA):
 
     def individRepairAbstract(self, size):
         raise NameError("Configuratie gresita pentru functia de 'IndividRepair'")
+
+    def individRepairNull(self, individ):
+        return individ
 
     def individRepairMixt(self, individ):# TO DO: aplica shift sau permutare pe secvente mai mici
         """Initializare individ, cu drumuri aleatorii si oras de start

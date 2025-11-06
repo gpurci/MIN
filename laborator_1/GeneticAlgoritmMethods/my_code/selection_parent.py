@@ -2,11 +2,12 @@
 
 import numpy as np
 
-class SelectionParent(RootGA):
+class SelectParent(RootGA):
     """
-    Clasa 'Selection', ofera doar metode pentru a selecta unul din parinti in calitate de parinte 1 si 2
-    Functia 'selectParent' are 2 parametri, fitness_value, fitness_partener.
-    Metoda 'call', returneaza functia din configuratie.
+    Clasa 'SelectParent', ofera doar metode pentru a selecta unul din parinti in calitate de parinte 1 sau 2
+    Functia 'selectParent' nu are parametri.
+    Pentru a folosi aceasta functie este necesar la inceputul fiecarei generatii de apelat functia 'startEpoch', cu parametrul 'fitness_values'.
+    Metoda 'call', aplica functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
@@ -40,7 +41,7 @@ class SelectionParent(RootGA):
             size = fitness_values.shape[0]
             self.fitness_values = np.full(fitness_values.shape[0], 1./size, dtype=np.float32)
 
-    def selectParentAbstract(self, parent1, parent2, offspring):
+    def selectParentAbstract(self):
         raise NameError("Lipseste configuratia pentru functia de 'SelectionParent': config '{}'".format(self.__config))
 
     def selectParentChoice(self):

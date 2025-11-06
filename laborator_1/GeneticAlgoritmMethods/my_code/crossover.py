@@ -61,7 +61,7 @@ class Crossover(RootGA):
         # mosteneste parinte1
         offspring = parent1.copy()
         # selectarea diapazonului de mostenire
-        start, end = np.random.randint(low=1, high=Crossover.GENOME_LENGTH, size=2)
+        start, end = np.random.randint(low=1, high=self.GENOME_LENGTH, size=2)
         # corectie diapazon
         if (start > end): start, end = end, start
         # copierea rutei din cel de al doilea parinte

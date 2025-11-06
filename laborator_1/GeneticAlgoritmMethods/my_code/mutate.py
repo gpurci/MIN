@@ -23,11 +23,11 @@ class Mutate(RootGA):
                 self.mutate = self.testParentClass
             elif (self.__config == "vecin"):
                 # prababilitatea pentru fiecare metoda de mutatie
-                self.p_mut = [1-Mutate.MUTATION_RATE, Mutate.MUTATION_RATE/2, Mutate.MUTATION_RATE/2]
+                self.p_mut = [1-self.MUTATION_RATE, self.MUTATION_RATE/2, self.MUTATION_RATE/2]
                 self.mutate = self.mutateNeighbors
             elif (self.__config == "swap"):
                 # prababilitatea pentru fiecare metoda de mutatie
-                self.p_mut = [1-Mutate.MUTATION_RATE, Mutate.MUTATION_RATE/4, 3*Mutate.MUTATION_RATE/4]
+                self.p_mut = [1-self.MUTATION_RATE, self.MUTATION_RATE/4, 3*self.MUTATION_RATE/4]
                 self.mutate = self.mutateSwap
         else:
             pass
@@ -40,7 +40,7 @@ class Mutate(RootGA):
         raise NameError("Lipseste configuratia pentru functia de 'Mutate': config '{}'".format(self.__config))
 
     def testParentClass(self, parent1, parent2, offspring):
-        print("Mutate, testParentClass GENOME_LENGTH :{}".format(Mutate.GENOME_LENGTH))
+        print("Mutate, testParentClass GENOME_LENGTH :{}".format(self.GENOME_LENGTH))
 
     def mutateNeighbors(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
@@ -50,7 +50,7 @@ class Mutate(RootGA):
         """
         raise NameError("Functia de 'Mutatie', incompleta") # TO DO
         # probabilitatea pentru fiecare metoda de mutatie
-        p = [1-Mutate.MUTATION_RATE, Mutate.MUTATION_RATE/2, Mutate.MUTATION_RATE/2]
+        p = [1-self.MUTATION_RATE, self.MUTATION_RATE/2, self.MUTATION_RATE/2]
         # cond 0 -> nu se aplica operatia de mutatie, descendentul ramane fara modificari
         # cond 1 -> mutatie, metoda vecinul apropiat
         # cond 2 -> mutatie, este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
@@ -66,7 +66,7 @@ class Mutate(RootGA):
             # 4 incrementeaza loc, repeta punctul (2, 3) break
 
             # loc - alela unde va fi aplicata mutatia, cuprinsa intre 1...GENOME_LENGTH-1
-            loc = np.random.randint(low=1, high=Mutate.GENOME_LENGTH, size=None)
+            loc = np.random.randint(low=1, high=self.GENOME_LENGTH, size=None)
             # cond_gene - gena dupa care se va cauta cel mai apropiat vecin
             cond_genes     = individ[[loc-1, loc+1]]
             neighbors_gene = self.getNeighbors(cond_genes)
@@ -85,7 +85,7 @@ class Mutate(RootGA):
                 # obtine genele similare
                 similar_genes = parent1[args_similar]
                 # sterge genele care au fost gasite
-                mask_valid = np.ones(Mutate.GENOME_LENGTH, dtype=bool)
+                mask_valid = np.ones(self.GENOME_LENGTH, dtype=bool)
                 mask_valid[similar_genes] = False
                 # adauga alte gene
                 new_gene = np.argwhere(mask_valid).reshape(-1)
@@ -106,7 +106,7 @@ class Mutate(RootGA):
         # cond 2 -> mutatie, este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
         cond = np.random.choice([0, 1, 2], size=None, p=self.p_mut)# self.p_mut - se calculeaza la configurare in call
         # obtinere locus-urile aleator
-        loc1, loc2 = np.random.randint(low=1, high=Mutate.GENOME_LENGTH, size=2) # GENOME_LENGTH deoarece orasul de start coincide cu orasul de stop
+        loc1, loc2 = np.random.randint(low=1, high=self.GENOME_LENGTH, size=2) # GENOME_LENGTH deoarece orasul de start coincide cu orasul de stop
         # aplica mutatia
         if   (cond == 0):
             pass
@@ -122,7 +122,7 @@ class Mutate(RootGA):
                 # obtine locusul 1
                 locus1        = np.random.permutation(similar_locus)[0]
                 # obtine locus-urile pentru genele diferite
-                not_similar_locus = np.ones(Mutate.GENOME_LENGTH, dtype=bool)
+                not_similar_locus = np.ones(self.GENOME_LENGTH, dtype=bool)
                 # obtine genele similare
                 similar_genes = parent1[similar_locus]
                 not_similar_locus[similar_genes] = False

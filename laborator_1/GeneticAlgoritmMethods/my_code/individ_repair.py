@@ -44,7 +44,7 @@ class IndividRepair(RootGA):
         """
         raise NameError("Functia de 'individRepairMixt', incompleta") # TO DO
         cond = np.random.randint(low=0, high=2, size=None)
-        size_shift = np.random.randint(low=1, high=TSP.GENOME_LENGTH-6, size=None)
+        size_shift = np.random.randint(low=1, high=self.GENOME_LENGTH-6, size=None)
         if (cond == 0):
             individ[1:-1] = np.roll(individ[1:-1], size_shift)
         else:

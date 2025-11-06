@@ -3,7 +3,7 @@
 import numpy as np
 from my_code.root_GA import *
 
-class Metrics(object):
+class Metrics(RootGA):
     """
     Clasa 'Metrics', ofera doar metode pentru a calcula metrici pentru clase de probleme de optimizare.
     Functia 'metrics' are 1 parametru, populatia.
@@ -11,7 +11,7 @@ class Metrics(object):
     Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-
+    # TO DO: sincronizare 'GENOME_LENGTH' cu celelalte clase!!!!!!
     def __init__(self, config):
         self.setConfig(config)
 
@@ -30,9 +30,13 @@ class Metrics(object):
         self.__config = config
         self.__config_fn()
 
-    def setTrainData(self, train_ds):
+    def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__config))
-        self.train_ds = train_ds
+        # TO DO: seteaza 'GENOME_LENGTH'
+        self.dataset = dataset
+
+    def getDataset(self):
+        return self.dataset
 
     def metricsAbstract(self, population):
         raise NameError("Lipseste configuratia pentru functia de 'Metrics': config '{}'".format(self.__config))
@@ -40,7 +44,7 @@ class Metrics(object):
     # TS problem------------------------------
     def __getIndividDistance(self, individ):
         """Calculul distantei pentru un individ"""
-        distances = self.train_ds[individ[:-1], individ[1:]]
+        distances = self.dataset[individ[:-1], individ[1:]]
         distance  = distances.sum()
         return distance
 

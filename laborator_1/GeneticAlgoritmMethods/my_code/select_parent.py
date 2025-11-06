@@ -72,6 +72,6 @@ class SelectParent(RootGA):
             - unde valoarea fitness este probabilitatea de a fi ales
         """
         # selectie dupa compatibilitate, turneu
-        args_k_tour = np.random.randint(low=0, high=Selection.POPULATION_SIZE, size=7)
+        args_k_tour = np.random.randint(low=0, high=self.POPULATION_SIZE, size=7)
         arg         = np.argmax(self.fitness_values[args_k_tour])
         return args_k_tour[arg]

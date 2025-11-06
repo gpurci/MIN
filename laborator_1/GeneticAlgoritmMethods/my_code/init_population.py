@@ -12,16 +12,22 @@ class InitPopulation(RootGA):
     """
 
     def __init__(self, config):
-        self.__config = config.get("init_population", None)
-        self.__config_fn()
+        self.setConfig(config)
+
+    def __call__(self, size):
+        return self.fn(size)
 
     def __config_fn(self):
-        self.initPopulation = self.initPopulationAbstract
+        self.fn = self.initPopulationAbstract
         if (self.__config is not None):
             if   (self.__config == "test"):
-                self.initPopulation = self.testParentClass
+                self.fn = self.testParentClass
         else:
-            pass
+            pas
+
+    def setConfig(self, config):
+        self.__config = config
+        self.__config_fn()
 
     def initPopulationAbstract(self, size):
         raise NameError("Configuratie gresita pentru functia de 'InitPopulation'")

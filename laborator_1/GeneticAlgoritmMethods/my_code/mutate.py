@@ -10,9 +10,8 @@ class Mutate(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, **config):
-        self.__config = config.get("mutate", None)
-        self.__config_fn()
+    def __init__(self, config):
+        self.setConfig(config)
 
     def __call__(self, parent1, parent2, offspring):
         return self.mutate(parent1, parent2, offspring)

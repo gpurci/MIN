@@ -12,8 +12,8 @@ class TestMutate(Mutate, TestRootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, **config):
-        super().__init__(**config)
+    def __init__(self, config):
+        super().__init__(config)
 
     def test(self, config):
         self.setParameters(

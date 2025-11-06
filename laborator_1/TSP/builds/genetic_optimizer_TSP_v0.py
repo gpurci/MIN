@@ -7,6 +7,7 @@ class TSP(RootGA, InitPopulation, Selection, Mutate, Crossover):
     def __init__(self, name="", **configs):
         super().__init__(name)
         Mutate.__init__(**configs)
+        
         self.__distance_evolution = np.zeros(5, dtype=np.float32)
         self.__prev_best    = 0
         self.__min_distance = 0

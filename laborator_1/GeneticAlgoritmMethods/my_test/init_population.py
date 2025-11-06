@@ -11,13 +11,8 @@ class InitPopulation(RootGA):
     """
 
     def __init__(self, config):
-        self.__config = config
+        super().__init__(config)
 
-    def __call__(self):
-        fn = self.initPopulationAbstract
-        if (self.__config == ""):
-            fn = self.mutate
-        return fn
-
-    def initPopulationAbstract(self, parent1, parent2, offspring):
-        raise NameError("Configuratie gresita pentru functia de 'InitPopulation'")
+    def test(self, config):
+        pass
+        # test implementation

@@ -42,3 +42,19 @@ class RootGA(object):
         RootGA.SELECT_RATE     = kw.get("SELECT_RATE", RootGA.SELECT_RATE)
         RootGA.GENERATIONS     = kw.get("GENERATIONS", RootGA.GENERATIONS)
         RootGA.ELITE_SIZE      = kw.get("ELITE_SIZE",  RootGA.ELITE_SIZE)
+
+    def getArgWeaks(self, fitness_values, size):
+        """Returneaza pozitiile 'size' cu cele mai mici valori, ale fitnesului
+        fitness_values - valorile fitness a populatiei
+        size           - numarul de argumente cu cei mai buni indivizi
+        """
+        args = np.argpartition(fitness_values, size)
+        return args[:size]
+
+    def getArgElite(self, fitness_values):
+        """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
+        fitness_values - valorile fitness a populatiei
+        """
+        args = np.argpartition(fitness_values,-RootGA.ELITE_SIZE)
+        args = args[-RootGA.ELITE_SIZE:]
+        return args

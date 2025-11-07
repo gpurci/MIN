@@ -104,7 +104,7 @@ class InitPopulation(RootGA):
             cand = np.where(~visited)[0]
 
             # viteza actuala in functie de cat ai incarcat rucsacul
-            v_cur = self._computeSpeed(Wcur, vmax, vmin, Wmax)
+            v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
 
             # calculeaza durata de calatorie la fiecare oras candidat
             dist  = self.distance[cur, cand]
@@ -144,7 +144,7 @@ class InitPopulation(RootGA):
         si se opreste la PRIMA imbunatatire gasita.
         """
         best = route.copy()
-        best_dist = self.___getIndividDistanceTTP(best)
+        best_dist = self.metrics.getIndividDistance(best, self.distance)
         n = len(route) - 1
 
         for i in range(1, n-2):
@@ -152,23 +152,8 @@ class InitPopulation(RootGA):
                 new_route = best.copy()
                 new_route[i:k] = best[k-1:i-1:-1]
 
-                d = self.___getIndividDistanceTTP(new_route)
+                d = self.metrics.getIndividDistance(new_route, self.distance)
                 if d < best_dist:
                     return new_route     # improvement found — imediat return!
 
         return best                     # nici o imbunatatire gasita
-    
-    # calculeaza viteza TTP in functie de weight
-    def _computeSpeed(self, Wcur, vmax, vmin, Wmax):
-        frac = min(1.0, Wcur/Wmax)
-        v = vmax - frac*(vmax-vmin)   # formula TTP standard
-        if v < 1e-9:
-            v = 1e-9
-        return v
-    
-    # calculeaza lungimea rutei (in TTP)
-    def ___getIndividDistanceTTP(self, individ):
-        """Calculul distantei rutelor"""
-        distances = self.distance[individ[:-1], individ[1:]]
-        distance = distances.sum() + self.distance[individ[-1], individ[0]]
-        return distance

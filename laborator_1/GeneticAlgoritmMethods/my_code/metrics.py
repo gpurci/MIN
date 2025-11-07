@@ -33,8 +33,13 @@ class Metrics(RootGA):
 
     def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__config))
+        # pentru TSP — dataset trebuie sa fie matricea de distante NxN
         # TO DO: seteaza 'GENOME_LENGTH'
-        self.dataset = dataset
+        self.dataset = dataset["distance"]
+        # salvam si profit/weight pentru TP (nu folosite in metricsTSP)
+        self.item_profit = dataset.get("item_profit", None)
+        self.item_weight = dataset.get("item_weight", None)
+        self.GENOME_LENGTH = self.dataset.shape[0]
 
     def getDataset(self):
         return self.dataset
@@ -75,9 +80,9 @@ class Metrics(RootGA):
         number_city = self.__getNumberCities(population)
         metrics_values = {"distances": distances, "number_city":number_city}
         return metrics_values
-    # TP problem finish =================================
+    # TSP problem finish =================================
 
-    # TP problem metrics =========================
+    # TTP problem metrics =========================
     def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
         n = coords.shape[0]
         D = np.zeros((n, n), dtype=np.float64)
@@ -88,3 +93,20 @@ class Metrics(RootGA):
                 d = hypot(xi - xj, yi - yj)
                 D[i, j] = D[j, i] = float(ceil(d)) if ceil2d else d
         return D
+    
+    def computeSpeedTTP(self, Wcur, vmax, vmin, Wmax):
+        """
+        viteza curenta in functie de weight (formula TTP)
+        """
+        frac = min(1.0, Wcur/Wmax)
+        v = vmax - frac*(vmax-vmin)
+        return v if v > 1e-9 else 1e-9
+
+    def getIndividDistanceTTP(self, individ, distance_matrix=None):
+        """
+        distanta rutelor TTP (daca inchizi ruta)
+        use: metrics.getIndividDistanceTTP(individ)
+        """
+        D = distance_matrix if distance_matrix is not None else self.dataset
+        distances = D[individ[:-1], individ[1:]]
+        return distances.sum() + D[individ[-1], individ[0]]

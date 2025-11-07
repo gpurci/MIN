@@ -30,3 +30,20 @@ class TestCrossover(Crossover, TestRootGA):
                 print("Operatia de incrucisare a fost aplicata: {}".format(tmp_cmp))
             else:
                 print("Operatia de incrucisare 'lipseste'")
+
+        # TEST: first and last gene must remain same as parent1
+        print("\nStart/End preservation check:")
+        for _ in range(5):
+            off = self(parent1, parent2)
+            if off[0] != parent1[0] or off[-1] != parent1[-1]:
+                print("ERROR start/end changed!!  -> ", off)
+            else:
+                print("OK ", off[0], off[-1])
+
+        # TEST: also run split config
+        print("\nTesting SPLIT crossover:")
+        self.setConfig("split")
+        for _ in range(5):
+            off = self(parent1, parent2)
+            print("offspring_split = ", off)
+

@@ -10,12 +10,13 @@ class RootGA(object):
         - setare variabile generale
         - scurta descriere
     """
+    GENOME_LENGTH = 8
+    POPULATION_SIZE = 100 # numarul populatiei
+
     def __init__(self, name=""):
         self.NAME = name
         # constante pentru setarea algoritmului
         self.GENERATIONS     = 500 # numarul de generatii
-        self.POPULATION_SIZE = 100 # numarul populatiei
-        self.GENOME_LENGTH   = 8 # numarul de alele
         self.MUTATION_RATE   = 0.01  # threshold-ul pentru a face o mutatie genetica
         self.CROSSOVER_RATE  = 0.5   # threshold-ul pentru incrucisarea parintilor
         self.SELECT_RATE     = 0.8   # threshold-ul de selectie, selectare dupa compatibilitate sau dupa probabilitate

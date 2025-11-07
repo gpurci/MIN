@@ -2,6 +2,7 @@
 
 import numpy as np
 from my_code.root_GA import *
+from math import hypot, ceil
 
 class Metrics(RootGA):
     """
@@ -24,7 +25,7 @@ class Metrics(RootGA):
             if   (self.__config == "tsp"):
                 self.fn = self.metricsTSP
         else:
-            pas
+            pass
 
     def setConfig(self, config):
         self.__config = config
@@ -75,3 +76,15 @@ class Metrics(RootGA):
         metrics_values = {"distances": distances, "number_city":number_city}
         return metrics_values
     # TP problem finish =================================
+
+    # TP problem metrics =========================
+    def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
+        n = coords.shape[0]
+        D = np.zeros((n, n), dtype=np.float64)
+        for i in range(n):
+            xi, yi = coords[i]
+            for j in range(i+1, n):
+                xj, yj = coords[j]
+                d = hypot(xi - xj, yi - yj)
+                D[i, j] = D[j, i] = float(ceil(d)) if ceil2d else d
+        return D

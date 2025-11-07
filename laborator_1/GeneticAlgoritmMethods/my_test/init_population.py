@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import numpy as np
+from my_test.root_GA import *
+
 
 class InitPopulation(RootGA):
     """

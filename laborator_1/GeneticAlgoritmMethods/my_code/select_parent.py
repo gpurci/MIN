@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
+from my_code.root_GA import *
 
 class SelectParent(RootGA):
     """

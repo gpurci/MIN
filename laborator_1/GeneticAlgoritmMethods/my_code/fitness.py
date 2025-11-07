@@ -25,7 +25,7 @@ class Fitness(RootGA):
             if   (self.__config == "f1score"):
                 self.fn = self.fitnessF1score
         else:
-            pas
+            pass
 
     def setConfig(self, config):
         self.__config = config

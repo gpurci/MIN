@@ -1,4 +1,4 @@
-z#!/usr/bin/python
+#!/usr/bin/python
 
 import numpy as np
 

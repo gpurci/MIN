@@ -45,9 +45,6 @@ class Metrics(RootGA):
     def getDataset(self):
         return self.dataset
 
-    def getMetrics(self):
-        return self.metrics_values
-
     def getArgBest(self, fitness_values):
         """Cautarea rutei optime din populatie"""
         index = np.argmax(fitness_values, axis=None, keepdims=False)
@@ -90,16 +87,17 @@ class Metrics(RootGA):
         distances   = self.__getDistances(population)
         # calculeaza numarul de orase unice
         number_city = self.__getNumberCities(population)
-        self.metrics_values = {"distances": distances, "number_city":number_city}
-        return self.metrics_values
+        metric_values = {"distances": distances, "number_city":number_city}
+        return metric_values
 
     def getScoreTSP(self, population, fitness_values):
         # obtinerea celui mai bun individ
         arg_best = self.getArgBest(fitness_values)
         individ  = population[arg_best]
+        best_fitness = fitness_values[arg_best]
         self.__best_individ = individ
         score = self.__getIndividDistance(individ)
-        return {"score": score}
+        return {"score": score, "best_fitness": best_fitness}
 
     # TSP problem finish =================================
 

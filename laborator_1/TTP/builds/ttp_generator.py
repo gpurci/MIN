@@ -17,12 +17,7 @@ class TTPGenerator(object):
             self.coord = np.random.randint(low=0, high=self.max_distance, size=(self.nbr_city, 2))
 
     def __call__(self):
-        map_of_distance = []
-        for point in self.coord:
-            tmp_distance = np.linalg.norm(self.coord - point, axis=1)
-            #print(tmp_distance)
-            map_of_distance.append(tmp_distance)
-        return np.array(map_of_distance)
+        return {"distance":self.distance, }
 
     def __put_points(self, map):
         for x, y in self.coord:
@@ -50,7 +45,7 @@ class TTPGenerator(object):
         coords = df_nodes[["X","Y"]].to_numpy(dtype=float)
 
         n = coords.shape[0]
-        distance = self._pairwise_distance(coords, ceil2d=True)
+        distance = self._pairwise_distance(ceil2d=True)
 
         df_items = pd.read_csv(items_csv_path, sep="\t")
         prof = np.zeros(n, dtype=float)
@@ -75,13 +70,13 @@ class TTPGenerator(object):
             return False
 
     # calculeaza distante perechi, aplicand CEIL_2D (rotunjire în sus, nu distanta euclidiana reala)
-    def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
-        n = coords.shape[0]
-        D = np.zeros((n, n), dtype=np.float64)
-        for i in range(n):
-            xi, yi = coords[i]
-            for j in range(i+1, n):
-                xj, yj = coords[j]
-                d = hypot(xi - xj, yi - yj)
-                D[i, j] = D[j, i] = float(ceil(d)) if ceil2d else d
-        return D
+    def _pairwise_distance(self, is_ceil2d: bool = True) -> np.ndarray:
+        map_of_distance = []
+        for point in self.coord:
+            tmp_distance = np.linalg.norm(self.coord - point, axis=1)
+            #print(tmp_distance)
+            map_of_distance.append(tmp_distance)
+        map_of_distance = np.array(map_of_distance)
+        if (is_ceil2d):
+            map_of_distance = np.round(map_of_distance, 0)
+        return map_of_distance

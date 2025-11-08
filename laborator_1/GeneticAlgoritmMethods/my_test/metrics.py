@@ -6,6 +6,8 @@ class TestMetrics(Metrics):
 
     def __init__(self, **conf):
         # config must be "tsp" to activate metricsTSP
+        # este test general trebuie de specificat metodele separat 
+        # sau de creat functii separate care testeaza fiecare functional
         super().__init__("tsp")
 
     def test(self):

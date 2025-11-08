@@ -33,16 +33,21 @@ class Metrics(RootGA):
 
     def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__config))
-        # pentru TSP — dataset trebuie sa fie matricea de distante NxN
-        # TO DO: seteaza 'GENOME_LENGTH'
-        self.dataset = dataset["distance"]
-        # salvam si profit/weight pentru TP (nu folosite in metricsTSP)
-        self.item_profit = dataset.get("item_profit", None)
-        self.item_weight = dataset.get("item_weight", None)
-        self.GENOME_LENGTH = self.dataset.shape[0]
+        self.dataset = dataset
+        size = self.dataset["distance"].shape[0]
+        self.setGenomeLength(size)
+
+    def setGenomeLength(self, size):
+        self.GENOME_LENGTH = size
+
+    def getGenomeLength(self):
+        return self.GENOME_LENGTH
 
     def getDataset(self):
         return self.dataset
+
+    def getMetrics(self):
+        return self.metrics_values
 
     def metricsAbstract(self, population):
         raise NameError("Lipseste configuratia pentru functia de 'Metrics': config '{}'".format(self.__config))
@@ -78,11 +83,11 @@ class Metrics(RootGA):
         distances   = self.__getDistances(population)
         # calculeaza numarul de orase unice
         number_city = self.__getNumberCities(population)
-        metrics_values = {"distances": distances, "number_city":number_city}
-        return metrics_values
-    # TSP problem finish =================================
+        self.metrics_values = {"distances": distances, "number_city":number_city}
+        return self.metrics_values
+    # TSP problem finish ================================= # indica sfarsit
 
-    # TTP problem metrics =========================
+    # TTP problem metrics --------------------- # indica start
     def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
         n = coords.shape[0]
         D = np.zeros((n, n), dtype=np.float64)
@@ -110,3 +115,4 @@ class Metrics(RootGA):
         D = distance_matrix if distance_matrix is not None else self.dataset
         distances = D[individ[:-1], individ[1:]]
         return distances.sum() + D[individ[-1], individ[0]]
+    # TTP problem finish ================================= # indica sfarsit

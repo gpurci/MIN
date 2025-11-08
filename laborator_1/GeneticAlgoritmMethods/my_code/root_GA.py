@@ -10,13 +10,12 @@ class RootGA(object):
         - setare variabile generale
         - scurta descriere
     """
-    GENOME_LENGTH = 8
-    POPULATION_SIZE = 100 # numarul populatiei
-
     def __init__(self, name=""):
         self.NAME = name
         # constante pentru setarea algoritmului
         self.GENERATIONS     = 500 # numarul de generatii
+        self.POPULATION_SIZE = 100 # numarul populatiei
+        self.GENOME_LENGTH   = 8 # numarul de alele
         self.MUTATION_RATE   = 0.01  # threshold-ul pentru a face o mutatie genetica
         self.CROSSOVER_RATE  = 0.5   # threshold-ul pentru incrucisarea parintilor
         self.SELECT_RATE     = 0.8   # threshold-ul de selectie, selectare dupa compatibilitate sau dupa probabilitate
@@ -43,18 +42,3 @@ class RootGA(object):
         self.GENERATIONS     = kw.get("GENERATIONS", self.GENERATIONS)
         self.ELITE_SIZE      = kw.get("ELITE_SIZE",  self.ELITE_SIZE)
 
-    def getArgWeaks(self, fitness_values, size):
-        """Returneaza pozitiile 'size' cu cele mai mici valori, ale fitnesului
-        fitness_values - valorile fitness a populatiei
-        size           - numarul de argumente cu cei mai buni indivizi
-        """
-        args = np.argpartition(fitness_values, size)
-        return args[:size]
-
-    def getArgElite(self, fitness_values):
-        """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
-        fitness_values - valorile fitness a populatiei
-        """
-        args = np.argpartition(fitness_values,-self.ELITE_SIZE)
-        args = args[-self.ELITE_SIZE:]
-        return args

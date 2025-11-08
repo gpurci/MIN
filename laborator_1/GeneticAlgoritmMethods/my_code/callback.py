@@ -13,6 +13,7 @@ class Callback(object):
 
     def __call__(self, epoch, logs):
         # valorile de pe 'key' trebuie sa fie liste sau vector
+        logs["epoch"] = epoch
         for key in logs.keys():
             val = [logs[key]]
             logs[key] = val

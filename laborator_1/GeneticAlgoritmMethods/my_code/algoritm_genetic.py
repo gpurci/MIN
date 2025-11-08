@@ -1,38 +1,150 @@
 #!/usr/bin/python
 
 import numpy as np
+from root_GA import *
 
-class GeneticAlgorithm(object):
+class GeneticAlgorithm(RootGA):
     """
-
+    Managerul de configuratie al algoritmului genetic,
     """
-
-    def __init__(self, name=""):
+    def __init__(self, name="", **configs):
         super().__init__(name)
+        self.__configs = configs
+        self.__setConfig(**configs)
+        self.__sincronize()
+        self.__score_evolution = np.zeros(5, dtype=np.float32)
 
-    def __call__(self):
-        """
-        Populatia este compusa din indivizi ce au un fitnes mai slab si elita care are cel mai mare fitness.
-        Indivizii sunt compusi din alele, (o alela este un numar intreg 0..GENOME_LENGTH)
-        Numarul de alele este GENOME_LENGTH + 1
-        Numarul populatiei totale este 'POPULATION_SIZE', numarul elitei este 'ELITE_SIZE'.
-        Indivizii care alcatuiesc elita sunt pusi in coada populatiei, pentru a face posibil ca unii indivizi din elita sa se incruciseze si cu indivizi din populatia obisnuita.
-        Indivizii care fac parte din elita pot avea un numar mai mare de parteneri, dar un numar mic de copii pentru a evita cazuri de minim local.
-        Indivizii din populatia simpla au numar mai mic de parteneri dar un numar mai mare de copii, pentru a diversifica populatia.
-        map_distances - distanta dintre orase
-        population    - populatia lista de indivizi
-        """
-        raise NameError("Nu este implementat corpul agoritmului genetic")
+    def __str__(self):
+        str_info = str(super())
+        str_info += "\nConfigs:"
+        for key in self.__configs.keys():
+            str_info += "\n\t{}: {}".format(key, self.__configs[key])
+        str_info += "\n"
+        return str_info
 
-    def evolutionMonitor(self, best_distance):
+    def __call__(self, population):
+        """
+        Manager pentru a face sincronizarea dintre toate functionalele
+        """
+        # initiaizarea populatiei
+        if (population is None):
+            population = self.initPopulation(self.POPULATION_SIZE)
+        # init fitness value
+        fitness_values = self.fitness(population)
+        # obtinerea pozitiei pentru elite
+        args_elite = self.getArgsElite(fitness_values)
+
+        # evolutia generatiilor
+        for generation in range(self.GENERATIONS):
+            # nasterea unei noi generatii
+            new_population = []
+            # start selectie populatie
+            self.selectParent1.startEpoch(fitness_values)
+            self.selectParent2.startEpoch(fitness_values)
+            for _ in range(self.POPULATION_SIZE):
+                # selectarea positia parinte 1
+                arg_parent1 = self.selectParent1()
+                # selectarea positia parinte 1
+                arg_parent2 = self.selectParent2()
+                # obtinerea parintilor
+                parent1 = population[arg_parent1]
+                parent2 = population[arg_parent2]
+                # incrucisarea parintilor
+                offspring = self.crossover(parent1, parent2)
+                # mutatii
+                offspring = self.mutate(parent1, parent2, offspring) # in_place operation
+                # adauga urmasii la noua generatie
+                new_population.append(offspring)
+            # obtinerea indivizilor ce fac parte din elita
+            elite_individs = population[args_elite]
+            # schimbarea generatiei
+            population = np.array(new_population)
+            # adaugare elita in noua populatie
+            self.setElites(population, elite_individs)
+            # calculare fitness
+            fitness_values = self.fitness(population)
+            # obtinerea pozitiei pentru elite
+            args_elite     = self.getArgsElite(fitness_values)
+            # calculare metrici
+            metrics_values = self.metrics.getMetrics()
+            #self.evolutionMonitor(metrics_values)
+            #self.log(population, fitness_values, args_elite, elite_individs, best_distance)
+            # adaugare stres in populatie atunci cand lipseste progresul
+            #fitness_values = self.stres(population, fitness_values, best_individ, best_distance)
+            # afisare metrici
+            self.showMetrics(generation, metrics_values)
+            # salveaza istoricul
+            self.callback(generation, metrics_values)
+
+        return best_individ, population
+
+    def __setConfig(self, **configs):
+        # configurare metrici
+        config       = configs.get("metric", None)
+        self.metrics = Metrics(config)
+        # configurare initializare populatie
+        config       = configs.get("init_population", None)
+        self.initPopulation = InitPopulation(config, self.metrics)
+        # configurare fitness
+        config       = configs.get("fitness", None)
+        self.fitness = Fitness(config, self.metrics)
+        # configurate selectie parinti
+        config       = configs.get("select_parent", None)
+        conf_select1 = config.get("select_parent1", None)
+        self.selectParent1 = SelectParent(conf_select1)
+        conf_select2 = config.get("select_parent2", None)
+        self.selectParent2 = SelectParent(conf_select2)
+        # configurare incrucisare
+        config       = configs.get("crossover", None)
+        self.crossover = Crossover(config)
+        # configurare mutatie
+        config       = configs.get("mutate", None)
+        self.mutate  = Mutate(config)
+        # configurare reparatie individ, repara individ atunci cand nu este progres, o operatie de mutatie pe mai multe gene
+        config       = configs.get("repair", None)
+        self.individRepair = IndividRepair(config)
+        # configurare callback salvare, istoricul de antrenare
+        filename     = configs.get("callback", None)
+        self.callback = Callback(filename)
+
+    def help(self):
+        info = """
+        metric
+        """
+        print(info)
+
+    def __sincronize(self):
+        # sincronizeaza 'GENOME_LENGTH'
+        self.setParameters(GENOME_LENGTH=self.metrics.getGenomeLength())
+
+    def setDataset(self, dataset):
+        self.metrics.setDataset(dataset)
+
+    def setParameters(self, **kw):
+        self.metrics.setParameters(**kw)
+        self.initPopulation.setParameters(**kw)
+        self.fitness.setParameters(**kw)
+        self.selectParent1.setParameters(**kw)
+        self.selectParent2.setParameters(**kw)
+        self.crossover.setParameters(**kw)
+        self.mutate.setParameters(**kw)
+        self.individRepair.setParameters(**kw)
+
+    def evolutionMonitor(self, best_score):
         """
         Monitorizarea evolutiei de invatare: datele sunt pastrate intr-un vector
-        best_distance - cea mai buna distanta
+        best_score - cel mai bun scor
         """
-        raise NameError("Nu este implementata 'evolutionMonitor'")
+        self.__score_evolution[:-1] = self.__score_evolution[1:]
+        self.__score_evolution[-1]  = best_score
 
     def setElites(self, population, elites):
-        raise NameError("Nu este implementata 'setElites'")
+        if (population is None):
+            population = self.initPopulation(self.POPULATION_SIZE)
+        fitness_values = self.fitness(population)
+        args = self.getArgsWeaks(fitness_values, elites.shape[0])
+        population[args] = elites
+        return population
 
     def clcMetrics(self, population, fitness_values):
         """
@@ -52,51 +164,13 @@ class GeneticAlgorithm(object):
             metric_info + ="{}: {},".format(key, val)
         print(metric_info)
 
-    def findSimilarIndivids(self, population, individ, tolerance):
-        """
-        Cauta indivizi din intreaga populatie ce are codul genetic identic cu un individ,
-        population - lista de indivizi
-        individ    - vector compus din codul genetic
-        tolerance  - cate gene pot fi diferite
-        """
-        tmp = (population==individ).sum(axis=1)
-        return np.argwhere(tmp>=tolerance)
-
-    def similarIndivids(self, population):
-        """
-        Returneaza un vector de flaguri pentru fiecare individ din populatie daca este gasit codul genetic si la alti indivizi
-        population - lista de indivizi
-        """
-        # initializare vector de flaguri pentru fiecare individ
-        similar_args_flag = np.zeros(self.POPULATION_SIZE, dtype=bool)
-        # setare toleranta, numarul total de gene
-        tolerance = self.GENOME_LENGTH
-        # 
-        for i in range(self.POPULATION_SIZE-1, -1, -1):
-            if (similar_args_flag[i]):
-                pass
-            else:
-                individ = population[i]
-                similar_args = self.findSimilarIndivids(population, individ, tolerance)
-                #print("similar_args", similar_args)
-                similar_args_flag[similar_args] = True
-                similar_args_flag[i] = False # scoate flagul de pe individul care este copiat
-        return similar_args_flag
-
-    def permuteSimilarIndivids(self, population):
-        """
-        Returneaza un vector de flaguri pentru fiecare individ din populatie daca este gasit codul genetic si la alti indivizi
-        population - lista de indivizi
-        """
-        raise NameError("Nu este implementata functia 'permuteSimilarIndivids'!!!")
-
-    def stres(self, population, fitness_values, best_individ, best_distance):
+    def stres(self, population, fitness_values, best_individ, best_score):
         """Aplica stres asupra populatiei.
         Functia de stres, se aplica atunci cand ajungem intr-un minim local,
         cauta cele mai frecvente secvente de genom si aplica un stres modifica acele zone
-        population    - populatia
-        best_individ  - individul cu cel mai bun fitness
-        best_distance - cea mai buna distanta
+        population   - populatia
+        best_individ - individul cu cel mai bun fitness
+        best_score   - cea mai buna distanta
         """
         raise NameError("Nu este implementata functia 'permuteSimilarIndivids'!!!")
 
@@ -105,15 +179,7 @@ class GeneticAlgorithm(object):
         index = np.argmax(fitness_values, axis=None, keepdims=False)
         return index
 
-    def getArgBestChild(self, fitness_values, size):
-        """Returneaza pozitiile 'size' cu cele mai mari valori, ale fitnesului
-        fitness_values - valorile fitness pentru un copil
-        size           - numarul de argumente cu cei mai buni copii
-        """
-        args = np.argpartition(fitness_values,-size)
-        return args[-size:]
-
-    def getArgWeaks(self, fitness_values, size):
+    def getArgsWeaks(self, fitness_values, size):
         """Returneaza pozitiile 'size' cu cele mai mici valori, ale fitnesului
         fitness_values - valorile fitness a populatiei
         size           - numarul de argumente cu cei mai buni indivizi
@@ -121,7 +187,7 @@ class GeneticAlgorithm(object):
         args = np.argpartition(fitness_values, size)
         return args[:size]
 
-    def getArgElite(self, fitness_values):
+    def getArgsElite(self, fitness_values):
         """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
         fitness_values - valorile fitness a populatiei
         """

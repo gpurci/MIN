@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
+from root_GA import *
 from math import hypot, ceil
 
 class Metrics(RootGA):
@@ -14,16 +14,23 @@ class Metrics(RootGA):
     """
     # TO DO: sincronizare 'GENOME_LENGTH' cu celelalte clase!!!!!!
     def __init__(self, config):
+        super().__init__()
         self.setConfig(config)
 
     def __call__(self, population):
         return self.fn(population)
 
+    def help(self):
+        info = """Metrics: 
+        metode de config: 'TSP'\n"""
+        return info
+
     def __config_fn(self):
         self.fn = self.metricsAbstract
         if (self.__config is not None):
-            if   (self.__config == "tsp"):
+            if   (self.__config == "TSP"):
                 self.fn = self.metricsTSP
+                self.getScore = self.getScoreTSP
         else:
             pass
 
@@ -34,20 +41,17 @@ class Metrics(RootGA):
     def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__config))
         self.dataset = dataset
-        size = self.dataset["distance"].shape[0]
-        self.setGenomeLength(size)
-
-    def setGenomeLength(self, size):
-        self.GENOME_LENGTH = size
-
-    def getGenomeLength(self):
-        return self.GENOME_LENGTH
 
     def getDataset(self):
         return self.dataset
 
     def getMetrics(self):
         return self.metrics_values
+
+    def getArgBest(self, fitness_values):
+        """Cautarea rutei optime din populatie"""
+        index = np.argmax(fitness_values, axis=None, keepdims=False)
+        return index
 
     def metricsAbstract(self, population):
         raise NameError("Lipseste configuratia pentru functia de 'Metrics': config '{}'".format(self.__config))
@@ -56,7 +60,7 @@ class Metrics(RootGA):
     def __getIndividDistance(self, individ):
         """Calculul distantei pentru un individ"""
         distances = self.dataset[individ[:-1], individ[1:]]
-        distance  = distances.sum()
+        distance  = distances.sum() + self.dataset[individ[-1], individ[0]]
         return distance
 
     def __getIndividNumberCities(self, individ):
@@ -85,9 +89,17 @@ class Metrics(RootGA):
         number_city = self.__getNumberCities(population)
         self.metrics_values = {"distances": distances, "number_city":number_city}
         return self.metrics_values
-    # TSP problem finish ================================= # indica sfarsit
 
-    # TTP problem metrics --------------------- # indica start
+    def getScoreTSP(self, population, fitness_values):
+        # obtinerea celui mai bun individ
+        arg_best = self.getArgBest(fitness_values)
+        individ  = population[arg_best]
+        score = self.__getIndividDistance(individ)
+        return {"score": score}
+
+    # TSP problem finish =================================
+
+    # TTP problem metrics ---------------------
     def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
         n = coords.shape[0]
         D = np.zeros((n, n), dtype=np.float64)
@@ -115,4 +127,4 @@ class Metrics(RootGA):
         D = distance_matrix if distance_matrix is not None else self.dataset
         distances = D[individ[:-1], individ[1:]]
         return distances.sum() + D[individ[-1], individ[0]]
-    # TTP problem finish ================================= # indica sfarsit
+    # TTP problem finish =================================

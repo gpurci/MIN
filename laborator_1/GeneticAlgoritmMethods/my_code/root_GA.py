@@ -10,8 +10,7 @@ class RootGA(object):
         - setare variabile generale
         - scurta descriere
     """
-    def __init__(self, name=""):
-        self.NAME = name
+    def __init__(self):
         # constante pentru setarea algoritmului
         self.GENERATIONS     = 500 # numarul de generatii
         self.POPULATION_SIZE = 100 # numarul populatiei
@@ -21,21 +20,21 @@ class RootGA(object):
         self.SELECT_RATE     = 0.8   # threshold-ul de selectie, selectare dupa compatibilitate sau dupa probabilitate
         self.ELITE_SIZE      = 5     # salveaza pentru urmatoarea generatie numarul de indivizi, cu cel mai mare scor
 
-
     def __str__(self):
-        info = """name: {}
+        info = """
     GENERATIONS     = {}
     POPULATION_SIZE = {}
     GENOME_LENGTH   = {}
     MUTATION_RATE   = {}
     CROSSOVER_RATE  = {}
     SELECT_RATE     = {}
-    ELITE_SIZE      = {}""".format(self.NAME, self.GENERATIONS, self.POPULATION_SIZE, self.GENOME_LENGTH, self.MUTATION_RATE, 
+    ELITE_SIZE      = {}""".format(self.GENERATIONS, self.POPULATION_SIZE, self.GENOME_LENGTH, self.MUTATION_RATE, 
                                     self.CROSSOVER_RATE, self.SELECT_RATE, self.ELITE_SIZE)
         return info
 
     def setParameters(self, **kw):
         self.POPULATION_SIZE = kw.get("POPULATION_SIZE", self.POPULATION_SIZE)
+        self.GENOME_LENGTH   = kw.get("GENOME_LENGTH",   self.GENOME_LENGTH)
         self.MUTATION_RATE   = kw.get("MUTATION_RATE",   self.MUTATION_RATE)
         self.CROSSOVER_RATE  = kw.get("CROSSOVER_RATE",  self.CROSSOVER_RATE)
         self.SELECT_RATE     = kw.get("SELECT_RATE", self.SELECT_RATE)

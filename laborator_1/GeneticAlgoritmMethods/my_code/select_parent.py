@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
+from root_GA import *
 
 class SelectParent(RootGA):
     """
@@ -13,6 +13,7 @@ class SelectParent(RootGA):
     """
 
     def __init__(self, config):
+        super().__init__()
         self.setConfig(config)
 
     def __call__(self):
@@ -30,6 +31,11 @@ class SelectParent(RootGA):
         else:
             pass
 
+    def help(self):
+        info = """SelectParent: 
+        metode de config: 'choise', 'roata', 'turneu'\n"""
+        return info
+
     def setConfig(self, config):
         self.__config = config
         self.__config_fn()
@@ -39,8 +45,7 @@ class SelectParent(RootGA):
         if (total_fitness != 0):
             self.fitness_values = fitness_values / total_fitness
         else:
-            size = fitness_values.shape[0]
-            self.fitness_values = np.full(fitness_values.shape[0], 1./size, dtype=np.float32)
+            self.fitness_values = np.full(fitness_values.shape[0], 1./self.POPULATION_SIZE, dtype=np.float32)
 
     def selectParentAbstract(self):
         raise NameError("Lipseste configuratia pentru functia de 'SelectionParent': config '{}'".format(self.__config))
@@ -50,7 +55,7 @@ class SelectParent(RootGA):
             - unde valoarea fitness este probabilitatea de a fi ales
         """
         # selectare aleatorie
-        arg = np.random.choice(Selection.POPULATION_SIZE, size=None, p=self.fitness_values)
+        arg = np.random.choice(self.POPULATION_SIZE, size=None, p=self.fitness_values)
         return arg
 
     def selectParentWheel(self):

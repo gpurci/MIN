@@ -23,8 +23,11 @@ class Callback(object):
         if (self.pd_history is None):
             self.pd_history = pd_df
         else:
-            self.pd_history.append(pd_df, ignore_index=True)
+            self.pd_history = pd.concat([self.pd_history, pd_df], ignore_index=True)
         # salveaza in 'csv' file
         self.pd_history.to_csv(self.filename, index=False) 
 
-
+    def help(self):
+        info = """Callback: 
+        metode de config: 'filename'\n"""
+        return info

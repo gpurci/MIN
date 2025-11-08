@@ -2,20 +2,28 @@
 
 import numpy as np
 from root_GA import *
+from callback import *
+from crossover import *
+from fitness import *
+from individ_repair import *
+from init_population import *
+from metrics import *
+from mutate import *
+from select_parent import *
 
 class GeneticAlgorithm(RootGA):
     """
     Managerul de configuratie al algoritmului genetic,
     """
     def __init__(self, name="", **configs):
-        super().__init__(name)
+        super().__init__()
+        self.__name = name
         self.__configs = configs
         self.__setConfig(**configs)
-        self.__sincronize()
         self.__score_evolution = np.zeros(5, dtype=np.float32)
 
     def __str__(self):
-        str_info = str(super())
+        str_info = "Name: {}\n{}".format(self.__name, super().__str__())
         str_info += "\nConfigs:"
         for key in self.__configs.keys():
             str_info += "\n\t{}: {}".format(key, self.__configs[key])
@@ -66,15 +74,15 @@ class GeneticAlgorithm(RootGA):
             # obtinerea pozitiei pentru elite
             args_elite     = self.getArgsElite(fitness_values)
             # calculare metrici
-            metrics_values = self.metrics.getMetrics()
+            scores = self.metrics.getScore(population, fitness_values)
             #self.evolutionMonitor(metrics_values)
             #self.log(population, fitness_values, args_elite, elite_individs, best_distance)
             # adaugare stres in populatie atunci cand lipseste progresul
             #fitness_values = self.stres(population, fitness_values, best_individ, best_distance)
             # afisare metrici
-            self.showMetrics(generation, metrics_values)
+            self.showMetrics(generation, scores)
             # salveaza istoricul
-            self.callback(generation, metrics_values)
+            self.callback(generation, scores)
 
         return best_individ, population
 
@@ -89,7 +97,7 @@ class GeneticAlgorithm(RootGA):
         config       = configs.get("fitness", None)
         self.fitness = Fitness(config, self.metrics)
         # configurate selectie parinti
-        config       = configs.get("select_parent", None)
+        config       = configs.get("select_parent", {"test1":0, "test2":0})
         conf_select1 = config.get("select_parent1", None)
         self.selectParent1 = SelectParent(conf_select1)
         conf_select2 = config.get("select_parent2", None)
@@ -108,19 +116,21 @@ class GeneticAlgorithm(RootGA):
         self.callback = Callback(filename)
 
     def help(self):
-        info = """
-        metric
-        """
+        info  = "'metric': "+self.metrics.help()
+        info += "'init_population': "+self.initPopulation.help()
+        info += "'fitness': "+self.fitness.help()
+        info += "'select_parent': {'select_parent1': 'select_parent2'}: "+self.selectParent1.help()
+        info += "'crossover': "+self.crossover.help()
+        info += "'mutate': "+self.mutate.help()
+        info += "'repair': "+self.individRepair.help()
+        info += "'callback': "+self.callback.help()
         print(info)
-
-    def __sincronize(self):
-        # sincronizeaza 'GENOME_LENGTH'
-        self.setParameters(GENOME_LENGTH=self.metrics.getGenomeLength())
 
     def setDataset(self, dataset):
         self.metrics.setDataset(dataset)
 
     def setParameters(self, **kw):
+        super().setParameters(**kw)
         self.metrics.setParameters(**kw)
         self.initPopulation.setParameters(**kw)
         self.fitness.setParameters(**kw)
@@ -142,7 +152,7 @@ class GeneticAlgorithm(RootGA):
         if (population is None):
             population = self.initPopulation(self.POPULATION_SIZE)
         fitness_values = self.fitness(population)
-        args = self.getArgsWeaks(fitness_values, elites.shape[0])
+        args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)
         population[args] = elites
         return population
 
@@ -161,7 +171,7 @@ class GeneticAlgorithm(RootGA):
             val = d_info[key]
             if (isinstance(val, float)):
                 val = round(val, 3)
-            metric_info + ="{}: {},".format(key, val)
+            metric_info +="{}: {},".format(key, val)
         print(metric_info)
 
     def stres(self, population, fitness_values, best_individ, best_score):
@@ -173,11 +183,6 @@ class GeneticAlgorithm(RootGA):
         best_score   - cea mai buna distanta
         """
         raise NameError("Nu este implementata functia 'permuteSimilarIndivids'!!!")
-
-    def getArgBest(self, fitness_values):
-        """Cautarea rutei optime din populatie"""
-        index = np.argmax(fitness_values, axis=None, keepdims=False)
-        return index
 
     def getArgsWeaks(self, fitness_values, size):
         """Returneaza pozitiile 'size' cu cele mai mici valori, ale fitnesului

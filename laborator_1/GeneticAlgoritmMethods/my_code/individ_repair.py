@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
+from root_GA import *
 
 class IndividRepair(RootGA):
     """
@@ -13,6 +13,7 @@ class IndividRepair(RootGA):
     """
 
     def __init__(self, config):
+        super().__init__()
         self.setConfig(config)
 
     def __call__(self, size):
@@ -27,6 +28,11 @@ class IndividRepair(RootGA):
                 self.fn = self.individRepairNull
         else:
             pass
+
+    def help(self):
+        info = """IndividRepair:
+        metode de config: 'mixt', 'null'\n"""
+        return info
 
     def setConfig(self, config):
         self.__config = config

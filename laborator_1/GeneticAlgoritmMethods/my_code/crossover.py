@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
+from root_GA import *
 
 class Crossover(RootGA):
     """
@@ -11,6 +11,7 @@ class Crossover(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
     def __init__(self, config):
+        super().__init__()
         self.setConfig(config)
 
     def __call__(self, parent1, parent2):
@@ -25,6 +26,11 @@ class Crossover(RootGA):
                 self.crossover = self.crossoverSplit
         else:
             pass
+
+    def help(self):
+        info = """Crossover: 
+        metode de config: 'diff', 'split'\n"""
+        return info
 
     def setConfig(self, config):
         self.__config = config
@@ -42,7 +48,6 @@ class Crossover(RootGA):
         offspring = parent1.copy()
         # modifica doar genele care sunt diferite
         mask = parent1!=parent2
-        mask[[0, -1]] = False # pastreaza orasul de start
         diff_locus = np.argwhere(mask)
         size = diff_locus.shape[0]
         if (size >= 2):

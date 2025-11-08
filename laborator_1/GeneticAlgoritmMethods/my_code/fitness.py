@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
+from root_GA import *
 
 class Fitness(RootGA):
     """
@@ -13,6 +13,7 @@ class Fitness(RootGA):
     """
 
     def __init__(self, config, metrics):
+        super().__init__()
         self.metrics = metrics
         self.setConfig(config)
 
@@ -22,10 +23,15 @@ class Fitness(RootGA):
     def __config_fn(self):
         self.fn = self.fitnessAbstract
         if (self.__config is not None):
-            if   (self.__config == "f1score"):
-                self.fn = self.fitnessF1score
+            if   (self.__config == "TSP_f1score"):
+                self.fn = self.fitnessF1scoreTSP
         else:
             pass
+
+    def help(self):
+        info = """Fitness: 
+        metode de config: 'TSP_f1score'\n"""
+        return info
 
     def setConfig(self, config):
         self.__config = config
@@ -35,7 +41,7 @@ class Fitness(RootGA):
         raise NameError("Lipseste configuratia pentru functia de 'Fitness': config '{}'".format(self.__config))
 
     # TS problem------------------------------
-    def fitnessF1score(self, population):
+    def fitnessF1scoreTSP(self, population):
         """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
         population - populatia, vector de indivizi
@@ -49,6 +55,7 @@ class Fitness(RootGA):
         number_city = self.__cityNormTSP(number_city)
         distances   = self.__distanceNormTSP(distances)
         fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
+        #print("fitness {}".format(fitness_values.shape))
         return fitness_values
 
     def __distanceNormTSP(self, distances):
@@ -64,4 +71,4 @@ class Fitness(RootGA):
     def __cityNormTSP(self, number_city):
         mask_cities = (number_city==self.GENOME_LENGTH)
         return mask_cities.astype(np.float32)
-    # TP problem finish
+    # TP problem=================================

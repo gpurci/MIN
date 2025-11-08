@@ -1,16 +1,17 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
+from root_GA import *
 
 class Mutate(RootGA):
     """
-    Clasa 'mutate', ofera doar metode pentru a face mutatia genetica a unui individ din populatie.
+    Clasa 'Mutate', ofera doar metode pentru a face mutatia genetica a unui individ din populatie.
     Functia 'mutate' are 3 parametri, parinte1, parinte2, descendent.
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
     def __init__(self, config):
+        super().__init__()
         self.setConfig(config)
 
     def __call__(self, parent1, parent2, offspring):
@@ -31,6 +32,11 @@ class Mutate(RootGA):
                 self.mutate = self.mutateSwap
         else:
             pass
+
+    def help(self):
+        info = """Mutate: 
+        metode de config: 'vecin', 'swap'\n"""
+        return info
 
     def setConfig(self, config):
         self.__config = config
@@ -65,8 +71,8 @@ class Mutate(RootGA):
             # 3 seteaza gena de pe (loc)
             # 4 incrementeaza loc, repeta punctul (2, 3) break
 
-            # loc - alela unde va fi aplicata mutatia, cuprinsa intre 1...GENOME_LENGTH-1
-            loc = np.random.randint(low=1, high=self.GENOME_LENGTH, size=None)
+            # loc - alela unde va fi aplicata mutatia, cuprinsa intre 0...GENOME_LENGTH
+            loc = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
             # cond_gene - gena dupa care se va cauta cel mai apropiat vecin
             cond_genes     = individ[[loc-1, loc+1]]
             neighbors_gene = self.getNeighbors(cond_genes)
@@ -106,7 +112,7 @@ class Mutate(RootGA):
         # cond 2 -> mutatie, este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
         cond = np.random.choice([0, 1, 2], size=None, p=self.p_mut)# self.p_mut - se calculeaza la configurare in call
         # obtinere locus-urile aleator
-        loc1, loc2 = np.random.randint(low=1, high=self.GENOME_LENGTH, size=2) # GENOME_LENGTH deoarece orasul de start coincide cu orasul de stop
+        loc1, loc2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=2)
         # aplica mutatia
         if   (cond == 0):
             pass
@@ -115,7 +121,6 @@ class Mutate(RootGA):
         elif (cond == 2):
             # modifica doar genele, unde codul genetic al parintilor este identic
             mask = parent1==parent2
-            mask[[0, -1]] = False # pastreaza orasul de start
             similar_locus = np.argwhere(mask).reshape(-1)
             if (similar_locus.shape[0] > 1):
                 similar_locus = similar_locus.reshape(-1)

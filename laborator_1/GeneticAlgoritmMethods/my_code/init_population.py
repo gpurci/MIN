@@ -1,20 +1,19 @@
 #!/usr/bin/python
 
 import numpy as np
-from my_code.root_GA import *
-from  my_code.metrics import Metrics
+from root_GA import *
 
 class InitPopulation(RootGA):
     """
-    Generează populația inițială TTP.
-    Pentru fiecare individ se alege un oraș de start random și se construiește ruta
-    alegând la fiecare pas următorul oraș în funcție de un scor simplu:
-        scor = profit - λ * timp_de_deplasare
-    După construirea rutei se aplică o singură îmbunătățire 2-opt (+ eliminare duplicate).
-    Returnează un array de rute valide (start == end).
+    Clasa 'InitPopulation', ofera doar metode pentru a initializa populatia.
+    Functia 'initPopulation' are 1 parametru, numarul populatiei.
+    Metoda '__config_fn', selecteaza functia de initializare.
+    Metoda '__call__', aplica functia de initializare ce a fost selectata in '__config_fn'
+    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
     def __init__(self, config, metrics):
+        super().__init__()
         # metrics = obiectul Metrics — folosit pentru dataset
         self.metrics = metrics
         self.setConfig(config)
@@ -27,11 +26,18 @@ class InitPopulation(RootGA):
         # selecteaza implementarea reala in functie de config
         self.fn = self.initPopulationAbstract
         if (self.__config is not None):
-            if   (self.__config == "test"):
+            if   (self.__config == "vecin"):
                 # folosim versiunea ta (Matei)
                 self.fn = self.initPopulationMatei
+            elif (self.__config == "TSP_aleator"):
+                self.fn = self.initPopulationsTSPRand
         else:
             pass
+
+    def help(self):
+        info = """InitPopulation:
+        metode de config: 'vecin', 'TSP_aleator'\n"""
+        return info
 
     def setConfig(self, config):
         self.__config = config
@@ -41,6 +47,23 @@ class InitPopulation(RootGA):
         # default: nu exista implementare
         raise NameError("Lipseste configuratia pentru functia de 'InitPopulation': config '{}'".format(self.__config))
 
+    # initPopulationRand -------------------------------------
+    def __permutePopulation(self, individ):
+        new_individ = np.random.permutation(individ)
+        return new_individ
+
+    def initPopulationsTSPRand(self, population_size=-1):
+        """Initializarea populatiei, cu drumuri aleatorii"""
+        if (population_size == -1):
+            population_size = self.POPULATION_SIZE
+        size = (population_size, self.GENOME_LENGTH)
+        population = np.arange(np.prod(size), dtype=np.int32).reshape(*size)%(self.GENOME_LENGTH)
+        population = np.apply_along_axis(self.__permutePopulation, axis=1, arr=population)
+        print("population {}".format(population.shape))
+        return population
+    # initPopulationRand =====================================
+
+    # initPopulationMatei -------------------------------------
     def initPopulationMatei(self,
                             size=2000, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
@@ -49,6 +72,13 @@ class InitPopulation(RootGA):
         - fiecare individ incepe dintr-un oras random
         - la fiecare pas alegem urmatorul oras dupa: profit - λ * timp_de_calatorie
         - dupa ce rute se construiesc → aplicam 2-opt simplu
+
+    Generează populația inițială TTP.
+    Pentru fiecare individ se alege un oraș de start random și se construiește ruta
+    alegând la fiecare pas următorul oraș în funcție de un scor simplu:
+        scor = profit - λ * timp_de_deplasare
+    După construirea rutei se aplică o singură îmbunătățire 2-opt (+ eliminare duplicate).
+    Returnează un array de rute valide (start == end).
         """
 
         if seed is not None:
@@ -157,3 +187,4 @@ class InitPopulation(RootGA):
                     return new_route     # improvement found — imediat return!
 
         return best                     # nici o imbunatatire gasita
+    # initPopulationMatei =====================================

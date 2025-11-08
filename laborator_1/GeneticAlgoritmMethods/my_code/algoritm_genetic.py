@@ -84,7 +84,7 @@ class GeneticAlgorithm(RootGA):
             # salveaza istoricul
             self.callback(generation, scores)
 
-        return best_individ, population
+        return self.metrics.getBestIndivid(), population
 
     def __setConfig(self, **configs):
         # configurare metrici

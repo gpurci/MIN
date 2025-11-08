@@ -53,6 +53,9 @@ class Metrics(RootGA):
         index = np.argmax(fitness_values, axis=None, keepdims=False)
         return index
 
+    def getBestIndivid(self):
+        return self.__best_individ
+
     def metricsAbstract(self, population):
         raise NameError("Lipseste configuratia pentru functia de 'Metrics': config '{}'".format(self.__config))
 
@@ -94,6 +97,7 @@ class Metrics(RootGA):
         # obtinerea celui mai bun individ
         arg_best = self.getArgBest(fitness_values)
         individ  = population[arg_best]
+        self.__best_individ = individ
         score = self.__getIndividDistance(individ)
         return {"score": score}
 

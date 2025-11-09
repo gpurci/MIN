@@ -125,40 +125,50 @@ class InitPopulation(RootGA):
         visited[start] = True
 
         path = [start]
-        cur  = start
+        cur = start
         Wcur = 0.0  # current knapsack weight
 
         # GENOME_LENGTH - 1 mutări (ultima este întoarcerea spre start)
-        for _ in range(self.GENOME_LENGTH-1):
-            # lista orașelor nevizitate
+        for _ in range(self.GENOME_LENGTH - 1):
+
             cand = np.where(~visited)[0]
 
             # viteza actuala in functie de cat ai incarcat rucsacul
             v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
+            dist = self.distance[cur, cand]
+            time = dist / v_cur
 
-            # calculeaza durata de calatorie la fiecare oras candidat
-            dist  = self.distance[cur, cand]
-            time  = dist / v_cur
+            # profit brut al itemului din orașul candidat
+            profit_raw = self.item_profit[cand]
 
-            # vezi daca putem lua item-ul (nu depasim capacitatea)
+            # calculăm cât profit real rămâne după penalizarea de timp
+            # dacă e negativ -> îl forțăm la 0 (adică nu merită să îl luăm)
+            profit_if_take = profit_raw - lambda_time * time
+            profit_if_take = np.maximum(0.0, profit_if_take)
+
+            # putem lua item-ul DOAR dacă încăperea / capacitatea nu este depășită
             can_take = (Wcur + self.item_weight[cand]) <= Wmax
-            profit   = self.item_profit[cand] * can_take
 
-            # scor euristic: profit - lambda * timp
-            score = profit - lambda_time * time
+            # scor euristic: profit efectiv după penalizare * dacă avem voie să îl luăm
+            score = profit_if_take * can_take  # <--- asta decide urmatorul oraș
 
             # alegem din top 5 scoruri cele mai bune → alegere random din top
-            order   = np.argsort(score)
-            top_k   = min(5, len(order))
+            order = np.argsort(score)
+            top_k = min(5, len(order))
             choices = cand[order[-top_k:]]
 
-            # alegem un oras random din cele mai bune
             j = np.random.choice(choices)
             path.append(j)
             visited[j] = True
 
-            # daca incape — actualizam greutatea
-            if (Wcur + self.item_weight[j]) <= Wmax:
+            # la commit-ul final decidem efectiv dacă luăm item-ul:
+            # dacă profitul de după penalizare e pozitiv și încape în rucsac
+            pj_raw = self.item_profit[j]
+            dist_j = self.distance[cur, j]
+            time_j = dist_j / v_cur
+            profit_gain = pj_raw - lambda_time * time_j
+
+            if profit_gain > 0.0 and (Wcur + self.item_weight[j]) <= Wmax:
                 Wcur += self.item_weight[j]
 
             cur = j

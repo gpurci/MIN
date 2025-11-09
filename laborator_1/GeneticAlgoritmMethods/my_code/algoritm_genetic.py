@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import numpy as np
-from root_GA import *
 from callback import *
 from crossover import *
 from fitness import *
@@ -35,7 +33,7 @@ class GeneticAlgorithm(RootGA):
         Manager pentru a face sincronizarea dintre toate functionalele
         """
         # initiaizarea populatiei
-        if (population is None):
+        if population is None:
             population = self.initPopulation(self.POPULATION_SIZE)
         # init fitness value
         fitness_values = self.fitness(population)
@@ -149,7 +147,7 @@ class GeneticAlgorithm(RootGA):
         self.__score_evolution[-1]  = best_score
 
     def setElites(self, population, elites):
-        if (population is None):
+        if population is None:
             population = self.initPopulation(self.POPULATION_SIZE)
         fitness_values = self.fitness(population)
         args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)

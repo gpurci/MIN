@@ -17,7 +17,10 @@ class TTPGenerator(object):
             self.coord = np.random.randint(low=0, high=self.max_distance, size=(self.nbr_city, 2))
 
     def __call__(self):
-        return {"distance":self.distance, }
+        return {"distance":self.distance,
+                " coords":   self.coord,
+                "item_profit": self.item_profit,
+                "item_weight": self.item_weight}
 
     def __put_points(self, map):
         for x, y in self.coord:
@@ -45,7 +48,7 @@ class TTPGenerator(object):
         coords = df_nodes[["X","Y"]].to_numpy(dtype=float)
 
         n = coords.shape[0]
-        distance = self._pairwise_distance(ceil2d=True)
+        distance = self._pairwise_distance(is_ceil2d=True)
 
         df_items = pd.read_csv(items_csv_path, sep="\t")
         prof = np.zeros(n, dtype=float)

@@ -114,15 +114,15 @@ class Mutate(RootGA):
         # obtinere locus-urile aleator
         loc1, loc2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=2)
         # aplica mutatia
-        if   (cond == 0):
+        if cond == 0:
             pass
-        elif (cond == 1):
+        elif cond == 1:
             offspring[loc1], offspring[loc2] = offspring[loc2], offspring[loc1]
-        elif (cond == 2):
+        elif cond == 2:
             # modifica doar genele, unde codul genetic al parintilor este identic
             mask = parent1==parent2
             similar_locus = np.argwhere(mask).reshape(-1)
-            if (similar_locus.shape[0] > 1):
+            if similar_locus.shape[0] > 1:
                 similar_locus = similar_locus.reshape(-1)
                 # obtine locusul 1
                 locus1        = np.random.permutation(similar_locus)[0]

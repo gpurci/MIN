@@ -19,10 +19,10 @@ class Crossover(RootGA):
 
     def __config_fn(self):
         self.crossover = self.crossoverAbstract
-        if (self.__config is not None):
-            if   (self.__config == "diff"):
+        if self.__config is not None:
+            if self.__config == "diff":
                 self.crossover = self.crossoverDiff
-            elif (self.__config == "split"):
+            elif self.__config == "split":
                 self.crossover = self.crossoverSplit
         else:
             pass
@@ -50,8 +50,10 @@ class Crossover(RootGA):
         mask = parent1!=parent2
         diff_locus = np.argwhere(mask)
         size = diff_locus.shape[0]
-        if (size >= 2):
-            tmp_size   = np.random.randint(low=size//3, high=size//2, size=None)
+        if size >= 2:
+            low  = max(1, size // 3)
+            high = max(low + 1, size // 2)
+            tmp_size = np.random.randint(low=low, high=high)
             diff_locus = diff_locus.reshape(-1)
             diff_locus = np.random.permutation(diff_locus)[:tmp_size]
             offspring[diff_locus] = parent2[diff_locus]
@@ -68,7 +70,7 @@ class Crossover(RootGA):
         # selectarea diapazonului de mostenire
         start, end = np.random.randint(low=1, high=self.GENOME_LENGTH, size=2)
         # corectie diapazon
-        if (start > end): start, end = end, start
+        if start > end: start, end = end, start
         # copierea rutei din cel de al doilea parinte
         offspring[start:end] = parent2[start:end]
         return offspring

@@ -1,16 +1,24 @@
 #!/usr/bin/python
 
-import pandas as pd
+import sys
+from pathlib import Path
 
-class TestCallback(object):
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+from laborator_1.GeneticAlgoritmMethods.my_code.callback import Callback
+
+class TestCallback(Callback):
     """
-    Salveaza rezultatele obtinute pentru fiecare generatie in 'csv' file.
+    Test pentru Callback.
     """
 
     def __init__(self, filename):
         super().__init__(filename)
 
-    def test(self, epoch, logs):
-        for i in range(20):
-            self(1, {"log_test_0":i, "log_test_2":0})
-
+    def test(self):
+        for generation in range(20):
+            # call with positional arguments
+            self(generation,
+                 {"log_test_0": generation,
+                  "log_test_2": 0})
+        print("Test finished — check file:", self.filename)

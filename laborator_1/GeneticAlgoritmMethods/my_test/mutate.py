@@ -1,25 +1,23 @@
 #!/usr/bin/python
+import sys
+from pathlib import Path
 
-import numpy as np
-from my_code.mutate import *
-from my_test.root_GA import *
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+from laborator_1.GeneticAlgoritmMethods.my_code.mutate import Mutate
+from laborator_1.GeneticAlgoritmMethods.my_test.root_GA import TestRootGA
 
 class TestMutate(Mutate, TestRootGA):
-    """
-    Clasa 'mutate', ofera doar metode pentru a face mutatia genetica a unui individ din populatie.
-    Functia 'mutate' are 3 parametri, parinte1, parinte2, descendent.
-    Metoda 'call', returneaza functia din configuratie.
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
-    """
 
     def __init__(self, config):
-        super().__init__(config)
+        TestRootGA.__init__(self)
+        Mutate.__init__(self, config)
 
     def test(self, config):
         self.setParameters(
-            MUTATION_RATE = 0.9,  # threshold-ul pentru a face o mutatie genetica
+            MUTATION_RATE = 0.9,
             GENOME_LENGTH = 20
-            )
+        )
         self.setConfig(config)
         population = self.initPopulation(3)
         parent1 = population[0]
@@ -32,7 +30,7 @@ class TestMutate(Mutate, TestRootGA):
         for _ in range(10):
             mutate_offspring = self(parent1, parent2, offspring.copy())
             tmp_cmp = mutate_offspring!=offspring
-            if (tmp_cmp.sum() != 0):
-                print("Operatia de mutatie a fost aplicata: {}".format(tmp_cmp))
+            if tmp_cmp.sum() != 0:
+                print("Operatia de mutatie a fost aplicata:", mutate_offspring)
             else:
                 print("Operatia de mutatie 'lipseste'")

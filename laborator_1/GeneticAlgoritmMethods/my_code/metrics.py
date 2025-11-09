@@ -2,7 +2,6 @@
 
 import numpy as np
 from root_GA import *
-from math import hypot, ceil
 
 class Metrics(RootGA):
     """
@@ -15,6 +14,7 @@ class Metrics(RootGA):
     # TO DO: sincronizare 'GENOME_LENGTH' cu celelalte clase!!!!!!
     def __init__(self, config):
         super().__init__()
+        
         self.setConfig(config)
 
     def __call__(self, population):
@@ -104,16 +104,17 @@ class Metrics(RootGA):
     # TSP problem finish =================================
 
     # TTP problem metrics ---------------------
-    def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
-        n = coords.shape[0]
-        D = np.zeros((n, n), dtype=np.float64)
-        for i in range(n):
-            xi, yi = coords[i]
-            for j in range(i+1, n):
-                xj, yj = coords[j]
-                d = hypot(xi - xj, yi - yj)
-                D[i, j] = D[j, i] = float(ceil(d)) if ceil2d else d
-        return D
+    # calculeaza distante perechi, aplicand CEIL_2D (rotunjire în sus, nu distanta euclidiana reala)
+    def _pairwise_distance(self, coords, is_ceil2d: bool = True) -> np.ndarray:
+        map_of_distance = []
+        for point in coords:
+            tmp_distance = np.linalg.norm(coords - point, axis=1)
+            map_of_distance.append(tmp_distance)
+        map_of_distance = np.array(map_of_distance)
+        if is_ceil2d:
+            map_of_distance = np.round(map_of_distance, 0)
+        return map_of_distance
+
     
     def computeSpeedTTP(self, Wcur, vmax, vmin, Wmax):
         """

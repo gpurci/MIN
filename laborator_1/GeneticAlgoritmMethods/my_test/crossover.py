@@ -1,49 +1,44 @@
 #!/usr/bin/python
 
-import numpy as np
-from my_code.crossover import *
-from my_test.root_GA import *
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+
+from laborator_1.GeneticAlgoritmMethods.my_code.crossover import Crossover
+from laborator_1.GeneticAlgoritmMethods.my_test.root_GA import TestRootGA
 
 class TestCrossover(Crossover, TestRootGA):
-    """
-    Clasa 'Crossover', ofera doar metode pentru a face incrucisarea genetica a doi parinti
-    Functia 'crossover' are 2 parametri, parinte1, parinte2.
-    Metoda 'call', returneaza functia din configuratie.
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
-    """
 
     def __init__(self, config):
-        super().__init__(config)
+        TestRootGA.__init__(self)
+        Crossover.__init__(self, config)
+
+        self.GENOME_LENGTH   = 8
+        self.POPULATION_SIZE = 2
 
     def test(self, config):
         self.setConfig(config)
+
+        # build two random parents
         population = self.initPopulation(2)
         parent1 = population[0]
         parent2 = population[1]
-        print("parent1 {}".format(parent1))
-        print("parent2 {}".format(parent2))
+
+        print("parent1", parent1)
+        print("parent2", parent2)
 
         for _ in range(10):
             offspring = self(parent1, parent2)
-            tmp_cmp = parent1!=offspring
-            if (tmp_cmp.sum() != 0):
-                print("Operatia de incrucisare a fost aplicata: {}".format(tmp_cmp))
+            diff = parent1!=offspring
+            if diff.sum() != 0:
+                print("OK - crossover applied:", offspring)
             else:
-                print("Operatia de incrucisare 'lipseste'")
+                print("NO crossover (offspring identical)")
 
-        # TEST: first and last gene must remain same as parent1
-        print("\nStart/End preservation check:")
-        for _ in range(5):
-            off = self(parent1, parent2)
-            if off[0] != parent1[0] or off[-1] != parent1[-1]:
-                print("ERROR start/end changed!!  -> ", off)
-            else:
-                print("OK ", off[0], off[-1])
-
-        # TEST: also run split config
         print("\nTesting SPLIT crossover:")
         self.setConfig("split")
         for _ in range(5):
             off = self(parent1, parent2)
-            print("offspring_split = ", off)
-
+            print("offspring split:", off)

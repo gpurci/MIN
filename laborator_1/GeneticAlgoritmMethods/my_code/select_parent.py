@@ -21,12 +21,12 @@ class SelectParent(RootGA):
 
     def __config_fn(self):
         self.fn = self.selectParentAbstract
-        if (self.__config is not None):
-            if   (self.__config == "choise"):
+        if self.__config is not None:
+            if self.__config == "choise":
                 self.fn = self.selectParentChoice
-            elif (self.__config == "roata"):
+            elif self.__config == "roata":
                 self.fn = self.selectParentWheel
-            elif (self.__config == "turneu"):
+            elif self.__config == "turneu":
                 self.fn = self.selectParentTour
         else:
             pass
@@ -41,8 +41,9 @@ class SelectParent(RootGA):
         self.__config_fn()
 
     def startEpoch(self, fitness_values):
+        self.POPULATION_SIZE = fitness_values.shape[0]
         total_fitness = fitness_values.sum()
-        if (total_fitness != 0):
+        if total_fitness != 0:
             self.fitness_values = fitness_values / total_fitness
         else:
             self.fitness_values = np.full(fitness_values.shape[0], 1./self.POPULATION_SIZE, dtype=np.float32)
@@ -69,7 +70,7 @@ class SelectParent(RootGA):
         # roata norocului
         for arg, fitness_value in enumerate(self.fitness_values, 0):
             current += fitness_value
-            if (current > pick):
+            if current > pick:
                 break
         return arg
 

@@ -20,7 +20,7 @@ class Callback(object):
         # salveaza logurile in data frame
         pd_df = pd.DataFrame(data=logs)
         # adauga logurile in lista de loguri
-        if (self.pd_history is None):
+        if self.pd_history is None:
             self.pd_history = pd_df
         else:
             self.pd_history = pd.concat([self.pd_history, pd_df], ignore_index=True)

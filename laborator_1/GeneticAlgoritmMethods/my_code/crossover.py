@@ -50,10 +50,8 @@ class Crossover(RootGA):
         mask = parent1!=parent2
         diff_locus = np.argwhere(mask)
         size = diff_locus.shape[0]
-        if size >= 2:
-            low  = max(1, size // 3)
-            high = max(low + 1, size // 2)
-            tmp_size = np.random.randint(low=low, high=high)
+        if (size >= 4):
+            tmp_size   = np.random.randint(low=size//3, high=size//2, size=None)
             diff_locus = diff_locus.reshape(-1)
             diff_locus = np.random.permutation(diff_locus)[:tmp_size]
             offspring[diff_locus] = parent2[diff_locus]

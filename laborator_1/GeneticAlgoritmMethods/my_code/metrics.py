@@ -31,8 +31,10 @@ class Metrics(RootGA):
             if   (self.__config == "TSP"):
                 self.fn = self.metricsTSP
                 self.getScore = self.getScoreTSP
-        else:
-            pass
+            elif (self.__config == "TTP"):
+                self.fn = self.metricsTTP
+                self.getScore = self.getScoreTTP
+
 
     def setConfig(self, config):
         self.__config = config
@@ -42,8 +44,30 @@ class Metrics(RootGA):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__config))
         self.dataset = dataset
 
+        if self.__config == "TSP":
+            # dataset este direct matrice NxN
+            self.distance = dataset
+
+        elif self.__config == "TTP":
+            # dataset este dict
+            self.coords      = dataset["coords"]
+            self.distance    = dataset["distance"]
+            self.item_profit = dataset["item_profit"]
+            self.item_weight = dataset["item_weight"]
+
+            # pentru fitness (city, w, p)
+            self.items = list(zip(
+                np.arange(len(self.item_profit)),
+                self.item_weight,
+                self.item_profit
+            ))
+
+
     def getDataset(self):
         return self.dataset
+
+    def getMetrics(self):
+        return self.metrics_values
 
     def getArgBest(self, fitness_values):
         """Cautarea rutei optime din populatie"""
@@ -87,17 +111,16 @@ class Metrics(RootGA):
         distances   = self.__getDistances(population)
         # calculeaza numarul de orase unice
         number_city = self.__getNumberCities(population)
-        metric_values = {"distances": distances, "number_city":number_city}
-        return metric_values
+        self.metrics_values = {"distances": distances, "number_city":number_city}
+        return self.metrics_values
 
     def getScoreTSP(self, population, fitness_values):
         # obtinerea celui mai bun individ
         arg_best = self.getArgBest(fitness_values)
         individ  = population[arg_best]
-        best_fitness = fitness_values[arg_best]
         self.__best_individ = individ
         score = self.__getIndividDistance(individ)
-        return {"score": score, "best_fitness": best_fitness}
+        return {"score": score}
 
     # TSP problem finish =================================
 
@@ -113,7 +136,6 @@ class Metrics(RootGA):
             map_of_distance = np.round(map_of_distance, 0)
         return map_of_distance
 
-    
     def computeSpeedTTP(self, Wcur, vmax, vmin, Wmax):
         """
         viteza curenta in functie de weight (formula TTP)
@@ -127,7 +149,53 @@ class Metrics(RootGA):
         distanta rutelor TTP (daca inchizi ruta)
         use: metrics.getIndividDistanceTTP(individ)
         """
-        D = distance_matrix if distance_matrix is not None else self.dataset
+        D = distance_matrix if distance_matrix is not None else self.distance
+
         distances = D[individ[:-1], individ[1:]]
         return distances.sum() + D[individ[-1], individ[0]]
+    
+    def metricsTTP(self, population):
+        N = population.shape[0]
+        distances = np.zeros(N, dtype=np.float32)
+        profits   = np.zeros(N, dtype=np.float32)
+        times     = np.zeros(N, dtype=np.float32)
+
+        for i, ind in enumerate(population):
+
+            Wcur  = 0.0
+            T     = 0.0
+            P     = 0.0
+
+            for k in range(len(ind)-1):
+                city = ind[k]
+
+                # adds profit
+                for (city_k, weight_k, profit_k) in self.items:
+                    if city_k == city:
+                        P += profit_k
+                        Wcur += weight_k
+
+                v = self.computeSpeedTTP(Wcur, self.v_max, self.v_min, self.W)
+                T += self.distance[ind[k], ind[k+1]] / v
+
+            distances[i] = self.getIndividDistanceTTP(ind)
+            profits[i]   = P
+            times[i]     = T
+
+        self.metrics_values = {
+            "distances" : distances,
+            "profits"   : profits,
+            "times"     : times
+        }
+        return self.metrics_values
+    
+    def getScoreTTP(self, population, fitness_values):
+        # find best individual
+        arg_best = self.getArgBest(fitness_values)
+        individ  = population[arg_best]
+        self.__best_individ = individ
+
+        score = self.getIndividDistanceTTP(individ, self.distance)
+
+        return {"score": score}
     # TTP problem finish =================================

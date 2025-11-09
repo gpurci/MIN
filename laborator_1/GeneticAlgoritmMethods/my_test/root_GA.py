@@ -19,7 +19,7 @@ class TestRootGA(RootGA):
         start = np.array([self.GENOME_LENGTH-1], dtype=np.int32)
         end   = np.array([self.GENOME_LENGTH-1], dtype=np.int32)
 
-        new_individ = np.concatenate((start, new_individ, end))   # FIX 2
+        new_individ = np.concatenate((start, new_individ, end))
         return new_individ
 
     def initPopulation(self, population_size=-1):

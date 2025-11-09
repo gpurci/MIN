@@ -4,6 +4,7 @@ import numpy as np
 import sys
 from pathlib import Path
 
+# get path: .../Homeworks/MIN
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 
@@ -30,7 +31,7 @@ class TestGeneticAlgorithm(object):
         }
         ga = GeneticAlgorithm(self.name, **configs)
         ga.setParameters(POPULATION_SIZE=5, GENOME_LENGTH=5, GENERATIONS=2)
-        # create a tiny symmetric distance dataset for TSP
+
         D = np.array([
             [0,3,4,3,2],
             [3,0,4,5,2],
@@ -39,7 +40,13 @@ class TestGeneticAlgorithm(object):
             [2,2,3,3,0],
         ], dtype=np.float64)
 
-        dataset = D
+        dataset = {
+            "coords": np.zeros((5,2)),
+            "distance": D,
+            "item_profit": np.ones(5, dtype=np.float32),
+            "item_weight": np.ones(5, dtype=np.float32)
+        }
+
         ga.setDataset(dataset)
         best_individ, final_population = ga(population=None)
 

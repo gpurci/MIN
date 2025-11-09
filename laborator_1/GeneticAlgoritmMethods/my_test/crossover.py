@@ -21,7 +21,6 @@ class TestCrossover(Crossover, TestRootGA):
     def test(self, config):
         self.setConfig(config)
 
-        # build two random parents
         population = self.initPopulation(2)
         parent1 = population[0]
         parent2 = population[1]

@@ -15,6 +15,9 @@ class Fitness(RootGA):
     def __init__(self, config):
         super().__init__()
         self.setConfig(config)
+    
+    def setMetrics(self, metrics):
+        self.metrics = metrics
 
     def __call__(self, population, metric_values):
         return self.fn(population, metric_values)
@@ -75,3 +78,112 @@ class Fitness(RootGA):
 
         return mask_cities
     # TSP problem=================================
+
+    
+    # functia fitness cu decadere liniara
+    def fitness_ttp_linear(self, population, metric_values):
+        """
+        Fitness cu decadere liniara.
+        Pentru fiecare individ:
+        - mergem pe traseu (route)
+        - cand ajungem intr-un oras luam obiectele de acolo
+        - profitul scade liniar cu timpul:
+                p(t) = p0 - alpha * t
+        - viteza scade in functie de greutatea acumulata
+        - costul de timp este penalizat cu R
+        Returneaza:
+            vector np.array cu fitness pentru fiecare individ
+        """
+
+        n = population.shape[0]
+        fitness = np.zeros(n, dtype=float)
+
+        for r, route in enumerate(population):
+
+            Wcur = 0.0
+            Tcur = 0.0
+            Pcur = 0.0
+
+            # vizităm secvenţial
+            for i in range(len(route)-1):
+                c = route[i]
+
+                # ia items din oraş
+                for (city, w, p) in self.items:
+                    if city == c:
+                        Pcur += max(0.0, p - self.alpha*Tcur)
+                        Wcur += w
+
+                v = self.v_max - (self.v_max-self.v_min)*(Wcur/self.W)
+                Tcur += self.distance[ c, route[i+1] ] / v
+
+            # întoarcere
+            v = self.v_max - (self.v_max-self.v_min)*(Wcur/self.W)
+            Tcur += self.distance[ route[-1], route[0] ] / v
+
+            fitness[r] = Pcur - self.R*Tcur
+
+        return fitness
+
+
+
+    # functia fitness cu decadere exponentiala
+    def fitness_ttp_exp(self, population, metric_values):
+        """
+        - pe măsură ce vizităm oraşele, luăm obiectele găsite acolo
+        - fiecare obiect are profitul iniţial p0
+        - dar profitul scade cu timpul deoarece obiectul este „mai puţin valoros” dacă ajungi târziu
+        - decădere exponenţială:
+            p(t) = p0 * exp(- λ * timp)
+        - viteza berlinei scade pe măsură ce rucsacul se încarcă cu obiecte
+            v = v_max - (v_max - v_min) * (greutate_curentă / W)
+
+        Returneaza
+            fitness = profit_total - R * timp_total
+            """
+
+        n = population.shape[0]
+        fitness = np.zeros(n, dtype=float)
+
+        for r, route in enumerate(population):
+
+            Wcur = 0.0
+            Tcur = 0.0
+            Pcur = 0.0
+
+            # mergem secvenţial prin oraşe
+            for i in range(len(route)-1):
+                c = route[i]
+
+                # luăm iteme din oraş
+                for (city, w, p0) in self.items:
+                    if city == c:
+                        p = p0 * np.exp(-self.lam * Tcur)
+                        Pcur += p
+                        Wcur += w
+
+                # viteza berlinei
+                v = self.v_max - (self.v_max - self.v_min)*(Wcur/self.W)
+
+                # timp până la următorul
+                Tcur += self.distance[ c, route[i+1] ] / v
+
+            # închidere ciclu
+            v = self.v_max - (self.v_max - self.v_min)*(Wcur/self.W)
+            Tcur += self.distance[ route[-1], route[0] ] / v
+
+            fitness[r] = Pcur - self.R*Tcur
+
+        return fitness
+
+    def setTTPParams(self, distance, items, v_min, v_max, W, R, lam=0.01, alpha=0.01):
+        self.distance = distance
+        self.items    = items
+        self.v_min    = v_min
+        self.v_max    = v_max
+        self.W        = W
+        self.R        = R
+        self.lam      = lam
+        self.alpha    = alpha
+
+

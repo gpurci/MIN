@@ -8,10 +8,6 @@ sys.path.insert(0, str(ROOT))
 from laborator_1.GeneticAlgoritmMethods.my_code.callback import Callback
 
 class TestCallback(Callback):
-    """
-    Test pentru Callback.
-    """
-
     def __init__(self, filename):
         super().__init__(filename)
 

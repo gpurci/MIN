@@ -15,7 +15,6 @@ class TestInitPopulation(InitPopulation):
         super().__init__(config, metrics)
         self.GENOME_LENGTH = 5  # local override
 
-    # -------------------------------------------------------
     def _build_test_dataset(self):
         coords = np.array([
             [0, 0],
@@ -43,7 +42,6 @@ class TestInitPopulation(InitPopulation):
             "item_weight": weight
         }
 
-    # -------------------------------------------------------
     def _build_test_metrics(self):
 
         dataset = self._build_test_dataset()

@@ -67,9 +67,3 @@ class TestMetrics(Metrics):
         for ind in self.population:
             dist = self.getIndividDistanceTTP(ind, self.dataset)
             print(ind.tolist(), "→", dist)
-
-    def run_all(self):
-        self.test_dataset()
-        self.test_metricsTSP()
-        self.test_speedTTP()
-        self.test_individDistanceTTP()

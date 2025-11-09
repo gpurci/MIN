@@ -1,15 +1,26 @@
 #!/usr/bin/python
 
 import numpy as np
+#!/usr/bin/python
+
+import numpy as np
+import sys
+from pathlib import Path
+
+# get path: .../Homeworks/MIN
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
 from laborator_1.GeneticAlgoritmMethods.my_code.root_GA import RootGA
 from laborator_1.GeneticAlgoritmMethods.my_code.metrics import Metrics
 from laborator_1.GeneticAlgoritmMethods.my_code.fitness import Fitness
+
 
 class TestFitness(RootGA):
 
     def __init__(self):
         super().__init__()
 
+        # mic dataset 5x5 ca sa vedem numere mici
         D = np.array([
             [0,3,5,4,2],
             [3,0,4,5,3],
@@ -18,18 +29,28 @@ class TestFitness(RootGA):
             [2,3,3,2,0]
         ], dtype=np.float64)
 
-        dataset = {
-            "coords":       np.zeros((5,2)),
+        self.D = D
+
+        # dataset TTP mic (1 item/oras)
+        dataset_ttp = {
+            "coords":       np.zeros((5,2)),  # nu conteaza aici
             "distance":     D,
-            "item_profit":  np.arange(10,60,10, dtype=np.float32),
+            "item_profit":  np.array([10,20,30,40,50], dtype=np.float32),
             "item_weight":  np.ones(5, dtype=np.float32),
         }
 
-        self.metrics = Metrics("TSP")
-        self.metrics.setDataset(dataset)
-        self.metrics.GENOME_LENGTH = 5
+        self.metrics_tsp = Metrics("TSP")
+        self.metrics_tsp.setDataset(D)
+        self.metrics_tsp.GENOME_LENGTH = 5
 
-        self.D = D
+        self.metrics_ttp = Metrics("TTP")
+        self.metrics_ttp.setDataset(dataset_ttp)
+        self.metrics_ttp.GENOME_LENGTH = 5
+
+        self.metrics_ttp.v_min = 0.1
+        self.metrics_ttp.v_max = 1.0
+        self.metrics_ttp.W     = 10.0
+
 
     def make_population(self):
         return np.array([
@@ -37,25 +58,51 @@ class TestFitness(RootGA):
             [0,4,3,2,1,0],
         ], dtype=np.int32)
 
+
     def test_TSP_f1(self):
-        f = Fitness("TSP_f1score", self.metrics)
-        print("\nTEST TSP F1score")
-        print(f(self.make_population()))
+        print("\n=== TEST TSP F1score ===")
+        f = Fitness("TSP_f1score")
+        f.setMetrics(self.metrics_tsp)
+        out = f(self.make_population(), self.metrics_tsp(self.make_population()))
+        print(out)
+
 
     def test_TTP_linear(self):
-        f = Fitness("TTP_linear", self.metrics)
-        f.setTTPParams(distance=self.D, items=[(i,1,10) for i in range(5)], 
-                       v_min=0.1, v_max=1.0, W=10.0, R=1.0, lam=0.01)
-        f.distance = self.D
-        f.items = [(i,1,10) for i in range(5)]
-        print("\nTEST TTP Linear")
-        print(f(self.make_population()))
+        print("\n=== TEST TTP Linear ===")
+        f = Fitness("TTP_linear")
+        f.setMetrics(self.metrics_ttp)
+        f.setTTPParams(
+            distance = self.metrics_ttp.distance,
+            items    = self.metrics_ttp.items,
+            v_min    = 0.1,
+            v_max    = 1.0,
+            W        = 10.0,
+            R        = 1.0,
+            lam      = 0.00,
+            alpha    = 0.1
+        )
+
+        pop = self.make_population()
+        m   = self.metrics_ttp(pop)
+        out = f(pop, m)
+        print(out)
+
+
 
     def test_TTP_exp(self):
-        f = Fitness("TTP_exp", self.metrics)
-        f.setTTPParams(distance=self.D, items=[(i,1,10) for i in range(5)], 
-                       v_min=0.1, v_max=1.0, W=10.0, R=1.0, lam=0.01)
-        f.distance = self.D
-        f.items = [(i,1,10) for i in range(5)]
-        print("\nTEST TTP Exponential")
-        print(f(self.make_population()))
+        print("\n=== TEST TTP Exp ===")
+        f = Fitness("TTP_exp")
+        f.setMetrics(self.metrics_ttp)
+        f.setTTPParams(
+            distance = self.metrics_ttp.distance,
+            items    = self.metrics_ttp.items,
+            v_min    = 0.1,
+            v_max    = 1.0,
+            W        = 10.0,
+            R        = 1.0,
+            lam      = 0.01   # exponential decay
+        )
+        pop = self.make_population()
+        m   = self.metrics_ttp(pop)
+        out = f(pop, m)
+        print(out)

@@ -1,10 +1,8 @@
 #!/usr/bin/python
 
-from pathlib import Path
 import numpy as np
 import cv2 as cv
 import pandas as pd
-import csv
 from math import hypot, ceil
 
 class TTPGenerator(object):

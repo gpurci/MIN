@@ -15,7 +15,13 @@ class Crossover(RootGA):
         self.setConfig(config)
 
     def __call__(self, parent1, parent2):
-        return self.crossover(parent1, parent2)
+        # adaugare crossover rate
+        rate = np.random.uniform(low=0, high=1, size=None)
+        if (rate <= self.CROSSOVER_RATE): # operatia de incrucisare
+            offspring = self.crossover(parent1, parent2)
+        else: # urmasul va fi parintele 1
+            offspring = parent1.copy()
+        return offspring
 
     def __config_fn(self):
         self.crossover = self.crossoverAbstract

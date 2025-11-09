@@ -51,6 +51,14 @@ class SelectParent(RootGA):
     def startEpoch(self, fitness_values):
         total_fitness = fitness_values.sum()
         if (total_fitness != 0):
+            # calcularea numarului de indivizi valizi, pentru selectie
+            size = int(self.SELECT_RATE*self.POPULATION_SIZE)
+            # selectarea celor mai slabi indivizi
+            args_weaks = np.argpartition(fitness_values, size)[:size]
+            # scoterea indivizilor slabi din cursa pentru parinte
+            fitness_values[args_weaks] = 0.
+            total_fitness = fitness_values.sum()
+            # 
             self.fitness_values = fitness_values / total_fitness
         else:
             self.fitness_values = np.full(fitness_values.shape[0], 1./self.POPULATION_SIZE, dtype=np.float32)

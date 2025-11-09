@@ -68,7 +68,7 @@ class Fitness(RootGA):
         return (2*self.__min_distance)/(distances+self.__min_distance)
 
     def __cityNormTSP(self, number_city):
-        mask_cities = (number_city>=(self.GENOME_LENGTH-5)).astype(np.float32)
+        mask_cities = (number_city>=(self.GENOME_LENGTH-1)).astype(np.float32)
 
         return mask_cities
     # TSP problem=================================

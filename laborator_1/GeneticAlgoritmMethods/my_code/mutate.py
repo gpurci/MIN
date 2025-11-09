@@ -37,7 +37,7 @@ class Mutate(RootGA):
                 self.mutate = self.mutateRoll
             elif (self.__config == "insertion"):
                 self.mutate = self.mutateInsertion
-            elif (self.__config == "rool_sim"):
+            elif (self.__config == "roll_sim"):
                 self.mutate = self.mutateRollSim
             elif (self.__config == "perm_sim"):
                 self.mutate = self.mutatePermSim
@@ -126,6 +126,7 @@ class Mutate(RootGA):
         """
         size_shift = np.random.randint(low=1, high=self.GENOME_LENGTH-2, size=None)
         offspring  = np.roll(offspring, size_shift)
+        return offspring
 
     def mutateScramble(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
@@ -258,3 +259,8 @@ class Mutate(RootGA):
             return start, lenght
         return start, lenght
 
+    # helper pentru debugging mutatii:
+    def _diff(self, before, after):
+        """returneaza tuple(index, val_before, val_after) pentru gene schimbate"""
+        idx = np.where(before != after)[0]
+        return [(int(i), int(before[i]), int(after[i])) for i in idx]

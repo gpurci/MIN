@@ -72,10 +72,23 @@ class Crossover(RootGA):
             diff_genes2 = parent2[diff_locus]
             # genele care nu coincid pe pozitii
             union_genes = np.union1d(diff_genes1, diff_genes2) # valori sortate
-            size = diff_locus.shape[0]-union_genes.shape[0]
-            if (size > 0):
-                new_genes   = np.random.randint(low=0, high=self.GENOME_LENGTH, size=size)
-                union_genes = np.concatenate(union_genes, new_genes)
+            # permutarea genelor ce nu coincid pe pozitie
+            union_genes = np.random.permutation(union_genes)
+            # np.union1d poate returna MAI MULTE gene unice decât nr. de locusuri diferite
+            # => diff_locus.shape[0] - union_genes.shape[0] poate iesi NEGATIV
+            # în acel caz "size" devine negativ → np.random.randint(size=negativ)
+            # arunca ValueError: shape mismatch
+            #
+            # soluția: redenumim -> needed (strict pozitiv)
+            # și adăugăm gene noi doar dacă lipsesc
+            needed = diff_locus.shape[0] - union_genes.shape[0]
+            if needed > 0:
+                new_genes = np.random.randint(self.GENOME_LENGTH, size=needed)
+                union_genes = np.concatenate([union_genes, new_genes])
+
+            # dacă sunt PREA MULTE gene → tăiem
+            if union_genes.shape[0] > diff_locus.shape[0]:
+                union_genes = union_genes[:diff_locus.shape[0]]
             # permutarea genelor ce nu coincid pe pozitie
             union_genes = np.random.permutation(union_genes)
             offspring[diff_locus] = union_genes

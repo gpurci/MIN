@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import numpy as np
 from my_code.root_GA import *
 
@@ -26,4 +25,11 @@ class TestRootGA(RootGA):
         population = np.arange(np.prod(size), dtype=np.int32).reshape(*size)%(self.GENOME_LENGTH-1)
         population = np.apply_along_axis(self.__permutePopulation, axis=1, arr=population)
 
-        return population
+        return self.close_population(population)
+
+    def close_population(self, pop):
+        # if already closed, do nothing
+        if pop.shape[1] == self.GENOME_LENGTH + 1:
+            return pop
+        return np.hstack([pop, pop[:, 0:1]])
+

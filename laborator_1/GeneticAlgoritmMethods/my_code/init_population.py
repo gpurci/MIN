@@ -1,7 +1,5 @@
 #!/usr/bin/python
-
 import numpy as np
-from root_GA import *
 
 class InitPopulation(RootGA):
     """
@@ -28,7 +26,7 @@ class InitPopulation(RootGA):
         if (self.__config is not None):
             if   (self.__config == "vecin"):
                 # folosim versiunea ta (Matei)
-                self.fn = self.initPopulationMatei
+                self.fn = self.initPopulationTTP
             elif (self.__config == "TSP_aleator"):
                 self.fn = self.initPopulationsTSPRand
         else:
@@ -64,7 +62,7 @@ class InitPopulation(RootGA):
     # initPopulationRand =====================================
 
     # initPopulationMatei -------------------------------------
-    def initPopulationMatei(self,
+    def initPopulationTTP(self,
                             size=2000, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
@@ -96,7 +94,7 @@ class InitPopulation(RootGA):
             # construieste 1 ruta
             path_np = self._constructGreedyRoute(s, lambda_time, vmax, vmin, Wmax)
             # aplica o singura iteratie 2-opt (accelerat)
-            path_np = self.__twoOpt(path_np)
+            path_np = self._twoOpt(path_np)
 
             tup = tuple(path_np)
             if tup in seen:
@@ -178,7 +176,7 @@ class InitPopulation(RootGA):
         return np.array(path, dtype=np.int32)
 
     # one-shot 2-opt improvement
-    def __twoOpt(self, route):
+    def _twoOpt(self, route):
         """
         single-pass 2-opt: testeaza O(N^2) swap-uri
         si se opreste la PRIMA imbunatatire gasita.

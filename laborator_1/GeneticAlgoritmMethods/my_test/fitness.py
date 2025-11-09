@@ -1,21 +1,20 @@
 #!/usr/bin/python
 
 import numpy as np
-#!/usr/bin/python
 
-import numpy as np
-import sys
-from pathlib import Path
-
-# get path: .../Homeworks/MIN
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-from laborator_1.GeneticAlgoritmMethods.my_code.root_GA import RootGA
-from laborator_1.GeneticAlgoritmMethods.my_code.metrics import Metrics
-from laborator_1.GeneticAlgoritmMethods.my_code.fitness import Fitness
+from my_code.fitness import *
+from my_test.root_GA import *
+from my_test.metrics import *
 
 
 class TestFitness(RootGA):
+    """
+    Clasa 'Fitness', ofera doar metode pentru a calcula functia fitness din populatie.
+    Functia 'fitness' are 1 parametru, numarul populatiei.
+    Metoda '__config_fn', selecteaza functia de initializare.
+    Metoda '__call__', aplica functia de initializare ce a fost selectata in '__config_fn'
+    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    """
 
     def __init__(self):
         super().__init__()

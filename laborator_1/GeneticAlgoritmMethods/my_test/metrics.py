@@ -1,12 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-from laborator_1.GeneticAlgoritmMethods.my_code.metrics import Metrics
+from my_code.metrics import *
 
 class TestMetrics(Metrics):
 

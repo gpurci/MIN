@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import numpy as np
 from root_GA import *
 
 class IndividRepair(RootGA):
@@ -20,10 +21,10 @@ class IndividRepair(RootGA):
 
     def __config_fn(self):
         self.fn = self.individRepairAbstract
-        if self.__config is not None:
-            if self.__config == "mixt":
+        if (self.__config is not None):
+            if   (self.__config == "mixt"):
                 self.fn = self.individRepairMixt
-            elif self.__config == "null":
+            elif (self.__config == "null"):
                 self.fn = self.individRepairNull
         else:
             pass

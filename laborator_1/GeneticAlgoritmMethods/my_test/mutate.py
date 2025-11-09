@@ -2,10 +2,9 @@
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-from laborator_1.GeneticAlgoritmMethods.my_code.mutate import Mutate
-from laborator_1.GeneticAlgoritmMethods.my_test.root_GA import TestRootGA
+import numpy as np
+from my_code.mutate import *
+from my_test.root_GA import *
 
 class TestMutate(Mutate, TestRootGA):
 

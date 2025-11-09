@@ -1,12 +1,8 @@
 #!/usr/bin/python
-import sys
-from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
 import numpy as np
-from laborator_1.GeneticAlgoritmMethods.my_code.init_population import InitPopulation
-from laborator_1.GeneticAlgoritmMethods.my_code.metrics import Metrics
+from my_code.init_population import *
+from my_code.metrics import *
 
 class TestInitPopulation(InitPopulation):
 

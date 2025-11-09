@@ -1,15 +1,16 @@
 #!/usr/bin/python
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-
-from laborator_1.GeneticAlgoritmMethods.my_code.crossover import Crossover
-from laborator_1.GeneticAlgoritmMethods.my_test.root_GA import TestRootGA
+import numpy as np
+from my_code.crossover import *
+from my_test.root_GA import *
 
 class TestCrossover(Crossover, TestRootGA):
+    """
+    Clasa 'Crossover', ofera doar metode pentru a face incrucisarea genetica a doi parinti
+    Functia 'crossover' are 2 parametri, parinte1, parinte2.
+    Metoda 'call', returneaza functia din configuratie.
+    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    """
 
     def __init__(self, config):
         TestRootGA.__init__(self)

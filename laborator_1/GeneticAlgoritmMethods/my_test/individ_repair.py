@@ -1,11 +1,7 @@
 #!/usr/bin/python
 
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-from laborator_1.GeneticAlgoritmMethods.my_code.root_GA import RootGA
+import numpy as np
+from my_code.root_GA import *
 
 class TestIndividRepair(RootGA):
     """

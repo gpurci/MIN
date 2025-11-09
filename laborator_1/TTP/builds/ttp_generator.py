@@ -3,7 +3,6 @@
 import numpy as np
 import cv2 as cv
 import pandas as pd
-from math import hypot, ceil
 
 class TTPGenerator(object):
     def __init__(self, nbr_city, max_distance, coord=None):

@@ -13,30 +13,59 @@ class Mutate(RootGA):
     def __init__(self, config):
         super().__init__()
         self.setConfig(config)
+        self.__vector_size = 2
 
     def __call__(self, parent1, parent2, offspring):
-        return self.mutate(parent1, parent2, offspring)
+        # calcularea ratei de probabilitate a mutatiei
+        rate = np.random.uniform(low=0, high=1, size=None)
+        if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
+            offspring = self.mutate(parent1, parent2, offspring)
+        return offspring
 
     def __config_fn(self):
         self.mutate = self.mutateAbstract
         if (self.__config is not None):
-            if   (self.__config == "test"):
-                self.mutate = self.testParentClass
-            elif (self.__config == "vecin"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.p_mut = [1-self.MUTATION_RATE, self.MUTATION_RATE/2, self.MUTATION_RATE/2]
-                self.mutate = self.mutateNeighbors
+            if   (self.__config == "inversion"):
+                self.mutate = self.mutateInversion
+            elif (self.__config == "scramble"):
+                self.mutate = self.mutateScramble
             elif (self.__config == "swap"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.p_mut = [1-self.MUTATION_RATE, self.MUTATION_RATE/4, 3*self.MUTATION_RATE/4]
                 self.mutate = self.mutateSwap
+            elif (self.__config == "diff_swap"):
+                self.mutate = self.mutateDiffSwap
+            elif (self.__config == "roll"):
+                self.mutate = self.mutateRoll
+            elif (self.__config == "insertion"):
+                self.mutate = self.mutateInsertion
+            elif (self.__config == "rool_sim"):
+                self.mutate = self.mutateRollSim
+            elif (self.__config == "perm_sim"):
+                self.mutate = self.mutatePermSim
+            elif (self.__config == "flip_sim"):
+                self.mutate = self.mutateFlipSim
+            elif (self.__config == "mixt"):
+                # prababilitatea pentru fiecare metoda de mutatie
+                self.p_mixt = [4/10, 1/10, 1/10, 3/10, 1/10]
+                self.mutate = self.mutateMixtDSSII
+
+                
         else:
             pass
 
     def help(self):
         info = """Mutate: 
-        metode de config: 'vecin', 'swap'\n"""
+        metode de config: 'inversion', 'scramble', 'swap', 'roll', 'insertion', 'rool_sim', 'perm_sim', 'flip_sim', 'mixt', \n"""
         return info
+
+    def increaseVectorSize(self):
+        self.__vector_size += 1
+        if (self.__vector_size > 10):
+            self.__vector_size = 10
+
+    def decreaseVectorSize(self):
+        self.__vector_size -= 1
+        if (self.__vector_size < 2):
+            self.__vector_size = 2
 
     def setConfig(self, config):
         self.__config = config
@@ -45,98 +74,187 @@ class Mutate(RootGA):
     def mutateAbstract(self, parent1, parent2, offspring):
         raise NameError("Lipseste configuratia pentru functia de 'Mutate': config '{}'".format(self.__config))
 
-    def testParentClass(self, parent1, parent2, offspring):
-        print("Mutate, testParentClass GENOME_LENGTH :{}".format(self.GENOME_LENGTH))
-
-    def mutateNeighbors(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        raise NameError("Functia de 'Mutatie', incompleta") # TO DO
-        # probabilitatea pentru fiecare metoda de mutatie
-        p = [1-self.MUTATION_RATE, self.MUTATION_RATE/2, self.MUTATION_RATE/2]
-        # cond 0 -> nu se aplica operatia de mutatie, descendentul ramane fara modificari
-        # cond 1 -> mutatie, metoda vecinul apropiat
-        # cond 2 -> mutatie, este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
-        cond = np.random.choice([0, 1, 2], size=nbr_individs, p=p)
-        # aplica mutatie
-        if   (cond == 0):
-            pass
-        elif (cond == 1):
-            # metoda cel mai apropiat vecin
-            # 1 obtine locus-ul (loc)
-            # 2 gena conditionala, care cauta cel mai apropiat vecin este alela precedenta (loc-1)
-            # 3 seteaza gena de pe (loc)
-            # 4 incrementeaza loc, repeta punctul (2, 3) break
-
-            # loc - alela unde va fi aplicata mutatia, cuprinsa intre 0...GENOME_LENGTH
-            loc = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
-            # cond_gene - gena dupa care se va cauta cel mai apropiat vecin
-            cond_genes     = individ[[loc-1, loc+1]]
-            neighbors_gene = self.getNeighbors(cond_genes)
-            new_gene       = np.random.permutation(neighbors_gene)[0]
-            gene           = individ[loc]
-            loc_new        = individ == new_gene
-            individ[loc]   = new_gene
-            individ[loc_new] = gene
-        elif (cond == 2):
-            # modifica doar genele, unde codul genetic al parintilor este identic
-            mask = parent1==parent2
-            mask[[0, -1]] = False # pastreaza orasul de start
-            similar_locus  = np.argwhere(mask).reshape(-1)
-            if (args_similar.shape[0] > 1):
-                args_similar = args_similar.reshape(-1)
-                # obtine genele similare
-                similar_genes = parent1[args_similar]
-                # sterge genele care au fost gasite
-                mask_valid = np.ones(self.GENOME_LENGTH, dtype=bool)
-                mask_valid[similar_genes] = False
-                # adauga alte gene
-                new_gene = np.argwhere(mask_valid).reshape(-1)
-                new_gene = np.random.permutation(new_gene)[:2]
-                args     = np.random.permutation(args_similar)[:2]
-                individ[args] = new_gene
-
-        return individs
-
     def mutateSwap(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        # cond 0 -> nu se aplica operatia de mutatie
-        # cond 1 -> mutatie, metoda swap
-        # cond 2 -> mutatie, este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
-        cond = np.random.choice([0, 1, 2], size=None, p=self.p_mut)# self.p_mut - se calculeaza la configurare in call
         # obtinere locus-urile aleator
         loc1, loc2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=2)
-        # aplica mutatia
-        if cond == 0:
-            pass
-        elif cond == 1:
-            offspring[loc1], offspring[loc2] = offspring[loc2], offspring[loc1]
-        elif cond == 2:
-            # modifica doar genele, unde codul genetic al parintilor este identic
-            mask = parent1==parent2
-            similar_locus = np.argwhere(mask).reshape(-1)
-            if similar_locus.shape[0] > 1:
-                similar_locus = similar_locus.reshape(-1)
-                # obtine locusul 1
-                locus1        = np.random.permutation(similar_locus)[0]
-                # obtine locus-urile pentru genele diferite
-                not_similar_locus = np.ones(self.GENOME_LENGTH, dtype=bool)
-                # obtine genele similare
-                similar_genes = parent1[similar_locus]
-                not_similar_locus[similar_genes] = False
-                # obtine o gena de pe locusuri diferite
-                not_similar_locus = np.argwhere(not_similar_locus).reshape(-1)
-                locus2            = np.random.permutation(not_similar_locus)[0]
-                # schimba genele
-                offspring[locus1], offspring[locus2] = offspring[locus2], offspring[locus1]
-            else:
-                offspring[loc1], offspring[loc2] = offspring[loc2], offspring[loc1]
+        offspring[loc1], offspring[loc2] = offspring[loc2], offspring[loc1]
         return offspring
+
+    def mutateDiffSwap(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+        este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        # modifica doar genele, unde codul genetic al parintilor este identic
+        mask = parent1==parent2
+        similar_locus = np.argwhere(mask).reshape(-1)
+        if (similar_locus.shape[0] > 1):
+            similar_locus = similar_locus.reshape(-1)
+            # obtine locusul 1
+            locus1        = np.random.permutation(similar_locus)[0]
+            # obtine locus-urile pentru genele diferite
+            not_similar_locus = np.ones(self.GENOME_LENGTH, dtype=bool)
+            # obtine genele similare
+            similar_genes = parent1[similar_locus]
+            not_similar_locus[similar_genes] = False
+            # obtine o gena de pe locusuri diferite
+            not_similar_locus = np.argwhere(not_similar_locus).reshape(-1)
+            if (not_similar_locus.shape[0] > 0):
+                locus2 = np.random.permutation(not_similar_locus)[0]
+            else:
+                locus2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
+            # schimba genele
+            offspring[locus1], offspring[locus2] = offspring[locus2], offspring[locus1]
+        else:
+            # obtinere locus-urile aleator
+            locus1, locus2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=2)
+            offspring[locus1], offspring[locus2] = offspring[locus2], offspring[locus1]
+        return offspring
+
+    def mutateRoll(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        size_shift = np.random.randint(low=1, high=self.GENOME_LENGTH-2, size=None)
+        offspring  = np.roll(offspring, size_shift)
+
+    def mutateScramble(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__vector_size+1), size=None)
+        locuses    = np.arange(size_shift, size_shift+self.__vector_size)
+        shufle_genes = np.random.permutation(offspring[locuses])
+        offspring[locuses] = shufle_genes
+        return offspring
+
+    def mutateInversion(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__vector_size+1), size=None)
+        locuses    = np.arange(size_shift, size_shift+self.__vector_size)
+        offspring[locuses] = np.flip(offspring[locuses])
+        return offspring
+
+    def mutateInsertion(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        locus1 = np.random.randint(low=0,      high=self.GENOME_LENGTH//2, size=None)
+        locus2 = np.random.randint(low=locus1, high=self.GENOME_LENGTH-1,  size=None)
+        # copy gene
+        gene1  = offspring[locus1]
+        # make change locuses
+        locuses= np.arange(locus1, locus2)
+        offspring[locuses] = offspring[locuses+1]
+        offspring[locus2]  = gene1
+        return offspring
+
+    def mutateRollSim(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        # modifica doar genele care sunt asemanatoare
+        mask_sim_locus = parent1==parent2
+        sim_locus = np.argwhere(mask_sim_locus)
+        size = sim_locus.shape[0]
+        if (size >= 4):
+            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            if (lenght > 3):
+                locuses    = np.arange(start, start+lenght)
+                size_shift = np.random.randint(low=1, high=lenght//2, size=None)
+                offspring[locuses] = np.roll(offspring[locuses], size_shift)
+        return offspring
+
+    def mutatePermSim(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        # modifica doar genele care sunt asemanatoare
+        mask_sim_locus = parent1==parent2
+        sim_locus = np.argwhere(mask_sim_locus)
+        size = sim_locus.shape[0]
+        if (size >= 4):
+            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            if (lenght > 1):
+                locuses = np.arange(start, start+lenght)
+                offspring[locuses] = np.random.permutation(offspring[locuses])
+        return offspring
+
+    def mutateFlipSim(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        # modifica doar genele care sunt asemanatoare
+        mask_sim_locus = parent1==parent2
+        sim_locus = np.argwhere(mask_sim_locus)
+        size = sim_locus.shape[0]
+        if (size >= 4):
+            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            if (lenght > 1):
+                locuses = np.arange(start, start+lenght)
+                offspring[locuses] = np.flip(offspring[locuses])
+        return offspring
+
+
+    def mutateMixtDSSII(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=self.p_mixt)
+        if   (cond == 0):
+            offspring = self.mutateDiffSwap(parent1, parent2, offspring)
+        elif (cond == 1):
+            offspring = self.mutateScramble(parent1, parent2, offspring)
+        elif (cond == 2):
+            offspring = self.mutateInversion(parent1, parent2, offspring)
+        elif (cond == 3):
+            offspring = self.mutateInsertion(parent1, parent2, offspring)
+        elif (cond == 4):
+            offspring = self.mutateRollSim(parent1, parent2, offspring)
+        return offspring
+
+
+
+    @staticmethod
+    def recSim(individ, start, lenght, arg):
+        if (arg < individ.shape[0]):
+            tmp_arg = arg
+            tmp_st  = arg
+            tmp_lenght = 0
+            while tmp_arg < individ.shape[0]:
+                if (individ[tmp_arg] == True):
+                    tmp_arg   += 1
+                else:
+                    tmp_lenght = tmp_arg - tmp_st
+                    if (lenght < tmp_lenght):
+                        start, lenght = tmp_st, tmp_lenght
+                    return Mutate.recSim(individ, start, lenght, tmp_arg+1)
+        else:
+            return start, lenght
+        return start, lenght
 

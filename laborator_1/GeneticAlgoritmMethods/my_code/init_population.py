@@ -25,11 +25,11 @@ class InitPopulation(RootGA):
     def __config_fn(self):
         # selecteaza implementarea reala in functie de config
         self.fn = self.initPopulationAbstract
-        if self.__config is not None:
-            if self.__config == "vecin":
+        if (self.__config is not None):
+            if   (self.__config == "vecin"):
                 # folosim versiunea ta (Matei)
                 self.fn = self.initPopulationMatei
-            elif self.__config == "TSP_aleator":
+            elif (self.__config == "TSP_aleator"):
                 self.fn = self.initPopulationsTSPRand
         else:
             pass
@@ -54,7 +54,7 @@ class InitPopulation(RootGA):
 
     def initPopulationsTSPRand(self, population_size=-1):
         """Initializarea populatiei, cu drumuri aleatorii"""
-        if population_size == -1:
+        if (population_size == -1):
             population_size = self.POPULATION_SIZE
         size = (population_size, self.GENOME_LENGTH)
         population = np.arange(np.prod(size), dtype=np.int32).reshape(*size) % self.GENOME_LENGTH

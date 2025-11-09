@@ -1,13 +1,8 @@
 #!/usr/bin/python
 
 import numpy as np
-import sys
-from pathlib import Path
-
-ROOT = Path(__file__).resolve().parents[3]
-sys.path.insert(0, str(ROOT))
-from laborator_1.GeneticAlgoritmMethods.my_code.select_parent import SelectParent
-from laborator_1.GeneticAlgoritmMethods.my_code.root_GA import RootGA
+from my_code.select_parent import *
+from my_code.root_GA import *
 
 class TestSelectParent(RootGA):
 

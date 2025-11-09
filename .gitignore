@@ -1,10 +1,13 @@
 # Python
 .ipynb_checkpoints
+.idea
 __pycache__/
 out/
 *.pyc
 *.pyo
 *.pyd
-*.csv
+logs/*.csv
+!data/*.csv
+*.cmd
 venv/
 .env

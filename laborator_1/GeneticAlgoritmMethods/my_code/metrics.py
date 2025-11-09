@@ -11,10 +11,8 @@ class Metrics(RootGA):
     Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    # TO DO: sincronizare 'GENOME_LENGTH' cu celelalte clase!!!!!!
     def __init__(self, config):
         super().__init__()
-        
         self.setConfig(config)
 
     def __call__(self, population):
@@ -66,9 +64,6 @@ class Metrics(RootGA):
     def getDataset(self):
         return self.dataset
 
-    def getMetrics(self):
-        return self.metrics_values
-
     def getArgBest(self, fitness_values):
         """Cautarea rutei optime din populatie"""
         index = np.argmax(fitness_values, axis=None, keepdims=False)
@@ -111,31 +106,21 @@ class Metrics(RootGA):
         distances   = self.__getDistances(population)
         # calculeaza numarul de orase unice
         number_city = self.__getNumberCities(population)
-        self.metrics_values = {"distances": distances, "number_city":number_city}
-        return self.metrics_values
+        metric_values = {"distances": distances, "number_city":number_city}
+        return metric_values
 
     def getScoreTSP(self, population, fitness_values):
         # obtinerea celui mai bun individ
         arg_best = self.getArgBest(fitness_values)
         individ  = population[arg_best]
+        best_fitness = fitness_values[arg_best]
         self.__best_individ = individ
         score = self.__getIndividDistance(individ)
-        return {"score": score}
+        return {"score": score, "best_fitness": best_fitness}
 
     # TSP problem finish =================================
 
     # TTP problem metrics ---------------------
-    # calculeaza distante perechi, aplicand CEIL_2D (rotunjire în sus, nu distanta euclidiana reala)
-    def _pairwise_distance(self, coords, is_ceil2d: bool = True) -> np.ndarray:
-        map_of_distance = []
-        for point in coords:
-            tmp_distance = np.linalg.norm(coords - point, axis=1)
-            map_of_distance.append(tmp_distance)
-        map_of_distance = np.array(map_of_distance)
-        if is_ceil2d:
-            map_of_distance = np.round(map_of_distance, 0)
-        return map_of_distance
-
     def computeSpeedTTP(self, Wcur, vmax, vmin, Wmax):
         """
         viteza curenta in functie de weight (formula TTP)
@@ -149,7 +134,7 @@ class Metrics(RootGA):
         distanta rutelor TTP (daca inchizi ruta)
         use: metrics.getIndividDistanceTTP(individ)
         """
-        D = distance_matrix if distance_matrix is not None else self.distance
+        D = distance_matrix if (distance_matrix is not None) else self.distance
 
         distances = D[individ[:-1], individ[1:]]
         return distances.sum() + D[individ[-1], individ[0]]
@@ -193,9 +178,10 @@ class Metrics(RootGA):
         # find best individual
         arg_best = self.getArgBest(fitness_values)
         individ  = population[arg_best]
+        best_fitness = fitness_values[arg_best]
         self.__best_individ = individ
 
         score = self.getIndividDistanceTTP(individ, self.distance)
 
-        return {"score": score}
+        return {"score": score, "best_fitness": best_fitness}
     # TTP problem finish =================================

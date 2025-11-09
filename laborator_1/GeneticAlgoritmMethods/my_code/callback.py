@@ -12,7 +12,8 @@ class Callback(object):
         self.filename   = filename
         self.pd_history = None
         self.epoch = 0
-        if (Path(self.filename).is_file()):
+        # daca este fisierul se actualizeaza valoarea epocii
+        if (isinstance(self.filename, str) and (Path(self.filename).is_file())):
             self.pd_history = pd.read_csv(self.filename)
             is_epoch = self.pd_history.get("epoch", None)
             if (is_epoch is not None):

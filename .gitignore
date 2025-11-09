@@ -5,6 +5,8 @@ out/
 *.pyc
 *.pyo
 *.pyd
-*.csv
+logs/*.csv
+!data/*.csv
+*.cmd
 venv/
 .env

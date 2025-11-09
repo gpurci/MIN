@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
+import yaml
 import sys
 
 def remove_modules(modules_name, *arg):
@@ -34,13 +35,15 @@ class GeneticAlgorithm(RootGA):
     """
     Managerul de configuratie al algoritmului genetic,
     """
-    def __init__(self, name="", **configs):
+    def __init__(self, name="", extern_commnad_file="", **configs):
         super().__init__()
         self.__name = name
         self.__configs = configs
         self.__setConfig(**configs)
         self.__score_evolution = np.zeros(5, dtype=np.float32)
         self.__last_mutation_rate = None
+        self.__extern_commnad_file = extern_commnad_file
+        self.__is_stop = False
 
     def __str__(self):
         str_info = "Name: {}\n{}".format(self.__name, super().__str__())
@@ -54,6 +57,7 @@ class GeneticAlgorithm(RootGA):
         """
         Manager pentru a face sincronizarea dintre toate functionalele
         """
+        self.__init_command()
         # initiaizarea populatiei
         if (population is None):
             population = self.initPopulation(self.POPULATION_SIZE)
@@ -66,6 +70,9 @@ class GeneticAlgorithm(RootGA):
 
         # evolutia generatiilor
         for generation in range(self.GENERATIONS):
+            # pentru oprire fortata
+            if (self.__is_stop):
+                break
             # nasterea unei noi generatii
             new_population = []
             # start selectie populatie
@@ -144,13 +151,14 @@ class GeneticAlgorithm(RootGA):
         self.callback = Callback(filename)
 
     def help(self):
-        info  = "'metric': "+self.metrics.help()
+        info  = "'nume': numele obiectului\n"
+        info += "'extern_commnad_file': numele fisierului in care vor fi adaugate comenzile externe, (oprire fortata = stop=True)\n"
+        info += "'metric': "+self.metrics.help()
         info += "'init_population': "+self.initPopulation.help()
         info += "'fitness': "+self.fitness.help()
         info += "'select_parent': {'select_parent1': 'select_parent2'}: "+self.selectParent1.help()
         info += "'crossover': "+self.crossover.help()
         info += "'mutate': "+self.mutate.help()
-        info += "'repair': "+self.individRepair.help()
         info += "'callback': "+self.callback.help()
         print(info)
 
@@ -224,7 +232,10 @@ class GeneticAlgorithm(RootGA):
             self.__last_mutation_rate = self.MUTATION_RATE
             print("evolutionScores {}".format(evolutionScores))
             self.setParameters(MUTATION_RATE=1.)
+            self.mutate.increaseVectorSize()
+            self.externCommand()
         else:
+            self.mutate.decreaseVectorSize()
             if (self.__last_mutation_rate is not None):
                 self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
 
@@ -243,3 +254,29 @@ class GeneticAlgorithm(RootGA):
         args = np.argpartition(fitness_values,-self.ELITE_SIZE)
         args = args[-self.ELITE_SIZE:]
         return args
+
+    def externCommand(self):
+        command_dict = self.__read_command_yaml_file()
+        self.__is_stop = command_dict["stop"]
+
+    def __read_command_yaml_file(self):
+        if (isinstance(self.__extern_commnad_file, str) and (Path(self.__extern_commnad_file).is_file())):
+            with open(self.__extern_commnad_file) as file :
+                # The FullLoader parameter handles the conversion from YAML
+                # scalar values to Python the dictionary format
+                command_dict = yaml.load(file, Loader=yaml.FullLoader)
+        else :
+            command_dict = {"stop":False}
+        return command_dict
+
+    def __init_command(self) :
+        if (isinstance(self.__extern_commnad_file, str) and (not Path(self.__extern_commnad_file).is_file())):
+            # create a config file
+            Path(self.__extern_commnad_file).touch(mode=0o666, exist_ok=True)
+        if (isinstance(self.__extern_commnad_file, str) and (Path(self.__extern_commnad_file).is_file())):
+            # save default rating in yaml file
+            commands      = "stop : {}".format(False)
+            yaml_commands = yaml.safe_load(commands)
+
+            with open(self.__extern_commnad_file, "w") as file :
+                yaml.dump(yaml_commands, file)

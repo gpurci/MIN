@@ -18,6 +18,12 @@ class InitPopulation(RootGA):
         self.__configs = kw
         self.__setMethods(method)
 
+    def __str__(self):
+        info = """InitPopulation: 
+        method:  {}
+        configs: {}""".format(self.__method, self.__configs)
+        return info
+
     def __call__(self, size):
         # apel direct: obiect(config)(size)
         return self.fn(size)
@@ -36,8 +42,8 @@ class InitPopulation(RootGA):
 
     def help(self):
         info = """InitPopulation:
-        \tmetoda: 'TTP_vecin';   config: -> lambda_time, vmax, vmin, Wmax, seed;
-        \tmetoda: 'TSP_aleator'; config: None;\n"""
+    metoda: 'TTP_vecin';   config: -> lambda_time, vmax, vmin, Wmax, seed;
+    metoda: 'TSP_aleator'; config: None;\n"""
         return info
 
     def __setMethods(self, method):

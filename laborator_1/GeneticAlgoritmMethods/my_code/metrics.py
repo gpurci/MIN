@@ -16,13 +16,19 @@ class Metrics(RootGA):
         self.__configs = kw
         self.__setMethods(method)
 
+    def __str__(self):
+        info = """Metrics: 
+        method:  {}
+        configs: {}""".format(self.__method, self.__configs)
+        return info
+
     def __call__(self, population):
         return self.fn(population)
 
     def help(self):
         info = """Metrics: 
-        \tmetoda: 'TTP'; config: -> lambda_time, vmax, vmin, Wmax, seed;
-        \tmetoda: 'TSP'; config: None;\n"""
+    metoda: 'TTP'; config: -> lambda_time, vmax, vmin, Wmax, seed;
+    metoda: 'TSP'; config: None;\n"""
         return info
 
     def __method_fn(self):

@@ -16,6 +16,12 @@ class Mutate(RootGA):
         self.__setMethods(method)
         self.__subset_size = 2
 
+    def __str__(self):
+        info = """Mutate: 
+        method:  {}
+        configs: {}""".format(self.__method, self.__configs)
+        return info
+
     def __call__(self, parent1, parent2, offspring):
         # calcularea ratei de probabilitate a mutatiei
         rate = np.random.uniform(low=0, high=1, size=None)
@@ -55,15 +61,15 @@ class Mutate(RootGA):
 
     def help(self):
         info = """Mutate:
-        \tmetoda: 'inversion'; config: None;
-        \tmetoda: 'scramble';  config: None;
-        \tmetoda: 'swap';      config: None;
-        \tmetoda: 'roll';      config: None;
-        \tmetoda: 'insertion'; config: None;
-        \tmetoda: 'rool_sim';  config: None;
-        \tmetoda: 'perm_sim';  config: None;
-        \tmetoda: 'flip_sim';  config: None;
-        \tmetoda: 'mixt';      config: -> p_method[4/10, 1/10, 1/10, 3/10, 1/10], size_subset;\n"""
+    metoda: 'inversion'; config: None;
+    metoda: 'scramble';  config: None;
+    metoda: 'swap';      config: None;
+    metoda: 'roll';      config: None;
+    metoda: 'insertion'; config: None;
+    metoda: 'rool_sim';  config: None;
+    metoda: 'perm_sim';  config: None;
+    metoda: 'flip_sim';  config: None;
+    metoda: 'mixt';      config: -> p_method[4/10, 1/10, 1/10, 3/10, 1/10], size_subset;\n"""
         return info
 
     def increaseSubsetSize(self):

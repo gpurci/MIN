@@ -19,6 +19,12 @@ class Fitness(RootGA):
     def __call__(self, population, metric_values):
         return self.fn(population, metric_values)
 
+    def __str__(self):
+        info = """Fitness: 
+        method:  {}
+        configs: {}""".format(self.__method, self.__configs)
+        return info
+
     def __method_fn(self):
         self.fn = self.fitnessAbstract
         if (self.__method is not None):
@@ -35,10 +41,10 @@ class Fitness(RootGA):
 
     def help(self):
         info = """Fitness:
-        \tmetoda: 'TSP_f1score'; config: None;
-        \tmetoda: 'TSP_norm';    config: None;
-        \tmetoda: 'TTP_linear';  config: -> alpha, v_max, v_min, W, R, lam;
-        \tmetoda: 'TTP_exp';     config: -> alpha, v_max, v_min, W, R, lam;\n"""
+    metoda: 'TSP_f1score'; config: None;
+    metoda: 'TSP_norm';    config: None;
+    metoda: 'TTP_linear';  config: -> alpha, v_max, v_min, W, R, lam;
+    metoda: 'TTP_exp';     config: -> alpha, v_max, v_min, W, R, lam;\n"""
         return info
 
     def __setMethods(self, method):

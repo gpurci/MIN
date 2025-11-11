@@ -19,6 +19,12 @@ class SelectParent(RootGA):
         self.__subset_size = 7
         self.parent_arg    = 0
 
+    def __str__(self):
+        info = """SelectParent: 
+        method:  {}
+        configs: {}""".format(self.__method, self.__configs)
+        return info
+
     def __call__(self):
         return self.fn()
 
@@ -44,12 +50,12 @@ class SelectParent(RootGA):
 
     def help(self):
         info = """SelectParent:
-        \tmetoda: 'choice';        config: None;
-        \tmetoda: 'roata';         config: None;
-        \tmetoda: 'turneu';        config: -> size_subset;
-        \tmetoda: 'turneu_choice'; config: -> size_subset;
-        \tmetoda: 'crescator';     config: None;
-        \tmetoda: 'mixt';          config: -> p_select[1/4, 1/4, 1/4, 1/4], size_subset;\n"""
+    metoda: 'choice';        config: None;
+    metoda: 'roata';         config: None;
+    metoda: 'turneu';        config: -> size_subset;
+    metoda: 'turneu_choice'; config: -> size_subset;
+    metoda: 'crescator';     config: None;
+    metoda: 'mixt';          config: -> p_select[1/4, 1/4, 1/4, 1/4], size_subset;\n"""
         return info
 
     def __setMethods(self, method):

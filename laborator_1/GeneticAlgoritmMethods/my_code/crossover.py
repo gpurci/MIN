@@ -10,51 +10,58 @@ class Crossover(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, config):
+    def __init__(self, method, **kw):
         super().__init__()
-        self.setConfig(config)
+        self.__configs = kw
+        self.__setMethods(method)
 
     def __call__(self, parent1, parent2):
         # adaugare crossover rate
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.CROSSOVER_RATE): # operatia de incrucisare
-            offspring = self.crossover(parent1, parent2)
+            offspring = self.fn(parent1, parent2)
         else: # urmasul va fi parintele 1
             offspring = parent1.copy()
         return offspring
 
-    def __config_fn(self):
-        self.crossover = self.crossoverAbstract
-        if (self.__config is not None):
-            if   (self.__config == "diff"):
-                self.crossover = self.crossoverDiff
-            elif (self.__config == "split"):
-                self.crossover = self.crossoverSplit
-            elif (self.__config == "perm_sim"):
-                self.crossover = self.crossoverPermSim
-            elif (self.__config == "flip_sim"):
-                self.crossover = self.crossoverFlipSim
-            elif (self.__config == "mixt"):
+    def __str__(self):
+        info = """Crossover: 
+        method:  {}
+        configs: {}""".format(self.__method, self.__configs)
+        return info
+
+    def __method_fn(self):
+        self.fn = self.crossoverAbstract
+        if (self.__method is not None):
+            if   (self.__method == "diff"):
+                self.fn = self.crossoverDiff
+            elif (self.__method == "split"):
+                self.fn = self.crossoverSplit
+            elif (self.__method == "perm_sim"):
+                self.fn = self.crossoverPermSim
+            elif (self.__method == "flip_sim"):
+                self.fn = self.crossoverFlipSim
+            elif (self.__method == "mixt"):
                 self.p_mixt = [4/10, 3/10, 3/10]
-                self.crossover = self.crossoverMixt
+                self.fn = self.crossoverMixt
 
         else:
             pass
 
     def help(self):
         info = """Crossover:
-        \tmetoda: 'diff';     config None;
-        \tmetoda: 'split';    config None;
-        \tmetoda: 'perm_sim'; config None;
-        \tmetoda: 'mixt';     config None;\n"""
+    metoda: 'diff';     config None;
+    metoda: 'split';    config None;
+    metoda: 'perm_sim'; config None;
+    metoda: 'mixt';     config None;\n"""
         return info
 
-    def setConfig(self, config):
-        self.__config = config
-        self.__config_fn()
+    def __setMethods(self, method):
+        self.__method = method
+        self.__method_fn()
 
     def crossoverAbstract(self, parent1, parent2):
-        raise NameError("Lipseste configuratia pentru functia de 'Crossover': config '{}'".format(self.__config))
+        raise NameError("Lipseste metoda '{}' pentru functia de 'Crossover': config '{}'".format(self.__method, self.__config))
 
     def crossoverDiff(self, parent1, parent2):
         """Incrucisarea a doi parinti pentru a crea un urmas

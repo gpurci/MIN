@@ -3,6 +3,7 @@
 import numpy as np
 import yaml
 import sys
+import warnings
 
 def remove_modules(modules_name, *arg):
     if (modules_name in sys.modules):
@@ -36,18 +37,17 @@ class GeneticAlgorithm(RootGA):
     def __init__(self, name="", extern_commnad_file="", **configs):
         super().__init__()
         self.__name = name
-        self.__configs = configs
-        self.__setConfig(**configs)
         self.__score_evolution = np.zeros(5, dtype=np.float32)
         self.__last_mutation_rate = None
         self.__extern_commnad_file = extern_commnad_file
         self.__is_stop = False
+        self.setConfig(**configs)
 
     def __str__(self):
         str_info = "Name: {}\n{}".format(self.__name, super().__str__())
         str_info += "\nConfigs:"
-        for key in self.__configs.keys():
-            str_info += "\n\t{}: {}".format(key, self.__configs[key])
+        for function in self.__functions:
+            str_info += "\n{}".format(str(function))
         str_info += "\n"
         return str_info
 
@@ -119,32 +119,55 @@ class GeneticAlgorithm(RootGA):
 
         return self.metrics.getBestIndivid(), population
 
-    def __setConfig(self, **configs):
+    def __unpackConfigure(self, str_functia, **configs):
+        method, method_configs = None, {}
+        if (configs is not None):
+            method_configs = configs.get(str_functia, None)
+            if (method_configs is not None):
+                method = method_configs.pop("method", None)
+            else:
+                method_configs = {}
+                warnings.warn("Lipseste metoda, pentru functia de '{}'".format(str_functia))
+        else:
+            warnings.warn("Lipseste metoda, pentru functia de '{}'".format(str_functia))
+
+        return method, method_configs
+
+    def setConfig(self, **configs):
+        # salveaza configuratiile
+        self.__functions = []
         # configurare metrici
-        config       = configs.get("metric", {""})
-        method       = config.get("metric", None)
-        self.metrics = Metrics(method, )
+        method, method_configs = self.__unpackConfigure("metric", **configs)
+        self.metrics = Metrics(method, **method_configs)
+        self.__functions.append(self.metrics)
         # configurare initializare populatie
-        config       = configs.get("init_population", None)
-        self.initPopulation = InitPopulation(config, self.metrics)
+        method, method_configs = self.__unpackConfigure("init_population", **configs)
+        self.initPopulation = InitPopulation(method, self.metrics, **method_configs)
+        self.__functions.append(self.initPopulation)
         # configurare fitness
-        config       = configs.get("fitness", None)
-        self.fitness = Fitness(config)
+        method, method_configs = self.__unpackConfigure("fitness", **configs)
+        self.fitness = Fitness(method, **method_configs)
+        self.__functions.append(self.fitness)
         # configurate selectie parinti
-        config       = configs.get("select_parent", {"test1":0, "test2":0})
-        conf_select1 = config.get("select_parent1", None)
-        self.selectParent1 = SelectParent(conf_select1)
-        conf_select2 = config.get("select_parent2", None)
-        self.selectParent2 = SelectParent(conf_select2)
+        sel_parent_conf = configs.get("select_parent", {"NoneMethod":0})
+        method, method_configs = self.__unpackConfigure("select_parent1", **sel_parent_conf)
+        self.selectParent1 = SelectParent(method, **method_configs)
+        self.__functions.append(self.selectParent1)
+        method, method_configs = self.__unpackConfigure("select_parent2", **sel_parent_conf)
+        self.selectParent2 = SelectParent(method, **method_configs)
+        self.__functions.append(self.selectParent2)
         # configurare incrucisare
-        config       = configs.get("crossover", None)
-        self.crossover = Crossover(config)
+        method, method_configs = self.__unpackConfigure("crossover", **configs)
+        self.crossover = Crossover(method, **method_configs)
+        self.__functions.append(self.crossover)
         # configurare mutatie
-        config       = configs.get("mutate", None)
-        self.mutate  = Mutate(config)
+        method, method_configs = self.__unpackConfigure("mutate", **configs)
+        self.mutate  = Mutate(method, **method_configs)
+        self.__functions.append(self.mutate)
         # configurare callback salvare, istoricul de antrenare
         filename     = configs.get("callback", None)
         self.callback = Callback(filename)
+        self.__functions.append(self.callback)
 
     def help(self):
         info  = "'nume': numele obiectului\n"
@@ -170,7 +193,6 @@ class GeneticAlgorithm(RootGA):
         self.selectParent2.setParameters(**kw)
         self.crossover.setParameters(**kw)
         self.mutate.setParameters(**kw)
-        self.individRepair.setParameters(**kw)
 
     def evolutionMonitor(self, evolutionScores):
         """

@@ -7,7 +7,6 @@ class Callback(object):
     """
     Salveaza rezultatele obtinute pentru fiecare generatie in 'csv' file.
     """
-
     def __init__(self, filename):
         self.filename   = filename
         self.pd_history = None
@@ -19,6 +18,9 @@ class Callback(object):
             if (is_epoch is not None):
                 self.epoch = self.pd_history.at[len(self.pd_history)-1, "epoch"]
 
+    def __str__(self):
+        info = "Callback: filename {}".format(self.filename)
+        return info
 
     def __call__(self, epoch, logs):
         # valorile de pe 'key' trebuie sa fie liste sau vector
@@ -39,5 +41,5 @@ class Callback(object):
 
     def help(self):
         info = """Callback: 
-        metode de config: 'filename'\n"""
+    'filename'\n"""
         return info

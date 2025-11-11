@@ -241,7 +241,7 @@ class Mutate(RootGA):
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=self.p_mixt)
+        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=self.__p_method)
         if   (cond == 0):
             offspring = self.mutateDiffSwap(parent1, parent2, offspring)
         elif (cond == 1):

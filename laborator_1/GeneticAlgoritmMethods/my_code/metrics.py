@@ -86,8 +86,8 @@ class Metrics(RootGA):
     # TS problem------------------------------
     def __getIndividDistance(self, individ):
         """Calculul distantei pentru un individ"""
-        distances = self.dataset[individ[:-1], individ[1:]]
-        distance  = distances.sum() + self.dataset[individ[-1], individ[0]]
+        distances = self.dataset["distance"][individ[:-1], individ[1:]]
+        distance  = distances.sum() + self.dataset["distance"][individ[-1], individ[0]]
         return distance
 
     def __getIndividNumberCities(self, individ):

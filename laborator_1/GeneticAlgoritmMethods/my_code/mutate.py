@@ -10,50 +10,44 @@ class Mutate(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, config):
+    def __init__(self, method, **kw):
         super().__init__()
-        self.setConfig(config)
-        self.__vector_size = 2
+        self.__configs = kw
+        self.__setMethods(method)
+        self.__subset_size = 2
 
     def __call__(self, parent1, parent2, offspring):
         # calcularea ratei de probabilitate a mutatiei
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
-            offspring = self.mutate(parent1, parent2, offspring)
+            offspring = self.fn(parent1, parent2, offspring)
         return offspring
 
-    def __config_fn(self):
-        self.mutate = self.mutateAbstract
-        if (self.__config is not None):
-            if   (self.__config == "inversion"):
-                self.mutate = self.mutateInversion
-            elif (self.__config == "scramble"):
-                self.mutate = self.mutateScramble
-            elif (self.__config == "swap"):
+    def __method_fn(self):
+        self.fn = self.mutateAbstract
+        if (self.__method is not None):
+            if   (self.__method == "inversion"):
+                self.fn = self.mutateInversion
+            elif (self.__method == "scramble"):
+                self.fn = self.mutateScramble
+            elif (self.__method == "swap"):
+                self.fn = self.mutateSwap
+            elif (self.__method == "diff_swap"):
+                self.fn = self.mutateDiffSwap
+            elif (self.__method == "roll"):
+                self.fn = self.mutateRoll
+            elif (self.__method == "insertion"):
+                self.fn = self.mutateInsertion
+            elif (self.__method == "rool_sim"):
+                self.fn = self.mutateRollSim
+            elif (self.__method == "perm_sim"):
+                self.fn = self.mutatePermSim
+            elif (self.__method == "flip_sim"):
+                self.fn = self.mutateFlipSim
+            elif (self.__method == "mixt"):
                 # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutateSwap
-            elif (self.__config == "diff_swap"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutateDiffSwap
-            elif (self.__config == "roll"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutateRoll
-            elif (self.__config == "insertion"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutateInsertion
-            elif (self.__config == "rool_sim"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutateRollSim
-            elif (self.__config == "perm_sim"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutatePermSim
-            elif (self.__config == "flip_sim"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.mutate = self.mutateFlipSim
-            elif (self.__config == "mixt"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.p_mixt = [4/10, 1/10, 1/10, 3/10, 1/10]
-                self.mutate = self.mutateMixtDSSII
+                self.__p_method = [4/10, 1/10, 1/10, 3/10, 1/10]
+                self.fn = self.mutateMixtDSSII
 
                 
         else:
@@ -61,25 +55,33 @@ class Mutate(RootGA):
 
     def help(self):
         info = """Mutate: 
-        metode de config: 'inversion', 'scramble', 'swap', 'roll', 'insertion', 'rool_sim', 'perm_sim', 'flip_sim', 'mixt', \n"""
+        \tmetoda: 'inversion'; config: None;
+        \tmetoda: 'scramble';  config: None;
+        \tmetoda: 'swap';      config: None;
+        \tmetoda: 'roll';      config: None;
+        \tmetoda: 'insertion'; config: None;
+        \tmetoda: 'rool_sim';  config: None;
+        \tmetoda: 'perm_sim';  config: None;
+        \tmetoda: 'flip_sim';  config: None;
+        \tmetoda: 'mixt';      config: -> p_method[4/10, 1/10, 1/10, 3/10, 1/10], size_subset;\n"""
         return info
 
-    def increaseVectorSize(self):
-        self.__vector_size += 1
-        if (self.__vector_size > 10):
-            self.__vector_size = 10
+    def increaseSubsetSize(self):
+        self.__subset_size += 1
+        if (self.__subset_size > 10):
+            self.__subset_size = 10
 
-    def decreaseVectorSize(self):
-        self.__vector_size -= 1
-        if (self.__vector_size < 2):
-            self.__vector_size = 2
+    def decreaseSubsetSize(self):
+        self.__subset_size -= 1
+        if (self.__subset_size < 2):
+            self.__subset_size = 2
 
-    def setConfig(self, config):
-        self.__config = config
-        self.__config_fn()
+    def setConfig(self, method):
+        self.__method = method
+        self.__method_fn()
 
     def mutateAbstract(self, parent1, parent2, offspring):
-        raise NameError("Lipseste configuratia pentru functia de 'Mutate': config '{}'".format(self.__config))
+        raise NameError("Lipseste metoda '{}' pentru functia de 'Mutate': config '{}'".format(self.__method, self.__config))
 
     def mutateSwap(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
@@ -140,8 +142,8 @@ class Mutate(RootGA):
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__vector_size+1), size=None)
-        locuses    = np.arange(size_shift, size_shift+self.__vector_size)
+        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__subset_size+1), size=None)
+        locuses    = np.arange(size_shift, size_shift+self.__subset_size)
         shufle_genes = np.random.permutation(offspring[locuses])
         offspring[locuses] = shufle_genes
         return offspring
@@ -152,8 +154,8 @@ class Mutate(RootGA):
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__vector_size+1), size=None)
-        locuses    = np.arange(size_shift, size_shift+self.__vector_size)
+        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__subset_size+1), size=None)
+        locuses    = np.arange(size_shift, size_shift+self.__subset_size)
         offspring[locuses] = np.flip(offspring[locuses])
         return offspring
 

@@ -2,7 +2,6 @@
 
 import numpy as np
 from root_GA import *
-from math import hypot, ceil
 
 class Metrics(RootGA):
     """
@@ -12,35 +11,57 @@ class Metrics(RootGA):
     Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    # TO DO: sincronizare 'GENOME_LENGTH' cu celelalte clase!!!!!!
-    def __init__(self, config):
+    def __init__(self, method, **kw):
         super().__init__()
-        self.setConfig(config)
+        self.__configs = kw
+        self.__setMethods(method)
 
     def __call__(self, population):
         return self.fn(population)
 
     def help(self):
         info = """Metrics: 
-        metode de config: 'TSP'\n"""
+        \tmetoda: 'TTP'; config: -> lambda_time, vmax, vmin, Wmax, seed;
+        \tmetoda: 'TSP'; config: None;\n"""
         return info
 
-    def __config_fn(self):
+    def __method_fn(self):
         self.fn = self.metricsAbstract
-        if (self.__config is not None):
-            if   (self.__config == "TSP"):
+        if (self.__method is not None):
+            if   (self.__method == "TSP"):
                 self.fn = self.metricsTSP
                 self.getScore = self.getScoreTSP
-        else:
-            pass
+            elif (self.__method == "TTP"):
+                self.fn = self.metricsTTP
+                self.getScore = self.getScoreTTP
 
-    def setConfig(self, config):
-        self.__config = config
-        self.__config_fn()
+
+    def __setMethods(self, method):
+        self.__method = method
+        self.__method_fn()
 
     def setDataset(self, dataset):
-        print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__config))
+        print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))
         self.dataset = dataset
+
+        if   (self.__method == "TSP"):
+            # dataset este direct matrice NxN
+            self.distance = dataset
+
+        elif (self.__method == "TTP"):
+            # dataset este dict
+            self.coords      = dataset["coords"]
+            self.distance    = dataset["distance"]
+            self.item_profit = dataset["item_profit"]
+            self.item_weight = dataset["item_weight"]
+
+            # pentru fitness (city, w, p)
+            self.items = list(zip(
+                np.arange(len(self.item_profit)),
+                self.item_weight,
+                self.item_profit
+            ))
+
 
     def getDataset(self):
         return self.dataset
@@ -54,7 +75,7 @@ class Metrics(RootGA):
         return self.__best_individ
 
     def metricsAbstract(self, population):
-        raise NameError("Lipseste configuratia pentru functia de 'Metrics': config '{}'".format(self.__config))
+        raise NameError("Lipseste metoda '{}' pentru functia de 'Metrics': config '{}'".format(self.__method, self.__configs))
 
     # TS problem------------------------------
     def __getIndividDistance(self, individ):
@@ -102,17 +123,6 @@ class Metrics(RootGA):
     # TSP problem finish =================================
 
     # TTP problem metrics ---------------------
-    def _pairwise_distance(self, coords: np.ndarray, ceil2d: bool = True) -> np.ndarray:
-        n = coords.shape[0]
-        D = np.zeros((n, n), dtype=np.float64)
-        for i in range(n):
-            xi, yi = coords[i]
-            for j in range(i+1, n):
-                xj, yj = coords[j]
-                d = hypot(xi - xj, yi - yj)
-                D[i, j] = D[j, i] = float(ceil(d)) if ceil2d else d
-        return D
-    
     def computeSpeedTTP(self, Wcur, vmax, vmin, Wmax):
         """
         viteza curenta in functie de weight (formula TTP)
@@ -126,7 +136,54 @@ class Metrics(RootGA):
         distanta rutelor TTP (daca inchizi ruta)
         use: metrics.getIndividDistanceTTP(individ)
         """
-        D = distance_matrix if distance_matrix is not None else self.dataset
+        D = distance_matrix if (distance_matrix is not None) else self.distance
+
         distances = D[individ[:-1], individ[1:]]
         return distances.sum() + D[individ[-1], individ[0]]
+    
+    def metricsTTP(self, population):
+        N = population.shape[0]
+        distances = np.zeros(N, dtype=np.float32)
+        profits   = np.zeros(N, dtype=np.float32)
+        times     = np.zeros(N, dtype=np.float32)
+
+        for i, ind in enumerate(population):
+
+            Wcur  = 0.0
+            T     = 0.0
+            P     = 0.0
+
+            for k in range(len(ind)-1):
+                city = ind[k]
+
+                # adds profit
+                for (city_k, weight_k, profit_k) in self.items:
+                    if city_k == city:
+                        P += profit_k
+                        Wcur += weight_k
+
+                v = self.computeSpeedTTP(Wcur, self.v_max, self.v_min, self.W)
+                T += self.distance[ind[k], ind[k+1]] / v
+
+            distances[i] = self.getIndividDistanceTTP(ind)
+            profits[i]   = P
+            times[i]     = T
+
+        self.metrics_values = {
+            "distances" : distances,
+            "profits"   : profits,
+            "times"     : times
+        }
+        return self.metrics_values
+    
+    def getScoreTTP(self, population, fitness_values):
+        # find best individual
+        arg_best = self.getArgBest(fitness_values)
+        individ  = population[arg_best]
+        best_fitness = fitness_values[arg_best]
+        self.__best_individ = individ
+
+        score = self.getIndividDistanceTTP(individ, self.distance)
+
+        return {"score": score, "best_fitness": best_fitness}
     # TTP problem finish =================================

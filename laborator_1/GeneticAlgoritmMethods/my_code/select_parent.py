@@ -12,41 +12,49 @@ class SelectParent(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, config):
+    def __init__(self, method, **kw):
         super().__init__()
-        self.setConfig(config)
-        self.parent_arg = 0
+        self.__configs = kw
+        self.__setMethods(method)
+        self.__subset_size = 7
+        self.parent_arg    = 0
 
     def __call__(self):
         return self.fn()
 
-    def __config_fn(self):
+    def __method_fn(self):
         self.fn = self.selectParentAbstract
-        if (self.__config is not None):
-            if   (self.__config == "choice"):
+        if (self.__method is not None):
+            if   (self.__method == "choice"):
                 self.fn = self.selectParentChoice
-            elif (self.__config == "roata"):
+            elif (self.__method == "roata"):
                 self.fn = self.selectParentWheel
-            elif (self.__config == "turneu"):
+            elif (self.__method == "turneu"):
                 self.fn = self.selectParentTour
-            elif (self.__config == "turneu_choice"):
+            elif (self.__method == "turneu_choice"):
                 self.fn = self.selectParentTourChoice
-            elif (self.__config == "crescator"):
+            elif (self.__method == "crescator"):
                 self.fn = self.selectParentRise
-            elif (self.__config == "mixt"):
+            elif (self.__method == "mixt"):
+                self.__p_select = [1/4, 1/4, 1/4, 1/4]
                 self.fn = self.selectParentMixt
                 
         else:
             pass
 
     def help(self):
-        info = """SelectParent: 
-        metode de config: 'choice', 'roata', 'turneu', 'turneu_choice', 'crescator', 'mixt'\n"""
+        info = """SelectParent:
+        \tmetoda: 'choice';        config: None;
+        \tmetoda: 'roata';         config: None;
+        \tmetoda: 'turneu';        config: -> size_subset;
+        \tmetoda: 'turneu_choice'; config: -> size_subset;
+        \tmetoda: 'crescator';     config: None;
+        \tmetoda: 'mixt';          config: -> p_select[1/4, 1/4, 1/4, 1/4], size_subset;\n"""
         return info
 
-    def setConfig(self, config):
-        self.__config = config
-        self.__config_fn()
+    def __setMethods(self, method):
+        self.__method = method
+        self.__method_fn()
 
     def startEpoch(self, fitness_values):
         total_fitness = fitness_values.sum()
@@ -58,13 +66,13 @@ class SelectParent(RootGA):
             # scoterea indivizilor slabi din cursa pentru parinte
             fitness_values[args_weaks] = 0.
             total_fitness = fitness_values.sum()
-            # 
+            # update: adauga doar cei mai puternici indivizi
             self.fitness_values = fitness_values / total_fitness
         else:
             self.fitness_values = np.full(fitness_values.shape[0], 1./self.POPULATION_SIZE, dtype=np.float32)
 
     def selectParentAbstract(self):
-        raise NameError("Lipseste configuratia pentru functia de 'SelectionParent': config '{}'".format(self.__config))
+        raise NameError("Lipseste metoda '{}' pentru functia de 'SelectionParent': config '{}'".format(self.__method, self.__config))
 
     def selectParentChoice(self):
         """Selecteaza un parinte aleator din populatie,
@@ -94,7 +102,7 @@ class SelectParent(RootGA):
             - unde valoarea fitness este probabilitatea de a fi ales
         """
         # selectie dupa compatibilitate, turneu
-        args_k_tour = np.random.randint(low=0, high=self.POPULATION_SIZE, size=7)
+        args_k_tour = np.random.randint(low=0, high=self.POPULATION_SIZE, size=self.__subset_size)
         arg         = np.argmax(self.fitness_values[args_k_tour])
         return args_k_tour[arg]
 
@@ -103,7 +111,7 @@ class SelectParent(RootGA):
             - unde valoarea fitness este probabilitatea de a fi ales
         """
         # selectie dupa compatibilitate, turneu
-        args_k_tour = np.random.choice(self.POPULATION_SIZE, size=7, p=self.fitness_values)
+        args_k_tour = np.random.choice(self.POPULATION_SIZE, size=self.__subset_size, p=self.fitness_values)
         arg         = np.argmax(self.fitness_values[args_k_tour])
         return args_k_tour[arg]
 
@@ -122,7 +130,7 @@ class SelectParent(RootGA):
             - unde valoarea fitness este probabilitatea de a fi ales
         """
         # selectie dupa compatibilitate, mixt
-        cond = np.random.choice([0, 1, 2, 3], size=None, p=None)
+        cond = np.random.choice([0, 1, 2, 3], size=None, p=self.__p_select)
         if   (cond == 0):
             arg = self.selectParentChoice()
         elif (cond == 1):

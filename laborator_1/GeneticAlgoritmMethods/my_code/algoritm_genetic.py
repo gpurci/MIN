@@ -15,7 +15,6 @@ remove_modules("root_GA")
 remove_modules("callback")
 remove_modules("crossover")
 remove_modules("fitness")
-remove_modules("individ_repair")
 remove_modules("init_population")
 remove_modules("metrics")
 remove_modules("mutate")
@@ -25,7 +24,6 @@ from root_GA import *
 from callback import *
 from crossover import *
 from fitness import *
-from individ_repair import *
 from init_population import *
 from metrics import *
 from mutate import *
@@ -123,8 +121,9 @@ class GeneticAlgorithm(RootGA):
 
     def __setConfig(self, **configs):
         # configurare metrici
-        config       = configs.get("metric", None)
-        self.metrics = Metrics(config)
+        config       = configs.get("metric", {""})
+        method       = config.get("metric", None)
+        self.metrics = Metrics(method, )
         # configurare initializare populatie
         config       = configs.get("init_population", None)
         self.initPopulation = InitPopulation(config, self.metrics)
@@ -143,9 +142,6 @@ class GeneticAlgorithm(RootGA):
         # configurare mutatie
         config       = configs.get("mutate", None)
         self.mutate  = Mutate(config)
-        # configurare reparatie individ, repara individ atunci cand nu este progres, o operatie de mutatie pe mai multe gene
-        config       = configs.get("repair", None)
-        self.individRepair = IndividRepair(config)
         # configurare callback salvare, istoricul de antrenare
         filename     = configs.get("callback", None)
         self.callback = Callback(filename)
@@ -232,10 +228,10 @@ class GeneticAlgorithm(RootGA):
             self.__last_mutation_rate = self.MUTATION_RATE
             print("evolutionScores {}".format(evolutionScores))
             self.setParameters(MUTATION_RATE=1.)
-            self.mutate.increaseVectorSize()
+            self.mutate.increaseSubsetSize()
             self.externCommand()
         else:
-            self.mutate.decreaseVectorSize()
+            self.mutate.decreaseSubsetSize()
             if (self.__last_mutation_rate is not None):
                 self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
 

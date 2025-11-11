@@ -12,40 +12,42 @@ class InitPopulation(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, config, metrics):
+    def __init__(self, method, metrics, **kw):
         super().__init__()
         # metrics = obiectul Metrics — folosit pentru dataset
-        self.metrics = metrics
-        self.setConfig(config)
+        self.metrics   = metrics
+        self.__configs = kw
+        self.__setMethods(method)
 
     def __call__(self, size):
         # apel direct: obiect(config)(size)
         return self.fn(size)
 
-    def __config_fn(self):
-        # selecteaza implementarea reala in functie de config
+    def __method_fn(self):
+        # selecteaza metoda dupa care se aplica metrica
         self.fn = self.initPopulationAbstract
-        if (self.__config is not None):
-            if   (self.__config == "vecin"):
+        if (self.__method is not None):
+            if   (self.__method == "TTP_vecin"):
                 # folosim versiunea ta (Matei)
                 self.fn = self.initPopulationMatei
-            elif (self.__config == "TSP_aleator"):
+            elif (self.__method == "TSP_aleator"):
                 self.fn = self.initPopulationsTSPRand
         else:
             pass
 
     def help(self):
         info = """InitPopulation:
-        metode de config: 'vecin', 'TSP_aleator'\n"""
+        \tmetoda: 'TTP_vecin';   config: -> lambda_time, vmax, vmin, Wmax, seed;
+        \tmetoda: 'TSP_aleator'; config: None;\n"""
         return info
 
-    def setConfig(self, config):
-        self.__config = config
-        self.__config_fn()
+    def __setMethods(self, method):
+        self.__method = method
+        self.__method_fn()
 
     def initPopulationAbstract(self, size):
         # default: nu exista implementare
-        raise NameError("Lipseste configuratia pentru functia de 'InitPopulation': config '{}'".format(self.__config))
+        raise NameError("Lipseste metoda '{}' pentru functia de 'InitPopulation': config '{}'".format(self.__method, self.__config))
 
     # initPopulationRand -------------------------------------
     def __permutePopulation(self, individ):
@@ -57,7 +59,7 @@ class InitPopulation(RootGA):
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
         size = (population_size, self.GENOME_LENGTH)
-        population = np.arange(np.prod(size), dtype=np.int32).reshape(*size)%(self.GENOME_LENGTH)
+        population = np.arange(np.prod(size), dtype=np.int32).reshape(*size) % self.GENOME_LENGTH
         population = np.apply_along_axis(self.__permutePopulation, axis=1, arr=population)
         print("population {}".format(population.shape))
         return population
@@ -174,7 +176,7 @@ class InitPopulation(RootGA):
         si se opreste la PRIMA imbunatatire gasita.
         """
         best = route.copy()
-        best_dist = self.metrics.getIndividDistance(best, self.distance)
+        best_dist = self.metrics.getIndividDistanceTTP(best, self.distance)
         n = len(route) - 1
 
         for i in range(1, n-2):
@@ -182,7 +184,7 @@ class InitPopulation(RootGA):
                 new_route = best.copy()
                 new_route[i:k] = best[k-1:i-1:-1]
 
-                d = self.metrics.getIndividDistance(new_route, self.distance)
+                d = self.metrics.getIndividDistanceTTP(new_route, self.distance)
                 if d < best_dist:
                     return new_route     # improvement found — imediat return!
 

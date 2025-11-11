@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-import numpy as np
-
 class RootGA(object):
     """
     Clasa root pentru algoritmi genetici:

@@ -42,8 +42,11 @@ class Crossover(RootGA):
             pass
 
     def help(self):
-        info = """Crossover: 
-        metode de config: 'diff', 'split', 'perm_sim', 'mixt', \n"""
+        info = """Crossover:
+        \tmetoda: 'diff';     config None;
+        \tmetoda: 'split';    config None;
+        \tmetoda: 'perm_sim'; config None;
+        \tmetoda: 'mixt';     config None;\n"""
         return info
 
     def setConfig(self, config):

@@ -54,7 +54,7 @@ class Mutate(RootGA):
             pass
 
     def help(self):
-        info = """Mutate: 
+        info = """Mutate:
         \tmetoda: 'inversion'; config: None;
         \tmetoda: 'scramble';  config: None;
         \tmetoda: 'swap';      config: None;
@@ -76,7 +76,7 @@ class Mutate(RootGA):
         if (self.__subset_size < 2):
             self.__subset_size = 2
 
-    def setConfig(self, method):
+    def __setMethods(self, method):
         self.__method = method
         self.__method_fn()
 
@@ -135,6 +135,7 @@ class Mutate(RootGA):
         """
         size_shift = np.random.randint(low=1, high=self.GENOME_LENGTH-2, size=None)
         offspring  = np.roll(offspring, size_shift)
+        return offspring
 
     def mutateScramble(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
@@ -267,3 +268,8 @@ class Mutate(RootGA):
             return start, lenght
         return start, lenght
 
+    # helper pentru debugging mutatii: TO DO: Adauga in test aici esto doar functionalul!!!
+    def _diff(self, before, after):
+        """returneaza tuple(index, val_before, val_after) pentru gene schimbate"""
+        idx = np.where(before != after)[0]
+        return [(int(i), int(before[i]), int(after[i])) for i in idx]

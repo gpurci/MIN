@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import numpy as np
 from root_GA import *
 
@@ -29,7 +28,7 @@ class InitPopulation(RootGA):
         if (self.__method is not None):
             if   (self.__method == "TTP_vecin"):
                 # folosim versiunea ta (Matei)
-                self.fn = self.initPopulationMatei
+                self.fn = self.initPopulationTTP
             elif (self.__method == "TSP_aleator"):
                 self.fn = self.initPopulationsTSPRand
         else:
@@ -66,7 +65,7 @@ class InitPopulation(RootGA):
     # initPopulationRand =====================================
 
     # initPopulationMatei -------------------------------------
-    def initPopulationMatei(self,
+    def initPopulationTTP(self,
                             size=2000, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
@@ -98,7 +97,7 @@ class InitPopulation(RootGA):
             # construieste 1 ruta
             path_np = self._constructGreedyRoute(s, lambda_time, vmax, vmin, Wmax)
             # aplica o singura iteratie 2-opt (accelerat)
-            path_np = self.__twoOpt(path_np)
+            path_np = self._twoOpt(path_np)
 
             tup = tuple(path_np)
             if tup in seen:
@@ -127,40 +126,50 @@ class InitPopulation(RootGA):
         visited[start] = True
 
         path = [start]
-        cur  = start
+        cur = start
         Wcur = 0.0  # current knapsack weight
 
         # GENOME_LENGTH - 1 mutări (ultima este întoarcerea spre start)
-        for _ in range(self.GENOME_LENGTH-1):
-            # lista orașelor nevizitate
+        for _ in range(self.GENOME_LENGTH - 1):
+
             cand = np.where(~visited)[0]
 
             # viteza actuala in functie de cat ai incarcat rucsacul
             v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
+            dist = self.distance[cur, cand]
+            time = dist / v_cur
 
-            # calculeaza durata de calatorie la fiecare oras candidat
-            dist  = self.distance[cur, cand]
-            time  = dist / v_cur
+            # profit brut al itemului din orașul candidat
+            profit_raw = self.item_profit[cand]
 
-            # vezi daca putem lua item-ul (nu depasim capacitatea)
+            # calculăm cât profit real rămâne după penalizarea de timp
+            # dacă e negativ -> îl forțăm la 0 (adică nu merită să îl luăm)
+            profit_if_take = profit_raw - lambda_time * time
+            profit_if_take = np.maximum(0.0, profit_if_take)
+
+            # putem lua item-ul DOAR dacă încăperea / capacitatea nu este depășită
             can_take = (Wcur + self.item_weight[cand]) <= Wmax
-            profit   = self.item_profit[cand] * can_take
 
-            # scor euristic: profit - lambda * timp
-            score = profit - lambda_time * time
+            # scor euristic: profit efectiv după penalizare * dacă avem voie să îl luăm
+            score = profit_if_take * can_take  # <--- asta decide urmatorul oraș
 
             # alegem din top 5 scoruri cele mai bune → alegere random din top
-            order   = np.argsort(score)
-            top_k   = min(5, len(order))
+            order = np.argsort(score)
+            top_k = min(5, len(order))
             choices = cand[order[-top_k:]]
 
-            # alegem un oras random din cele mai bune
             j = np.random.choice(choices)
             path.append(j)
             visited[j] = True
 
-            # daca incape — actualizam greutatea
-            if (Wcur + self.item_weight[j]) <= Wmax:
+            # la commit-ul final decidem efectiv dacă luăm item-ul:
+            # dacă profitul de după penalizare e pozitiv și încape în rucsac
+            pj_raw = self.item_profit[j]
+            dist_j = self.distance[cur, j]
+            time_j = dist_j / v_cur
+            profit_gain = pj_raw - lambda_time * time_j
+
+            if profit_gain > 0.0 and (Wcur + self.item_weight[j]) <= Wmax:
                 Wcur += self.item_weight[j]
 
             cur = j
@@ -170,7 +179,7 @@ class InitPopulation(RootGA):
         return np.array(path, dtype=np.int32)
 
     # one-shot 2-opt improvement
-    def __twoOpt(self, route):
+    def _twoOpt(self, route):
         """
         single-pass 2-opt: testeaza O(N^2) swap-uri
         si se opreste la PRIMA imbunatatire gasita.

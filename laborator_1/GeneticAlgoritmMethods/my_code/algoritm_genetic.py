@@ -182,10 +182,16 @@ class GeneticAlgorithm(RootGA):
         if (evolutionScores["best_fitness"] == 0):
             raise Exception("Best fitness is '0'")
 
+    # Fitness.__call__ always requires BOTH population AND metric_values.
+    # => we must compute metrics first, then compute fitness again.
     def setElites(self, population, elites):
         if (population is None):
             population = self.initPopulation(self.POPULATION_SIZE)
-        fitness_values = self.fitness(population)
+
+        # MUST compute metrics first
+        metric_values = self.metrics(population)
+        fitness_values = self.fitness(population, metric_values)
+
         args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)
         population[args] = elites
         return population
@@ -193,6 +199,8 @@ class GeneticAlgorithm(RootGA):
     def setElitesByFitness(self, population, fitness_values, elites):
         if (population is None):
             population = self.initPopulation(self.POPULATION_SIZE)
+
+        # here fitness_values already exists (caller passed it)
         args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)
         population[args] = elites
         return population

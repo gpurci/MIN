@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
-import pandas as pd
+import sys
+from pathlib import Path
 
-class TestCallback(object):
-    """
-    Salveaza rezultatele obtinute pentru fiecare generatie in 'csv' file.
-    """
+ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT))
+from laborator_1.GeneticAlgoritmMethods.my_code.callback import Callback
 
+class TestCallback(Callback):
     def __init__(self, filename):
         super().__init__(filename)
 

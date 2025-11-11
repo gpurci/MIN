@@ -13,7 +13,8 @@ class TestMutate(Mutate, TestRootGA):
     """
 
     def __init__(self, config):
-        super().__init__(config)
+        TestRootGA.__init__(self)
+        Mutate.__init__(self, config)
 
     def test(self, config):
         self.setParameters(

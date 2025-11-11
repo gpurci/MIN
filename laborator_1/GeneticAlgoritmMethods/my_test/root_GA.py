@@ -12,19 +12,20 @@ class TestRootGA(RootGA):
         - scurta descriere
     """
 
-    def __init__(self, **config):
-        super().__init__(**config)
+    def __init__(self):
+        super().__init__()
 
     def __permutePopulation(self, individ):
         new_individ = np.random.permutation(individ)
-        new_individ = np.concatenate((RootGA.GENOME_LENGTH-1, new_individ, RootGA.GENOME_LENGTH-1), axis=None)
         return new_individ
 
     def initPopulation(self, population_size=-1):
-        """Initializarea populatiei, cu drumuri aleatorii"""
-        if (population_size == -1):
-            population_size = RootGA.POPULATION_SIZE
-        size = (population_size, RootGA.GENOME_LENGTH-1)
-        population = np.arange(np.prod(size), dtype=np.int32).reshape(*size)%(RootGA.GENOME_LENGTH-1)
+        if population_size == -1:
+            population_size = self.POPULATION_SIZE
+
+        size = (population_size, self.GENOME_LENGTH)
+
+        population = np.arange(np.prod(size), dtype=np.int32).reshape(*size) % self.GENOME_LENGTH
         population = np.apply_along_axis(self.__permutePopulation, axis=1, arr=population)
+
         return population

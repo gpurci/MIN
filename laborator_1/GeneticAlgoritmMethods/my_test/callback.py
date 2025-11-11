@@ -10,7 +10,10 @@ class TestCallback(object):
     def __init__(self, filename):
         super().__init__(filename)
 
-    def test(self, epoch, logs):
-        for i in range(20):
-            self(1, {"log_test_0":i, "log_test_2":0})
-
+    def test(self):
+        for generation in range(20):
+            # call with positional arguments
+            self(generation,
+                 {"log_test_0": generation,
+                  "log_test_2": 0})
+        print("Test finished — check file:", self.filename)

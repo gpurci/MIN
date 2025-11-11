@@ -32,10 +32,11 @@ class TTPGenerator(object):
             wgt [city] = float(row["WEIGHT"])
         # update dataset
         self.dataset = {
-        "distance":    distance,
-        "coords":      self.coords,
-        "item_profit": prof,
-        "item_weight": wgt}
+        "GENOME_LENGTH":distance.shape[0],
+        "distance":     distance,
+        "coords":       self.coords,
+        "item_profit":  prof,
+        "item_weight":  wgt}
         return self.dataset
 
     def __put_points(self, image):

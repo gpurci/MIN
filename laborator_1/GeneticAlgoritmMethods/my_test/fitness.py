@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
+import  numpy as np
 from my_code.fitness import *
 from my_test.root_GA import *
 from my_test.metrics import *
-
 
 class TestFitness(RootGA):
     def __init__(self):

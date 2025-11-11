@@ -96,8 +96,8 @@ class InitPopulation(RootGA):
 
         population, seen = [], set()
 
-        # alege start random pentru fiecare individ
-        starts = np.random.randint(0, self.GENOME_LENGTH, size=size)
+        # start din primul oras
+        starts = np.zeros(size, dtype=int)
 
         for s in starts:
             # construieste 1 ruta

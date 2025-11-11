@@ -220,5 +220,3 @@ class Fitness(RootGA):
         self.R        = R
         self.lam      = lam
         self.alpha    = alpha
-
-

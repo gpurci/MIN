@@ -258,10 +258,10 @@ class GeneticAlgorithm(RootGA):
             self.__last_mutation_rate = self.MUTATION_RATE
             print("evolutionScores {}".format(evolutionScores))
             self.setParameters(MUTATION_RATE=1.)
-            self.mutate.increaseSubsetSize()
+            #self.mutate.increaseSubsetSize()
             self.externCommand()
         else:
-            self.mutate.decreaseSubsetSize()
+            #self.mutate.decreaseSubsetSize()
             if (self.__last_mutation_rate is not None):
                 self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
 

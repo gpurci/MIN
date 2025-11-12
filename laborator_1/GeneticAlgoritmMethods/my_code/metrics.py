@@ -23,7 +23,7 @@ class Metrics(RootGA):
         return info
 
     def __call__(self, population):
-        return self.fn(population)
+        return self.fn(population, **self.__configs)
 
     def help(self):
         info = """Metrics: 

@@ -14,7 +14,6 @@ class Mutate(RootGA):
         super().__init__()
         self.__configs = kw
         self.__setMethods(method)
-        self.__subset_size = 2
 
     def __str__(self):
         info = """Mutate: 
@@ -26,7 +25,7 @@ class Mutate(RootGA):
         # calcularea ratei de probabilitate a mutatiei
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
-            offspring = self.fn(parent1, parent2, offspring)
+            offspring = self.fn(parent1, parent2, offspring, **self.__configs)
         return offspring
 
     def __method_fn(self):
@@ -51,8 +50,6 @@ class Mutate(RootGA):
             elif (self.__method == "flip_sim"):
                 self.fn = self.mutateFlipSim
             elif (self.__method == "mixt"):
-                # prababilitatea pentru fiecare metoda de mutatie
-                self.__p_method = [4/10, 1/10, 1/10, 3/10, 1/10]
                 self.fn = self.mutateMixtDSSII
 
                 
@@ -61,26 +58,16 @@ class Mutate(RootGA):
 
     def help(self):
         info = """Mutate:
-    metoda: 'inversion'; config: None;
-    metoda: 'scramble';  config: None;
+    metoda: 'inversion'; config: -> subset_size=7;
+    metoda: 'scramble';  config: -> subset_size=7;
     metoda: 'swap';      config: None;
     metoda: 'roll';      config: None;
     metoda: 'insertion'; config: None;
     metoda: 'rool_sim';  config: None;
     metoda: 'perm_sim';  config: None;
     metoda: 'flip_sim';  config: None;
-    metoda: 'mixt';      config: -> p_method[4/10, 1/10, 1/10, 3/10, 1/10], size_subset;\n"""
+    metoda: 'mixt';      config: -> p_method=[4/10, 1/10, 1/10, 3/10, 1/10], subset_size=7;\n"""
         return info
-
-    def increaseSubsetSize(self):
-        self.__subset_size += 1
-        if (self.__subset_size > 10):
-            self.__subset_size = 10
-
-    def decreaseSubsetSize(self):
-        self.__subset_size -= 1
-        if (self.__subset_size < 2):
-            self.__subset_size = 2
 
     def __setMethods(self, method):
         self.__method = method
@@ -143,26 +130,26 @@ class Mutate(RootGA):
         offspring  = np.roll(offspring, size_shift)
         return offspring
 
-    def mutateScramble(self, parent1, parent2, offspring):
+    def mutateScramble(self, parent1, parent2, offspring, subset_size=7):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__subset_size+1), size=None)
-        locuses    = np.arange(size_shift, size_shift+self.__subset_size)
+        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
+        locuses    = np.arange(size_shift, size_shift+subset_size)
         shufle_genes = np.random.permutation(offspring[locuses])
         offspring[locuses] = shufle_genes
         return offspring
 
-    def mutateInversion(self, parent1, parent2, offspring):
+    def mutateInversion(self, parent1, parent2, offspring, subset_size=7):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(self.__subset_size+1), size=None)
-        locuses    = np.arange(size_shift, size_shift+self.__subset_size)
+        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
+        locuses    = np.arange(size_shift, size_shift+subset_size)
         offspring[locuses] = np.flip(offspring[locuses])
         return offspring
 
@@ -235,13 +222,13 @@ class Mutate(RootGA):
         return offspring
 
 
-    def mutateMixtDSSII(self, parent1, parent2, offspring):
+    def mutateMixtDSSII(self, parent1, parent2, offspring, p_method=None):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=self.__p_method)
+        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
         if   (cond == 0):
             offspring = self.mutateDiffSwap(parent1, parent2, offspring)
         elif (cond == 1):

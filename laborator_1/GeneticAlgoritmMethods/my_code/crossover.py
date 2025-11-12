@@ -19,7 +19,7 @@ class Crossover(RootGA):
         # adaugare crossover rate
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.CROSSOVER_RATE): # operatia de incrucisare
-            offspring = self.fn(parent1, parent2)
+            offspring = self.fn(parent1, parent2, **self.__configs)
         else: # urmasul va fi parintele 1
             offspring = parent1.copy()
         return offspring
@@ -42,7 +42,6 @@ class Crossover(RootGA):
             elif (self.__method == "flip_sim"):
                 self.fn = self.crossoverFlipSim
             elif (self.__method == "mixt"):
-                self.p_mixt = [4/10, 3/10, 3/10]
                 self.fn = self.crossoverMixt
 
         else:
@@ -53,7 +52,7 @@ class Crossover(RootGA):
     metoda: 'diff';     config None;
     metoda: 'split';    config None;
     metoda: 'perm_sim'; config None;
-    metoda: 'mixt';     config None;\n"""
+    metoda: 'mixt';     config -> p_method=[4/10, 3/10, 3/10], ;\n"""
         return info
 
     def __setMethods(self, method):
@@ -146,12 +145,12 @@ class Crossover(RootGA):
                 offspring[locuses] = np.flip(offspring[locuses])
         return offspring
 
-    def crossoverMixt(self, parent1, parent2):
+    def crossoverMixt(self, parent1, parent2, p_method=None):
         """Incrucisarea a doi parinti pentru a crea un urmas
         parent1 - individ
         parent2 - individ
         """
-        cond = np.random.choice([0, 1, 2], size=None, p=self.p_mixt)
+        cond = np.random.choice([0, 1, 2], size=None, p=p_method)
         if   (cond == 0):
             offspring = self.crossoverSplit(parent1, parent2)
         elif (cond == 1):

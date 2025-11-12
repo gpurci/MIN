@@ -17,7 +17,7 @@ class Fitness(RootGA):
         self.__setMethods(method)
 
     def __call__(self, population, metric_values):
-        return self.fn(population, metric_values)
+        return self.fn(population, metric_values, **self.__configs)
 
     def __str__(self):
         info = """Fitness: 
@@ -43,8 +43,8 @@ class Fitness(RootGA):
         info = """Fitness:
     metoda: 'TSP_f1score'; config: None;
     metoda: 'TSP_norm';    config: None;
-    metoda: 'TTP_linear';  config: -> alpha, v_max, v_min, W, R, lam;
-    metoda: 'TTP_exp';     config: -> alpha, v_max, v_min, W, R, lam;\n"""
+    metoda: 'TTP_linear';  config: -> v_max, v_min, W, R, alpha;
+    metoda: 'TTP_exp';     config: -> v_max, v_min, W, R, lam;\n"""
         return info
 
     def __setMethods(self, method):
@@ -115,8 +115,9 @@ class Fitness(RootGA):
     # TSP Norm problem=================================
 
     
+    # TTP linear------------------------------
     # functia fitness cu decadere liniara
-    def fitness_ttp_linear(self, population, metric_values):
+    def fitness_ttp_linear(self, population, metric_values, v_min=0.1, v_max=1, W=2000, R=1, alpha=0.01):
         """
         Fitness cu decadere liniara.
         Pentru fiecare individ:
@@ -146,24 +147,26 @@ class Fitness(RootGA):
                 # ia items din oraş
                 for (city, w, p) in self.items:
                     if city == c:
-                        Pcur += max(0.0, p - self.alpha*Tcur)
+                        Pcur += max(0.0, p - alpha*Tcur)
                         Wcur += w
 
-                v = self.v_max - (self.v_max-self.v_min)*(Wcur/self.W)
+                v = v_max - (v_max-v_min)*(Wcur/W)
                 Tcur += self.distance[ c, route[i+1] ] / v
 
             # întoarcere
-            v = self.v_max - (self.v_max-self.v_min)*(Wcur/self.W)
+            v = v_max - (v_max-v_min)*(Wcur/W)
             Tcur += self.distance[ route[-1], route[0] ] / v
 
-            fitness[r] = Pcur - self.R*Tcur
+            fitness[r] = Pcur - R*Tcur
 
         return fitness
+    # TTP linear=================================
 
 
 
+    # TTP exponential------------------------------
     # functia fitness cu decadere exponentiala
-    def fitness_ttp_exp(self, population, metric_values):
+    def fitness_ttp_exp(self, population, metric_values, v_min=0.1, v_max=1, W=2000, R=1, lam=0.01):
         """
         - pe măsură ce vizităm oraşele, luăm obiectele găsite acolo
         - fiecare obiect are profitul iniţial p0
@@ -193,32 +196,24 @@ class Fitness(RootGA):
                 # luăm iteme din oraş
                 for (city, w, p0) in self.items:
                     if city == c:
-                        p = p0 * np.exp(-self.lam * Tcur)
+                        p = p0 * np.exp(-lam * Tcur)
                         Pcur += p
                         Wcur += w
 
                 # viteza berlinei
-                v = self.v_max - (self.v_max - self.v_min)*(Wcur/self.W)
+                v = v_max - (v_max - v_min)*(Wcur/W)
 
                 # timp până la următorul
                 Tcur += self.distance[ c, route[i+1] ] / v
 
             # închidere ciclu
-            v = self.v_max - (self.v_max - self.v_min)*(Wcur/self.W)
+            v = v_max - (v_max - v_min)*(Wcur/W)
             Tcur += self.distance[ route[-1], route[0] ] / v
 
-            fitness[r] = Pcur - self.R*Tcur
+            fitness[r] = Pcur - R*Tcur
 
         return fitness
+    # TTP exponential=================================
 
-    def setTTPParams(self, distance, items, v_min, v_max, W, R, lam=0.01, alpha=0.01):
-        self.distance = distance
-        self.items    = items
-        self.v_min    = v_min
-        self.v_max    = v_max
-        self.W        = W
-        self.R        = R
-        self.lam      = lam
-        self.alpha    = alpha
 
 

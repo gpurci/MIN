@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import numpy as np
 from root_GA import *
+#from genoms import *
 
 class InitPopulation(RootGA):
     """
@@ -26,7 +27,7 @@ class InitPopulation(RootGA):
 
     def __call__(self, size):
         # apel direct: obiect(config)(size)
-        return self.fn(size)
+        return self.fn(size, **self.__configs)
 
     def __method_fn(self):
         # selecteaza metoda dupa care se aplica metrica
@@ -35,7 +36,9 @@ class InitPopulation(RootGA):
             if   (self.__method == "TTP_vecin"):
                 # folosim versiunea ta (Matei)
                 self.fn = self.initPopulationTTP
-            elif (self.__method == "TSP_aleator"):
+            elif (self.__method == "TSP_rand"):
+                self.fn = self.initPopulationsTSPRand
+            elif (self.__method == "TTP_rand"):
                 self.fn = self.initPopulationsTSPRand
         else:
             pass
@@ -43,7 +46,8 @@ class InitPopulation(RootGA):
     def help(self):
         info = """InitPopulation:
     metoda: 'TTP_vecin';   config: -> lambda_time, vmax, vmin, Wmax, seed;
-    metoda: 'TSP_aleator'; config: None;\n"""
+    metoda: 'TTP_rand'; config: None;
+    metoda: 'TSP_rand'; config: None;\n"""
         return info
 
     def __setMethods(self, method):
@@ -52,7 +56,7 @@ class InitPopulation(RootGA):
 
     def initPopulationAbstract(self, size):
         # default: nu exista implementare
-        raise NameError("Lipseste metoda '{}' pentru functia de 'InitPopulation': config '{}'".format(self.__method, self.__config))
+        raise NameError("Lipseste metoda '{}' pentru functia de 'InitPopulation': config '{}'".format(self.__method, self.__configs))
 
     # initPopulationRand -------------------------------------
     def __permutePopulation(self, individ):
@@ -64,15 +68,31 @@ class InitPopulation(RootGA):
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
         size = (population_size, self.GENOME_LENGTH)
+
+        #population = Genoms(keys=["tsp"], gene_range=[], size=self.GENOME_LENGTH)
+
+
         population = np.arange(np.prod(size), dtype=np.int32).reshape(*size) % self.GENOME_LENGTH
         population = np.apply_along_axis(self.__permutePopulation, axis=1, arr=population)
         print("population {}".format(population.shape))
         return population
     # initPopulationRand =====================================
 
+    # initPopulationRand -------------------------------------
+    def initPopulationsTTPRand(self, population_size=-1):
+        """Initializarea populatiei, cu drumuri aleatorii"""
+        if (population_size == -1):
+            population_size = self.POPULATION_SIZE
+        size = (population_size, 1, self.GENOME_LENGTH)
+        tsp_population = self.initPopulationsTSPRand(population_size)
+        tsp_population = tsp_population.reshape(population_size, 1, self.GENOME_LENGTH)
+        kp_population  = np.random.randint(0, 2, size=size)
+        population     = np.concatenate([tsp_population, kp_population], axis=1)
+        return population
+    # initPopulationRand =====================================
+
     # initPopulationMatei -------------------------------------
-    def initPopulationTTP(self,
-                            size=2000, lambda_time=0.1,
+    def initPopulationTTP(self, size=2000, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
         Genereaza `size` indivizi folosind o euristica greedy TTP:

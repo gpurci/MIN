@@ -215,5 +215,3 @@ class Fitness(RootGA):
         return fitness
     # TTP exponential=================================
 
-
-

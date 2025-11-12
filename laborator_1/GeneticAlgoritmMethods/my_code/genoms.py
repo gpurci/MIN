@@ -7,24 +7,31 @@ class Genoms(object):
     Clasa 'Genoms', ofera metode pentru a structura si procesa populatia.
     """
 
-    def __init__(self, keys=[], gene_range=[], size=10):
+    def __init__(self, size=10, **gene_range):
         # if condition returns False, AssertionError is raised:
-        assert (isinstance(keys, (list, tuple))), "Parametrul 'keys': '{}', are un type differit de 'list' sau 'tuple'".format(type(keys))
-        assert (isinstance(gene_range, (list, tuple))), "Parametrul 'gene_range': '{}', are un type differit de 'list' sau 'tuple'".format(type(gene_range))
-        assert (len(keys) == len(gene_range)), "Numarul de 'key': '{}', nu coincide cu numarul 'gene_range': {}".format(len(keys), len(gene_range))
+        #assert (isinstance(gene_range, dict)), "Parametrul 'gene_range': '{}', are un type differit de 'dict'".format(type(gene_range))
 
         # Define the structure: name (string), age (int), weight (float)
-        self.__keys = keys
+        self.__keys       = list(gene_range.keys())
         # initt range of genes
-        tmp_dtype = np.dtype([(key, "i4") for key in keys])
-        self.__gene_range       = np.array(tuple(gene_range), dtype=tmp_dtype)
-        # init chromosome datatype, now is only int32
-        self.__chromosome_dtype = np.dtype([(key, ("i4", size)) for key in keys])
+        self.__gene_range = gene_range
+        # Define the structure: key (string), gene range (int32/float32)
+        # init chromosome datatype
+        tmp_types = []
+        for key in self.__keys:
+            rmin, rmax = self.__gene_range[key]
+            if (isinstance(rmin, float) or isinstance(rmax, float)):
+                tmp_type = (key, ("f4", size))
+            else:
+                tmp_type = (key, ("i4", size))
+            tmp_types.append(tmp_type)
+        self.__chromosome_dtype = np.dtype(tmp_types)
         # initializare genoms
         # new genoms este lista de genomuri care nu fac parte din noua generatie
         self.__new_genoms = []
         # genoms este un vector de genomuri formate, care face parte din noua generatie
         self.__genoms     = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
+        self.shape        = (1, len(self.__keys), size)
 
     def __getitem__(self, key):
         return self.__genoms[key]
@@ -62,6 +69,11 @@ class Genoms(object):
         # initializeaza lista de genomuri
         del self.__new_genoms
         self.__new_genoms = []
+        # update shape
+        tmp_shape = []
+        for key in self.__keys:
+            tmp_shape.append(self.__genoms[key].shape[1])
+        self.shape        = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
 
     def help(self):
         info = """Genoms:\n"""

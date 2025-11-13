@@ -165,18 +165,11 @@ class InitPopulation(RootGA):
         """
         Greedy TTP route construction:
         - always starts from city 0
-        - builds both the TSP route and KP vector (0/1 item selection)
-        - uses the Profit - λ * Time heuristic
-        - selects 0 or 1 item per city (even if multiple exist in dataset)
-
-        Returns:
-            route: np.array of shape (GENOME_LENGTH+1)
-            kp:    np.array of shape (GENOME_LENGTH)  (0/1 item pick)
+        - supports MULTIPLE items per city from self.metrics.items
+        - selects at most 1 item per city (0 or 1)
         """
 
-        # Force start from city 0 regardless of input
         start = 0
-
         visited = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited[start] = True
 
@@ -185,51 +178,45 @@ class InitPopulation(RootGA):
 
         cur = start
         Wcur = 0.0
-        Tcur = 0.0
 
-        # current knapsack weight
-        Wcur = 0.0
+        # Pre-organize items by city for fast lookup
+        items_by_city = {c: [] for c in range(self.GENOME_LENGTH)}
+        for (city_id, w, p) in self.metrics.items:
+            items_by_city[city_id].append((w, p))
 
-        # one KP decision per city
-        kp = np.zeros(self.GENOME_LENGTH, dtype=np.int32)
-
-        # Build route over remaining cities
         for _ in range(self.GENOME_LENGTH - 1):
 
             cand = np.where(~visited)[0]
 
-            # current speed based on weight
+            # current speed
             v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
 
             dist = self.distance[cur, cand]
             time_to_candidate = dist / v_cur
 
-            # ---- profit for each candidate city ----
-            # self.metrics.items contains: (city_index, weight, profit)
-            profit_raw = np.zeros_like(cand, dtype=float)
+            # profit per candidate city = sum of all item profits in that city
+            profit_raw = np.array([
+                sum(p for (w, p) in items_by_city[c])
+                for c in cand
+            ], dtype=float)
 
-            for i, c in enumerate(cand):
-                # Sum profit of all items in that city
-                profit_raw[i] = sum(
-                    p for (city_id, w, p) in self.metrics.items if city_id == c
-                )
+            # profit after penalty
+            profit_if_take = np.maximum(
+                0.0, profit_raw - lambda_time * time_to_candidate
+            )
 
-            # profit after time penalty
-            profit_if_take = np.maximum(0.0, profit_raw - lambda_time * time)
-
-            # check if the *smallest* item from each city fits
-            min_item_weight = np.zeros_like(cand, dtype=float)
-            for i, c in enumerate(cand):
-                # get the minimum weight item in that city
-                items_c = [w for (city_id, w, p) in self.metrics.items if city_id == c]
-                min_item_weight[i] = min(items_c) if items_c else 0.0
+            # minimal feasible weight per city
+            min_item_weight = np.array([
+                min([w for (w, p) in items_by_city[c]]) if items_by_city[c] else 0
+                for c in cand
+            ])
 
             can_take = (Wcur + min_item_weight) <= Wmax
 
-            # greedy score = profit after penalty if feasible
+            # heuristic score
             score = profit_if_take * can_take
 
-            # pick from top-k (adds some randomness)
+            # choose from top-5
             order = np.argsort(score)
             top_k = min(5, len(order))
             choices = cand[order[-top_k:]]
@@ -238,33 +225,28 @@ class InitPopulation(RootGA):
             path.append(j)
             visited[j] = True
 
-            # ===== Decide item picking for city j (0 or 1 item) =====
-            # Compute exact gain for arrival at city j
-            dist_j = self.distance[cur, j]
-            time_j = dist_j / v_cur
-
-            # candidate items in that city
-            items_j = [(w, p) for (city_id, w, p) in self.metrics.items if city_id == j]
-
+            # ---- item picking in city j ----
+            items_j = items_by_city[j]
             if items_j:
-                # select the SINGLE item with highest penalized gain
+                vj = v_cur
+                tj = self.distance[cur, j] / vj
+
                 best_gain = -1e9
-                best_item_weight = None
+                best_weight = None
 
                 for (w, p) in items_j:
-                    gain = p - lambda_time * time_j
+                    gain = p - lambda_time * tj
                     if gain > best_gain and (Wcur + w) <= Wmax:
                         best_gain = gain
-                        best_item_weight = w
+                        best_weight = w
 
-                # take this one best item (if positive gain)
-                if best_gain > 0 and best_item_weight is not None:
-                    Wcur += best_item_weight
+                if best_gain > 0 and best_weight is not None:
+                    Wcur += best_weight
                     kp[j] = 1
 
             cur = j
 
-        # Close route by returning to city 0
+        # close cycle
         path.append(path[0])
 
         return np.array(path, dtype=np.int32), kp

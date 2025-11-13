@@ -79,12 +79,16 @@ class InitPopulation(RootGA):
         """Initializarea populatiei, cu drumuri aleatorii"""
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
-        size = (population_size, 1, self.GENOME_LENGTH)
-        tsp_population = self.initPopulationsTSPRand(population_size)
-        tsp_population = tsp_population.reshape(population_size, 1, self.GENOME_LENGTH)
-        kp_population  = np.random.randint(0, 2, size=size)
-        population     = np.concatenate([tsp_population, kp_population], axis=1)
-        return population
+        # creaza un individ
+        tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+        # creaza o populatie aleatorie
+        for _ in range(population_size):
+            # adauga tsp_individ in genome
+            kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
+            self.__genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
+        # adauga indivizi in noua generatie
+        self.__genoms.save()
+        print("population {}".format(self.__genoms.shape))
     # initPopulationRand =====================================
 
     # initPopulationMatei -------------------------------------

@@ -32,14 +32,18 @@ class Fitness(RootGA):
                 fn = self.fitnessF1scoreTSP
             elif (method == "TSP_norm"):
                 fn = self.fitnessNormTSP
+            elif (method == "TTP_f1score"):
+                fn = self.fitnessF1scoreTTP
             elif (method == "TTP"):
                 fn = self.fitnessTTP
+
         return fn
 
     def help(self):
         info = """Fitness:
     metoda: 'TSP_f1score'; config: None;
     metoda: 'TSP_norm';    config: None;
+    metoda: 'TTP_f1score'; config: -> "R":1, ;
     metoda: 'TTP';         config: -> "R":1, ;\n"""
         return info
 
@@ -95,22 +99,32 @@ class Fitness(RootGA):
         #print("number_city {}".format(number_city))
         number_city = self.__cityNormTSP(number_city)
         #print("number_city {}".format(number_city.sum()))
-        distances   = self.__distanceNormTSP(distances)
+        distances   = self.__norm(distances)
         fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
         #print("fitness {}".format(fitness_values))
         return fitness_values
 
-    def __distanceNormTSP(self, distances):
-        min_distance = distances.min()
-        max_distance = distances.max()
-        return (max_distance-distances)/(max_distance-min_distance)
+    def __norm(self, x):
+        x_min = x.min()
+        x_max = x.max()
+        return (x_max-x)/(x_max-x_min)
+
+    def __min_norm(self, x):
+        mask_not_zero = (x!=0)
+        valid_x = x[mask_not_zero]
+        if (valid_x.shape[0] > 0):
+            x_min = valid_x.min()
+        else:
+            x_min = 0.1
+            x[:] = 0.1
+        return (2*x_min)/(x+x_min)
+
 
     def __cityNormTSP(self, number_city):
         mask_cities = (number_city>=(self.GENOME_LENGTH-5)).astype(np.float32)
         return mask_cities*(number_city/self.GENOME_LENGTH)**5
     # TSP Norm problem=================================
 
-    
     # TTP ------------------------------
     def fitnessTTP(self, metric_values, R=1):
         """
@@ -128,7 +142,35 @@ class Fitness(RootGA):
         # unpack metrics
         profits = metric_values["profits"]
         times   = metric_values["times"]
+        # normalization
+        profits = self.__norm(profits)
+        times   = self.__norm(times)
         # calculate fitness
         fitness = profits - R*times
+        return fitness
+    # TTP =================================
+
+    # TTP ------------------------------
+    def fitnessF1scoreTTP(self, metric_values, R=1):
+        """
+        Fitness cu decadere liniara.
+        Pentru fiecare individ:
+        - mergem pe traseu (route)
+        - cand ajungem intr-un oras luam obiectele de acolo
+        - profitul scade liniar cu timpul:
+                p(t) = p0 - alpha * t
+        - viteza scade in functie de greutatea acumulata
+        - costul de timp este penalizat cu R
+        Returneaza:
+            vector np.array cu fitness pentru fiecare individ
+        """
+        # unpack metrics
+        profits = metric_values["profits"]
+        times   = metric_values["times"]
+        # normalization
+        profits = self.__norm(profits)
+        times   = self.__norm(times)
+        # calculate fitness
+        fitness = (profits * times) / (profits + R*times)
         return fitness
     # TTP =================================

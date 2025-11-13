@@ -182,8 +182,8 @@ class GeneticAlgorithm(RootGA):
         self.mutate   = Mutate(self.__genoms, **chromozome_configs)
         self.__functions.append(self.mutate)
         # configurare callback salvare, istoricul de antrenare
-        filename      = configs.get("callback", None)
-        self.callback = Callback(filename)
+        config        = configs.get("callback", None)
+        self.callback = Callback(**config)
         self.__functions.append(self.callback)
 
     def help(self):

@@ -248,15 +248,15 @@ class Mutate(RootGA):
         """
         cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
         if   (cond == 0):
-            offspring = self.mutateDiffSwap(parent1, parent2, offspring, subset_size)
+            offspring = self.mutateDiffSwap(parent1, parent2, offspring)
         elif (cond == 1):
             offspring = self.mutateScramble(parent1, parent2, offspring, subset_size)
         elif (cond == 2):
             offspring = self.mutateInversion(parent1, parent2, offspring, subset_size)
         elif (cond == 3):
-            offspring = self.mutateInsertion(parent1, parent2, offspring, subset_size)
+            offspring = self.mutateInsertion(parent1, parent2, offspring)
         elif (cond == 4):
-            offspring = self.mutateRollSim(parent1, parent2, offspring, subset_size)
+            offspring = self.mutateRollSim(parent1, parent2, offspring)
         return offspring
 
 

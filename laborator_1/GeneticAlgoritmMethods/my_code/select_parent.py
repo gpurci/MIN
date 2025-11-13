@@ -74,7 +74,7 @@ class SelectParent(RootGA):
         else:
             self.fitness_values = np.full(fitness_values.shape[0], 1./self.POPULATION_SIZE, dtype=np.float32)
 
-    def selectParentAbstract(self):
+    def selectParentAbstract(self, **kw):
         raise NameError("Lipseste metoda '{}' pentru functia de 'SelectionParent': config '{}'".format(self.__method, self.__config))
 
     def selectParentChoice(self):

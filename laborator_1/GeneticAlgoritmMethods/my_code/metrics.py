@@ -231,11 +231,12 @@ class Metrics(RootGA):
         # pack args
         args = [distance, item_profit, item_weight]
         # calculate metrics for every individ
-        profits, times = np.apply_along_axis(self.__computeIndividExpTTP,
-                                        *args,
-                                        arr=genomics.population(), # arr
-                                        axis=1, # axis
-                                        **kw)
+        profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        for idx, individ in enumerate(genomics.population(), 0):
+            profit, time = self.__computeIndividLiniarTTP(individ, *args, **kw)
+            profits[idx] = profit
+            times[idx]   = time
         # pack metrick values
         metric_values = {
             "profits"  : profits,

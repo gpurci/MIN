@@ -81,24 +81,37 @@ class InitPopulation(RootGA):
             population_size = self.POPULATION_SIZE
         # creaza un individ
         tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+        routes = []
+        kps = []
         # creaza o populatie aleatorie
         for _ in range(population_size):
             # adauga tsp_individ in genome
-            kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
-            self.__genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
+            tsp = np.random.permutation(tsp_individ)
+            kp = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
+            routes.append(tsp)
+            kps.append(kp)
         # adauga indivizi in noua generatie
-        self.__genoms.save()
+        routes = np.array(routes, dtype=np.int32)
+        kps = np.array(kps, dtype=np.int32)
         print("population {}".format(self.__genoms.shape))
-    # initPopulationRand ====================================
+        return routes, kps
 
+    # initPopulationRand =====================================
     # initPopulationMatei -------------------------------------
     def initPopulationTTP(self, size=2000, lambda_time=0.1,
-                          vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
+                            vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
-        Initialize population for TTP using greedy route construction:
-        - Builds TSP + KP genome pairs
-        - Applies 1-step 2-opt improvement
-        - Avoids duplicate TSP routes
+        Genereaza `size` indivizi folosind o euristica greedy TTP:
+        - fiecare individ incepe dintr-un oras random
+        - la fiecare pas alegem urmatorul oras dupa: profit - λ * timp_de_calatorie
+        - dupa ce rute se construiesc → aplicam 2-opt simplu
+
+    Generează populația inițială TTP.
+    Pentru fiecare individ se alege un oraș de start random și se construiește ruta
+    alegând la fiecare pas următorul oraș în funcție de un scor simplu:
+        scor = profit - λ * timp_de_deplasare
+    După construirea rutei se aplică o singură îmbunătățire 2-opt (+ eliminare duplicate).
+    Returnează un array de rute valide (start == end).
         """
 
         if seed is not None:
@@ -168,7 +181,11 @@ class InitPopulation(RootGA):
         visited[start] = True
 
         path = [start]
+        kp = np.zeros(self.GENOME_LENGTH, dtype=np.int32)
+
         cur = start
+        Wcur = 0.0
+        Tcur = 0.0
 
         # current knapsack weight
         Wcur = 0.0
@@ -185,7 +202,7 @@ class InitPopulation(RootGA):
             v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
 
             dist = self.distance[cur, cand]
-            time = dist / v_cur
+            time_to_candidate = dist / v_cur
 
             # ---- profit for each candidate city ----
             # self.metrics.items contains: (city_index, weight, profit)
@@ -255,19 +272,21 @@ class InitPopulation(RootGA):
     # one-shot 2-opt improvement
     def _twoOpt(self, route):
         """
-        Single-pass 2-opt: returns first improving swap found.
+        single-pass 2-opt: testeaza O(N^2) swap-uri
+        si se opreste la PRIMA imbunatatire gasita.
         """
         best = route.copy()
         best_dist = self.metrics.getIndividDistanceTTP(best, self.distance)
         n = len(route) - 1
 
-        for i in range(1, n - 2):
-            for k in range(i + 1, n - 1):
+        for i in range(1, n-2):
+            for k in range(i+1, n-1):
                 new_route = best.copy()
-                new_route[i:k] = best[k - 1:i - 1:-1]
+                new_route[i:k] = best[k-1:i-1:-1]
 
                 d = self.metrics.getIndividDistanceTTP(new_route, self.distance)
                 if d < best_dist:
-                    return new_route
+                    return new_route     # improvement found — imediat return!
 
-        return best
+        return best                     # nici o imbunatatire gasita
+    # initPopulationMatei =====================================

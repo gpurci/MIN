@@ -58,9 +58,18 @@ class GeneticAlgorithm(RootGA):
         Manager pentru a face sincronizarea dintre toate functionalele
         """
         self.__init_command()
-        # initiaizarea populatiei
-        if (self.__genoms.is_genoms()==False):
-            self.initPopulation(self.POPULATION_SIZE)
+
+        # initialize the population (TTP: produces tsp + kp arrays)
+        if (self.__genoms.is_genoms() == False):
+
+            routes, kps = self.initPopulation(self.POPULATION_SIZE)
+
+            # insert tsp+kp into Genoms
+            for tsp, kp in zip(routes, kps):
+                self.__genoms.add(tsp=tsp, kp=kp)
+
+            self.__genoms.save()
+
         # calculate metrics
         metric_values  = self.metrics(self.__genoms)
         # init fitness value

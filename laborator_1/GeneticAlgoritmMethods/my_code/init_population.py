@@ -74,65 +74,84 @@ class InitPopulation(RootGA):
         print("population {}".format(self.__genoms.shape))
     # initPopulationsTSPRand =====================================
 
-    # initPopulationRand -------------------------------------
+    #initPopulationRand - ------------------------------------
+
     def initPopulationsTTPRand(self, population_size=-1):
         """Initializarea populatiei, cu drumuri aleatorii"""
-        if (population_size == -1):
+        if population_size == -1:
             population_size = self.POPULATION_SIZE
-        size = (population_size, 1, self.GENOME_LENGTH)
-        tsp_population = self.initPopulationsTSPRand(population_size)
-        tsp_population = tsp_population.reshape(population_size, 1, self.GENOME_LENGTH)
-        kp_population  = np.random.randint(0, 2, size=size)
-        population     = np.concatenate([tsp_population, kp_population], axis=1)
-        return population
-    # initPopulationRand =====================================
+        # creaza un individ
+        tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+        routes = []
+        kps = []
+        # creaza o populatie aleatorie
+        for _ in range(population_size):
+            # adauga tsp_individ in genome
+            tsp = np.random.permutation(tsp_individ)
+            kp = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
+            routes.append(tsp)
+            kps.append(kp)
+        # adauga indivizi in noua generatie
+        routes = np.array(routes, dtype=np.int32)
+        kps = np.array(kps, dtype=np.int32)
+        print("population {}".format(self.__genoms.shape))
+        return routes, kps
 
+    # initPopulationRand =====================================
     # initPopulationMatei -------------------------------------
     def initPopulationTTP(self, size=2000, lambda_time=0.1,
-                            vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
+                          vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
-        Genereaza `size` indivizi folosind o euristica greedy TTP:
-        - fiecare individ incepe dintr-un oras random
-        - la fiecare pas alegem urmatorul oras dupa: profit - λ * timp_de_calatorie
-        - dupa ce rute se construiesc → aplicam 2-opt simplu
+        Generate the initial TTP population with two genomes:
+            - tsp: the route (permutation of cities)
+            - kp:  the picking vector (0/1)
 
-    Generează populația inițială TTP.
-    Pentru fiecare individ se alege un oraș de start random și se construiește ruta
-    alegând la fiecare pas următorul oraș în funcție de un scor simplu:
-        scor = profit - λ * timp_de_deplasare
-    După construirea rutei se aplică o singură îmbunătățire 2-opt (+ eliminare duplicate).
-    Returnează un array de rute valide (start == end).
+        This function constructs the raw TSP and KP arrays.
+        The GA manager is responsible for inserting them into the Genoms object.
+        Returns:
+            routes: np.array shape (N, GENOME_LENGTH+1)
+            kps:    np.array shape (N, GENOME_LENGTH)
         """
 
         if seed is not None:
             np.random.seed(seed)
 
-        # incarcam coordonate / distante / profit / weight
+        # Load TTP dataset: coordinate map, distance matrix, profit, weight, etc.
         self._loadTTPdataset()
 
-        population, seen = [], set()
+        routes = []
+        kp_vectors = []
+        seen = set()  # avoid duplicate TSP routes
 
-        # start din primul oras
-        starts = np.zeros(size, dtype=int)
+        for _ in range(size):
 
-        for s in starts:
-            # construieste 1 ruta
-            path_np = self._constructGreedyRoute(s, lambda_time, vmax, vmin, Wmax)
-            # aplica o singura iteratie 2-opt (accelerat)
-            path_np = self._twoOpt(path_np)
+            start_city = 0  # or random: np.random.randint(0, self.GENOME_LENGTH)
 
-            tup = tuple(path_np)
-            if tup in seen:
-                # evita rute duplicat
+            # Construct greedy TTP route + KP genome
+            route, kp = self._constructGreedyRoute(
+                start_city, lambda_time, vmax, vmin, Wmax
+            )
+
+            # Apply 2-opt only to the route
+            route = self._twoOpt(route)
+
+            # Avoid duplicate routes
+            key = tuple(route)
+            if key in seen:
                 continue
+            seen.add(key)
 
-            seen.add(tup)
-            population.append(path_np)
+            routes.append(route)
+            kp_vectors.append(kp)
 
-            if len(population) >= size:
+            if len(routes) >= size:
                 break
 
-        return np.array(population, dtype=np.int32)
+        # Convert to numpy arrays
+        routes = np.array(routes, dtype=np.int32)
+        kp_vectors = np.array(kp_vectors, dtype=np.int32)
+
+        return routes, kp_vectors
 
     # HELPER — incarcare dataset TTP
     def _loadTTPdataset(self):
@@ -142,63 +161,70 @@ class InitPopulation(RootGA):
         self.item_profit = dataset["item_profit"] # vector de profit per oras
         self.item_weight = dataset["item_weight"] # vector de weight per oras
 
-    # construieste o ruta greedy pornind dintr-un oras
     def _constructGreedyRoute(self, start, lambda_time, vmax, vmin, Wmax):
         visited = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited[start] = True
 
         path = [start]
-        cur = start
-        Wcur = 0.0  # current knapsack weight
+        kp = np.zeros(self.GENOME_LENGTH, dtype=np.int32)
 
-        # GENOME_LENGTH - 1 mutări (ultima este întoarcerea spre start)
+        cur = start
+        Wcur = 0.0
+        Tcur = 0.0
+
         for _ in range(self.GENOME_LENGTH - 1):
 
             cand = np.where(~visited)[0]
 
-            # viteza actuala in functie de cat ai incarcat rucsacul
+            # current speed
             v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
-            dist = self.distance[cur, cand]
-            time = dist / v_cur
 
-            # profit brut al itemului din orașul candidat
+            # travel time to each candidate
+            dist = self.distance[cur, cand]
+            time_to_candidate = dist / v_cur
+
+            # effective arrival time
+            arrival_time = Tcur + time_to_candidate
+
+            # raw profits
             profit_raw = self.item_profit[cand]
 
-            # calculăm cât profit real rămâne după penalizarea de timp
-            # dacă e negativ -> îl forțăm la 0 (adică nu merită să îl luăm)
-            profit_if_take = profit_raw - lambda_time * time
+            # profit if we take the item at the arrival time
+            profit_if_take = profit_raw - lambda_time * arrival_time
             profit_if_take = np.maximum(0.0, profit_if_take)
 
-            # putem lua item-ul DOAR dacă încăperea / capacitatea nu este depășită
+            # weight check
             can_take = (Wcur + self.item_weight[cand]) <= Wmax
 
-            # scor euristic: profit efectiv după penalizare * dacă avem voie să îl luăm
-            score = profit_if_take * can_take  # <--- asta decide urmatorul oraș
+            # heuristic
+            score = profit_if_take * can_take
 
-            # alegem din top 5 scoruri cele mai bune → alegere random din top
+            # choose the best few randomly (diversity)
             order = np.argsort(score)
             top_k = min(5, len(order))
             choices = cand[order[-top_k:]]
 
             j = np.random.choice(choices)
-            path.append(j)
-            visited[j] = True
 
-            # la commit-ul final decidem efectiv dacă luăm item-ul:
-            # dacă profitul de după penalizare e pozitiv și încape în rucsac
-            pj_raw = self.item_profit[j]
-            dist_j = self.distance[cur, j]
-            time_j = dist_j / v_cur
-            profit_gain = pj_raw - lambda_time * time_j
+            # update global time
+            travel_time = self.distance[cur, j] / v_cur
+            Tcur += travel_time
 
+            # item decision at city j
+            profit_gain = self.item_profit[j] - lambda_time * Tcur
             if profit_gain > 0.0 and (Wcur + self.item_weight[j]) <= Wmax:
+                kp[j] = 1
                 Wcur += self.item_weight[j]
 
+            # accept city j
+            visited[j] = True
+            path.append(j)
             cur = j
 
-        # inchide ciclul
+        # close loop
         path.append(path[0])
-        return np.array(path, dtype=np.int32)
+
+        return np.array(path, dtype=np.int32), kp
 
     # one-shot 2-opt improvement
     def _twoOpt(self, route):

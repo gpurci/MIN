@@ -69,15 +69,15 @@ class Mutate(RootGA):
 
     def help(self):
         info = """Mutate:
-    metoda: 'inversion'; config: -> subset_size=7;
-    metoda: 'scramble';  config: -> subset_size=7;
+    metoda: 'inversion'; config: -> "subset_size":7;
+    metoda: 'scramble';  config: -> "subset_size":7;
     metoda: 'swap';      config: None;
     metoda: 'roll';      config: None;
     metoda: 'insertion'; config: None;
     metoda: 'rool_sim';  config: None;
     metoda: 'perm_sim';  config: None;
     metoda: 'flip_sim';  config: None;
-    metoda: 'mixt';      config: -> p_method=[4/10, 1/10, 1/10, 3/10, 1/10], subset_size=7;\n"""
+    metoda: 'mixt';      config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;\n"""
         return info
 
     def __setMethods(self):

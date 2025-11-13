@@ -25,31 +25,27 @@ class Fitness(RootGA):
         configs: {}""".format(self.__method, self.__configs)
         return info
 
-    def __method_fn(self):
-        self.fn = self.fitnessAbstract
-        if (self.__method is not None):
-            if   (self.__method == "TSP_f1score"):
-                self.fn = self.fitnessF1scoreTSP
-            elif (self.__method == "TSP_norm"):
-                self.fn = self.fitnessNormTSP
-            elif self.__method == "TTP_linear":
-                self.fn = self.fitness_ttp_linear
-            elif self.__method == "TTP_exp":
-                self.fn = self.fitness_ttp_exp
-        else:
-            pass
+    def __unpack_method(self, method):
+        fn = self.fitnessAbstract
+        if (method is not None):
+            if   (method == "TSP_f1score"):
+                fn = self.fitnessF1scoreTSP
+            elif (method == "TSP_norm"):
+                fn = self.fitnessNormTSP
+            elif (method == "TTP"):
+                fn = self.fitnessTTP
+        return fn
 
     def help(self):
         info = """Fitness:
     metoda: 'TSP_f1score'; config: None;
     metoda: 'TSP_norm';    config: None;
-    metoda: 'TTP_linear';  config: -> v_max, v_min, W, R, alpha;
-    metoda: 'TTP_exp';     config: -> v_max, v_min, W, R, lam;\n"""
+    metoda: 'TTP';         config: -> "R":1, ;\n"""
         return info
 
     def __setMethods(self, method):
         self.__method = method
-        self.__method_fn()
+        self.fn = self.__unpack_method(method)
 
     def fitnessAbstract(self, metric_values:dict):
         raise NameError("Lipseste metoda '{}',pentru functia de 'Fitness', configs '{}'".format(self.__method, self.__configs))
@@ -115,9 +111,8 @@ class Fitness(RootGA):
     # TSP Norm problem=================================
 
     
-    # TTP linear------------------------------
-    # functia fitness cu decadere liniara
-    def fitness_ttp_linear(self, metric_values, v_min=0.1, v_max=1, W=2000, R=1, alpha=0.01):
+    # TTP ------------------------------
+    def fitnessTTP(self, metric_values, R=1):
         """
         Fitness cu decadere liniara.
         Pentru fiecare individ:
@@ -130,88 +125,10 @@ class Fitness(RootGA):
         Returneaza:
             vector np.array cu fitness pentru fiecare individ
         """
-
-        n = population.shape[0]
-        fitness = np.zeros(n, dtype=float)
-
-        for r, route in enumerate(population):
-
-            Wcur = 0.0
-            Tcur = 0.0
-            Pcur = 0.0
-
-            # vizităm secvenţial
-            for i in range(len(route)-1):
-                c = route[i]
-
-                # ia items din oraş
-                for (city, w, p) in self.items:
-                    if city == c:
-                        Pcur += max(0.0, p - alpha*Tcur)
-                        Wcur += w
-
-                v = v_max - (v_max-v_min)*(Wcur/W)
-                Tcur += self.distance[ c, route[i+1] ] / v
-
-            # întoarcere
-            v = v_max - (v_max-v_min)*(Wcur/W)
-            Tcur += self.distance[ route[-1], route[0] ] / v
-
-            fitness[r] = Pcur - R*Tcur
-
+        # unpack metrics
+        profits = metric_values["profits"]
+        times   = metric_values["times"]
+        # calculate fitness
+        fitness = profits - R*times
         return fitness
-    # TTP linear=================================
-
-
-
-    # TTP exponential------------------------------
-    # functia fitness cu decadere exponentiala
-    def fitness_ttp_exp(self, metric_values, v_min=0.1, v_max=1, W=2000, R=1, lam=0.01):
-        """
-        - pe măsură ce vizităm oraşele, luăm obiectele găsite acolo
-        - fiecare obiect are profitul iniţial p0
-        - dar profitul scade cu timpul deoarece obiectul este „mai puţin valoros” dacă ajungi târziu
-        - decădere exponenţială:
-            p(t) = p0 * exp(- λ * timp)
-        - viteza berlinei scade pe măsură ce rucsacul se încarcă cu obiecte
-            v = v_max - (v_max - v_min) * (greutate_curentă / W)
-
-        Returneaza
-            fitness = profit_total - R * timp_total
-            """
-
-        n = population.shape[0]
-        fitness = np.zeros(n, dtype=float)
-
-        for r, route in enumerate(population):
-
-            Wcur = 0.0
-            Tcur = 0.0
-            Pcur = 0.0
-
-            # mergem secvenţial prin oraşe
-            for i in range(len(route)-1):
-                c = route[i]
-
-                # luăm iteme din oraş
-                for (city, w, p0) in self.items:
-                    if city == c:
-                        p = p0 * np.exp(-lam * Tcur)
-                        Pcur += p
-                        Wcur += w
-
-                # viteza berlinei
-                v = v_max - (v_max - v_min)*(Wcur/W)
-
-                # timp până la următorul
-                Tcur += self.distance[ c, route[i+1] ] / v
-
-            # închidere ciclu
-            v = v_max - (v_max - v_min)*(Wcur/W)
-            Tcur += self.distance[ route[-1], route[0] ] / v
-
-            fitness[r] = Pcur - R*Tcur
-
-        return fitness
-    # TTP exponential=================================
-
+    # TTP =================================

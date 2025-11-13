@@ -30,29 +30,28 @@ class InitPopulation(RootGA):
         # apel direct: obiect(config)(size)
         return self.fn(size, **self.__configs)
 
-    def __method_fn(self):
+    def __unpack_method(self, method):
         # selecteaza metoda dupa care se aplica metrica
-        self.fn = self.initPopulationAbstract
-        if (self.__method is not None):
-            if   (self.__method == "TTP_vecin"):
-                self.fn = self.initPopulationTTP
-            elif (self.__method == "TSP_rand"):
-                self.fn = self.initPopulationsTSPRand
-            elif (self.__method == "TTP_rand"):
-                self.fn = self.initPopulationsTTPRand
-        else:
-            pass
+        fn = self.initPopulationAbstract
+        if (method is not None):
+            if   (method == "TTP_vecin"):
+                fn = self.initPopulationTTP
+            elif (method == "TSP_rand"):
+                fn = self.initPopulationsTSPRand
+            elif (method == "TTP_rand"):
+                fn = self.initPopulationsTTPRand
+        return fn
 
     def help(self):
         info = """InitPopulation:
-    metoda: 'TTP_vecin'; config: -> lambda_time, vmax, vmin, Wmax, seed;
+    metoda: 'TTP_vecin'; config: -> "lambda_time":0.1, "vmax":1.0, "vmin":0.1, "Wmax":25936, "seed":None;
     metoda: 'TTP_rand';  config: None;
     metoda: 'TSP_rand';  config: None;\n"""
         return info
 
     def __setMethods(self, method):
         self.__method = method
-        self.__method_fn()
+        self.fn = self.__unpack_method(method)
 
     def initPopulationAbstract(self, size):
         # default: nu exista implementare
@@ -74,7 +73,7 @@ class InitPopulation(RootGA):
         print("population {}".format(self.__genoms.shape))
     # initPopulationsTSPRand =====================================
 
-    # initPopulationRand -------------------------------------
+    # initPopulationsTTPRand -------------------------------------
     def initPopulationsTTPRand(self, population_size=-1):
         """Initializarea populatiei, cu drumuri aleatorii"""
         if (population_size == -1):
@@ -89,10 +88,10 @@ class InitPopulation(RootGA):
         # adauga indivizi in noua generatie
         self.__genoms.save()
         print("population {}".format(self.__genoms.shape))
-    # initPopulationRand =====================================
+    # initPopulationsTTPRand =====================================
 
     # initPopulationMatei -------------------------------------
-    def initPopulationTTP(self, size=2000, lambda_time=0.1,
+    def initPopulationTTP(self, size, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
         Genereaza `size` indivizi folosind o euristica greedy TTP:

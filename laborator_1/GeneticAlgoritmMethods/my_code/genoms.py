@@ -107,5 +107,5 @@ class Genoms(object):
         self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
 
     def help(self):
-        info = """Genoms: (chromosome_name1: (min_range, max_range), chromosome_name2: (min_range, max_range), ...)\n"""
+        info = """Genoms: "chromosome_name1": (min_range, max_range), "chromosome_name2": (min_range, max_range), ...\n"""
         return info

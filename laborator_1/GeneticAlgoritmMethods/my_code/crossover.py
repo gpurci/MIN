@@ -62,7 +62,7 @@ class Crossover(RootGA):
     metoda: 'diff';     config None;
     metoda: 'split';    config None;
     metoda: 'perm_sim'; config None;
-    metoda: 'mixt';     config -> p_method=[4/10, 3/10, 3/10], ;\n"""
+    metoda: 'mixt';     config -> "p_method":[4/10, 3/10, 3/10], ;\n"""
         return info
 
     def __setMethods(self):

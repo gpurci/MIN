@@ -111,7 +111,7 @@ class Metrics(RootGA):
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
         population - populatia, vector de indivizi
         """
-        population = genomics.population("tsp")
+        population = genomics.chromozomes("tsp")
         #print("\nmetricsTSP, genomics: {}, population {}, last {}".format(genomics.shape, population.shape, population[-1].shape))
         #print("\nmetricsTSP, population {}".format(population))
         # calculeaza distanta
@@ -138,62 +138,82 @@ class Metrics(RootGA):
         viteza curenta in functie de weight (formula TTP)
         """
         frac = min(1.0, Wcur/Wmax)
-        v = vmax - frac*(vmax-vmin)
+        v    = vmax - frac*(vmax-vmin)
         return v if v > 1e-9 else 1e-9
 
-    def getIndividDistanceTTP(self, individ, distance_matrix=None):
+    def computeIndividProfitKP(self, kp_individ):
+        return (self.dataset["item_profit"]*kp_individ).sum()
+
+    def computeIndividWeightKP(self, kp_individ):
+        return (self.dataset["item_weight"]*kp_individ).sum()
+
+    def computeProfitTTP(self, kp_population):
         """
-        distanta rutelor TTP (daca inchizi ruta)
-        use: metrics.getIndividDistanceTTP(individ)
+        Calculeaza profitul pentru intrega populatie
         """
-        D = distance_matrix if (distance_matrix is not None) else self.distance
+        return np.apply_along_axis(self.computeIndividProfitKP,
+                                        axis=1,
+                                        arr=kp_population)
 
-        distances = D[individ[:-1], individ[1:]]
-        return distances.sum() + D[individ[-1], individ[0]]
-    
-    def metricsTTP(self, population):
-        N = population.shape[0]
-        distances = np.zeros(N, dtype=np.float32)
-        profits   = np.zeros(N, dtype=np.float32)
-        times     = np.zeros(N, dtype=np.float32)
+    def __computeIndividLiniarTTP(self, individ, v_min, v_max, W, alpha):
+        # init 
+        Wcur = 0.0
+        Tcur = 0.0
+        Pcur = 0.0
+        # unpack chromosomes
+        tsp_individ = individ["tsp"]
+        kp_individ  = individ["kp"]
+        # unpack datassets
+        distance    = self.dataset["distance"]
+        item_profit = self.dataset["item_profit"]
+        item_weight = self.dataset["item_weight"]
+        # vizităm secvenţial
+        for i in range(self.GENOME_LENGTH-1):
+            # get city
+            city = tsp_individ[i]
+            # take or not take object
+            take = kp_individ[city]
+            # calculate profit and weight
+            profit = item_profit[city]*take
+            weight = item_weight[city]*take
+            # calculate liniar profit and weight
+            Pcur += max(0.0, profit - alpha*Tcur)
+            Wcur += weight
+            # calculeaza viteza de tranzitie
+            v = v_max - (v_max - v_min) * (Wcur / W)
+            # calculeaza timpul de tranzitie
+            Tcur += distance[city, tsp_individ[i+1]] / v
+        # intorcerea in orasul de start
+        # calculeaza viteza
+        v = v_max - (v_max - v_min) * (Wcur / W)
+        Tcur += distance[individ[-1], individ[0]] / v
+        return Pcur, Tcur
 
-        for i, ind in enumerate(population):
 
-            Wcur  = 0.0
-            T     = 0.0
-            P     = 0.0
+    def metricsTTPLiniar(self, genomics):
+        # calculate distances
+        distances = self.__getDistances(tsp_population)
+        profits, times = np.apply_along_axis(self.__computeIndividLiniarTTP,
+                                        axis=1,
+                                        arr=genomics.population())
 
-            for k in range(len(ind)-1):
-                city = ind[k]
-
-                # adds profit
-                for (city_k, weight_k, profit_k) in self.items:
-                    if city_k == city:
-                        P += profit_k
-                        Wcur += weight_k
-
-                v = self.computeSpeedTTP(Wcur, self.v_max, self.v_min, self.W)
-                T += self.distance[ind[k], ind[k+1]] / v
-
-            distances[i] = self.getIndividDistanceTTP(ind)
-            profits[i]   = P
-            times[i]     = T
-
-        self.metrics_values = {
-            "distances" : distances,
-            "profits"   : profits,
-            "times"     : times
+        metric_values = {
+            "distances": distances,
+            "profits"  : profits,
+            "times"    : times
         }
-        return self.metrics_values
+        return metric_values
     
-    def getScoreTTP(self, population, fitness_values):
+    def getScoreTTP(self, genomics, fitness_values):
         # find best individual
         arg_best = self.getArgBest(fitness_values)
-        individ  = population[arg_best]
+        individ  = genomics[arg_best]
         best_fitness = fitness_values[arg_best]
         self.__best_individ = individ
+        score  = self.__getIndividDistance(individ["tsp"])
+        kp_individ = individ["kp"]
+        profit = self.computeIndividProfitKP(kp_individ)
+        weight = self.computeIndividWeightKP(kp_individ)
 
-        score = self.getIndividDistanceTTP(individ, self.distance)
-
-        return {"score": score, "best_fitness": best_fitness}
+        return {"score": score, "profit":profit, "weight":weight, "best_fitness": best_fitness}
     # TTP problem finish =================================

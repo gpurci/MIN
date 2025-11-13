@@ -240,7 +240,7 @@ class Mutate(RootGA):
         return offspring
 
 
-    def mutateMixtDSSII(self, parent1, parent2, offspring, p_method=None):
+    def mutateMixtDSSII(self, parent1, parent2, offspring, p_method=None, subset_size=7):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
             parent2 - individul parinte 2
@@ -248,15 +248,15 @@ class Mutate(RootGA):
         """
         cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
         if   (cond == 0):
-            offspring = self.mutateDiffSwap(parent1, parent2, offspring)
+            offspring = self.mutateDiffSwap(parent1, parent2, offspring, subset_size)
         elif (cond == 1):
-            offspring = self.mutateScramble(parent1, parent2, offspring)
+            offspring = self.mutateScramble(parent1, parent2, offspring, subset_size)
         elif (cond == 2):
-            offspring = self.mutateInversion(parent1, parent2, offspring)
+            offspring = self.mutateInversion(parent1, parent2, offspring, subset_size)
         elif (cond == 3):
-            offspring = self.mutateInsertion(parent1, parent2, offspring)
+            offspring = self.mutateInsertion(parent1, parent2, offspring, subset_size)
         elif (cond == 4):
-            offspring = self.mutateRollSim(parent1, parent2, offspring)
+            offspring = self.mutateRollSim(parent1, parent2, offspring, subset_size)
         return offspring
 
 

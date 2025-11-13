@@ -81,7 +81,6 @@ class InitPopulation(RootGA):
             population_size = self.POPULATION_SIZE
         # creaza un individ
         tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
-<<<<<<< HEAD
         # creaza o populatie aleatorie
         for _ in range(population_size):
             # adauga tsp_individ in genome
@@ -91,24 +90,7 @@ class InitPopulation(RootGA):
         self.__genoms.save()
         print("population {}".format(self.__genoms.shape))
     # initPopulationRand =====================================
-=======
-        routes = []
-        kps = []
-        # creaza o populatie aleatorie
-        for _ in range(population_size):
-            # adauga tsp_individ in genome
-            tsp = np.random.permutation(tsp_individ)
-            kp = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
-            routes.append(tsp)
-            kps.append(kp)
-        # adauga indivizi in noua generatie
-        routes = np.array(routes, dtype=np.int32)
-        kps = np.array(kps, dtype=np.int32)
-        print("population {}".format(self.__genoms.shape))
-        return routes, kps
->>>>>>> origin/main
 
-    # initPopulationRand =====================================
     # initPopulationMatei -------------------------------------
     def initPopulationTTP(self, size=2000, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):

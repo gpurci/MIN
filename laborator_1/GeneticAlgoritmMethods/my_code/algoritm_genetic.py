@@ -13,6 +13,7 @@ def remove_modules(modules_name, *arg):
             del sys.modules[tmp_modules]
 
 remove_modules("root_GA")
+remove_modules("genoms")
 remove_modules("callback")
 remove_modules("crossover")
 remove_modules("fitness")
@@ -22,6 +23,7 @@ remove_modules("mutate")
 remove_modules("select_parent")
 
 from root_GA import *
+from genoms import *
 from callback import *
 from crossover import *
 from fitness import *
@@ -51,18 +53,18 @@ class GeneticAlgorithm(RootGA):
         str_info += "\n"
         return str_info
 
-    def __call__(self, population):
+    def __call__(self):
         """
         Manager pentru a face sincronizarea dintre toate functionalele
         """
         self.__init_command()
         # initiaizarea populatiei
-        if (population is None):
-            population = self.initPopulation(self.POPULATION_SIZE)
+        if (self.__genoms.is_genoms()==False):
+            self.initPopulation(self.POPULATION_SIZE)
         # calculate metrics
-        metric_values = self.metrics(population)
+        metric_values  = self.metrics(self.__genoms)
         # init fitness value
-        fitness_values = self.fitness(population, metric_values)
+        fitness_values = self.fitness(metric_values)
         # obtinerea pozitiei pentru elite
         args_elite = self.getArgsElite(fitness_values)
 
@@ -71,8 +73,6 @@ class GeneticAlgorithm(RootGA):
             # pentru oprire fortata
             if (self.__is_stop):
                 break
-            # nasterea unei noi generatii
-            new_population = []
             # start selectie populatie
             self.selectParent1.startEpoch(fitness_values)
             self.selectParent2.startEpoch(fitness_values)
@@ -82,32 +82,29 @@ class GeneticAlgorithm(RootGA):
                 # selectarea positia parinte 1
                 arg_parent2 = self.selectParent2()
                 # obtinerea parintilor
-                parent1 = population[arg_parent1]
-                parent2 = population[arg_parent2]
+                parent1 = self.__genoms[arg_parent1]
+                parent2 = self.__genoms[arg_parent2]
                 # incrucisarea parintilor
                 offspring = self.crossover(parent1, parent2)
                 # mutatii
                 offspring = self.mutate(parent1, parent2, offspring) # in_place operation
                 # adauga urmasii la noua generatie
-                new_population.append(offspring)
+                self.__genoms.append(offspring)
             # obtinerea indivizilor ce fac parte din elita
-            elite_individs = population[args_elite]
-            elite_fitness  = fitness_values[args_elite]
+            genome_elites = self.__genoms[args_elite]
             # schimbarea generatiei
-            population = np.array(new_population)
+            self.__genoms.save()
             # calculate metrics
-            metric_values  = self.metrics(population)
+            metric_values  = self.metrics(self.__genoms)
             # calculare fitness
-            fitness_values = self.fitness(population, metric_values)
+            fitness_values = self.fitness(metric_values)
             # adaugare elita in noua populatie
-            population = self.setElitesByFitness(population, fitness_values, elite_individs)
+            self.setElitesByFitness(fitness_values, genome_elites)
             # set elite fitness
-            #fitness_values[args_elite] = elite_fitness
             # obtinerea pozitiei pentru elite
             args_elite = self.getArgsElite(fitness_values)
             # calculare metrici
-            scores = self.metrics.getScore(population, fitness_values)
-            #self.log(population, fitness_values, args_elite, elite_individs, best_distance)
+            scores = self.metrics.getScore(self.__genoms, fitness_values)
             # adaugare stres in populatie atunci cand lipseste progresul
             self.stres(scores)
             # afisare metrici
@@ -117,7 +114,22 @@ class GeneticAlgorithm(RootGA):
             # evolution
             self.evolutionMonitor(scores)
 
-        return self.metrics.getBestIndivid(), population
+        return self.metrics.getBestIndivid()
+
+    def __unpackGenomsConfigure(self, str_functia, chromozomes_name, **configs):
+        # 
+        ret_conf_chromozomes = {}
+        if (configs is not None):
+            for chromozome_name in chromozomes_name:
+                tmp_config = "{}_{}".format(str_functia, chromozome_name)
+                chromozome_configs = configs.get(tmp_config, None)
+                ret_conf_chromozomes[chromozome_name] = chromozome_configs
+                if (chromozome_configs is None):
+                    warnings.warn("Lipseste configuratia, pentru chromozomul '{}', functia '{}'".format(chromozome_name, str_functia))
+        else:
+            warnings.warn("Lipseste 'configs'")
+
+        return ret_conf_chromozomes
 
     def __unpackConfigure(self, str_functia, **configs):
         method, method_configs = None, {}
@@ -129,49 +141,55 @@ class GeneticAlgorithm(RootGA):
                 method_configs = {}
                 warnings.warn("Lipseste metoda, pentru functia de '{}'".format(str_functia))
         else:
-            warnings.warn("Lipseste metoda, pentru functia de '{}'".format(str_functia))
+            warnings.warn("Lipseste 'configs'")
 
         return method, method_configs
 
     def setConfig(self, **configs):
         # salveaza configuratiile
         self.__functions = []
+        # configureaza genoms
+        config = configs.get("genoms", {})
+        chromozomes_name = list(config.keys())
+        self.__genoms = Genoms(size=self.GENOME_LENGTH, **config)
+        self.__functions.append(self.__genoms)
         # configurare metrici
         method, method_configs = self.__unpackConfigure("metric", **configs)
         self.metrics = Metrics(method, **method_configs)
         self.__functions.append(self.metrics)
         # configurare initializare populatie
         method, method_configs = self.__unpackConfigure("init_population", **configs)
-        self.initPopulation = InitPopulation(method, self.metrics, **method_configs)
+        self.initPopulation = InitPopulation(method, self.metrics, self.__genoms, **method_configs)
         self.__functions.append(self.initPopulation)
         # configurare fitness
         method, method_configs = self.__unpackConfigure("fitness", **configs)
         self.fitness = Fitness(method, **method_configs)
         self.__functions.append(self.fitness)
         # configurate selectie parinti
-        sel_parent_conf = configs.get("select_parent", {"NoneMethod":0})
-        method, method_configs = self.__unpackConfigure("select_parent1", **sel_parent_conf)
+        method, method_configs = self.__unpackConfigure("select_parent1", **configs)
         self.selectParent1 = SelectParent(method, **method_configs)
         self.__functions.append(self.selectParent1)
-        method, method_configs = self.__unpackConfigure("select_parent2", **sel_parent_conf)
+        method, method_configs = self.__unpackConfigure("select_parent2", **configs)
         self.selectParent2 = SelectParent(method, **method_configs)
         self.__functions.append(self.selectParent2)
         # configurare incrucisare
-        method, method_configs = self.__unpackConfigure("crossover", **configs)
-        self.crossover = Crossover(method, **method_configs)
+        chromozome_configs = self.__unpackGenomsConfigure("crossover", chromozomes_name, **configs)
+        print("chromozome_configs", chromozome_configs)
+        self.crossover = Crossover(self.__genoms, **chromozome_configs)
         self.__functions.append(self.crossover)
         # configurare mutatie
-        method, method_configs = self.__unpackConfigure("mutate", **configs)
-        self.mutate  = Mutate(method, **method_configs)
+        chromozome_configs = self.__unpackGenomsConfigure("mutate", chromozomes_name, **configs)
+        self.mutate   = Mutate(self.__genoms, **chromozome_configs)
         self.__functions.append(self.mutate)
         # configurare callback salvare, istoricul de antrenare
-        filename     = configs.get("callback", None)
+        filename      = configs.get("callback", None)
         self.callback = Callback(filename)
         self.__functions.append(self.callback)
 
     def help(self):
         info  = "'nume': numele obiectului\n"
         info += "'extern_commnad_file': numele fisierului in care vor fi adaugate comenzile externe, (oprire fortata = stop=True)\n"
+        info += "'genoms': "+self.__genoms.help()
         info += "'metric': "+self.metrics.help()
         info += "'init_population': "+self.initPopulation.help()
         info += "'fitness': "+self.fitness.help()
@@ -193,47 +211,44 @@ class GeneticAlgorithm(RootGA):
         self.selectParent2.setParameters(**kw)
         self.crossover.setParameters(**kw)
         self.mutate.setParameters(**kw)
+        GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
+        POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
+        if (GENOME_LENGTH is not None):
+            self.__genoms.setSize(GENOME_LENGTH)
+        if (POPULATION_SIZE is not None):
+            self.__genoms.setPopulationSize(POPULATION_SIZE)
 
-    def evolutionMonitor(self, evolutionScores):
+
+    def evolutionMonitor(self, evolution_scores):
         """
         Monitorizarea evolutiei de invatare: datele sunt pastrate intr-un vector
-        evolutionScores - scorul evolutiei
+        evolution_scores - scorul evolutiei
         """
         self.__score_evolution[:-1] = self.__score_evolution[1:]
-        self.__score_evolution[-1]  = evolutionScores["score"]
-        if (evolutionScores["best_fitness"] == 0):
+        self.__score_evolution[-1]  = evolution_scores["score"]
+        if (evolution_scores["best_fitness"] == 0):
             raise Exception("Best fitness is '0'")
 
     # Fitness.__call__ always requires BOTH population AND metric_values.
     # => we must compute metrics first, then compute fitness again.
-    def setElites(self, population, elites):
-        if (population is None):
-            population = self.initPopulation(self.POPULATION_SIZE)
+    def setElites(self, elites):
+        if (self.__genoms.is_genoms()==False):
+            self.initPopulation(self.POPULATION_SIZE)
 
         # MUST compute metrics first
-        metric_values = self.metrics(population)
-        fitness_values = self.fitness(population, metric_values)
+        metric_values  = self.metrics(self.__genoms)
+        fitness_values = self.fitness(metric_values)
 
         args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)
-        population[args] = elites
-        return population
+        self.__genoms[args] = elites
 
-    def setElitesByFitness(self, population, fitness_values, elites):
-        if (population is None):
-            population = self.initPopulation(self.POPULATION_SIZE)
+    def setElitesByFitness(self, fitness_values, elites):
+        if (self.__genoms.is_genoms()==False):
+            self.initPopulation(self.POPULATION_SIZE)
 
         # here fitness_values already exists (caller passed it)
-        args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)
-        population[args] = elites
-        return population
-
-    def clcMetrics(self, population, fitness_values):
-        """
-        Calculare metrici:
-            population - populatia compusa dintr-o lista de indivizi
-            fitness_values - valorile fitnes pentru fiecare individ
-        """
-        raise NameError("Nu este implementata calcularea metricilor")
+        args = self.getArgsWeaks(fitness_values, elites.shape[0])
+        self.__genoms[args] = elites
 
     def showMetrics(self, generation, d_info):
         """Afisare metrici"""
@@ -245,18 +260,18 @@ class GeneticAlgorithm(RootGA):
             metric_info +="{}: {}, ".format(key, val)
         print(metric_info)
 
-    def stres(self, evolutionScores):
+    def stres(self, evolution_scores):
         """Aplica stres asupra populatiei.
         Functia de stres, se aplica atunci cand ajungem intr-un minim local,
         cauta cele mai frecvente secvente de genom si aplica un stres modifica acele zone
-        evolutionScores - scorul evolutiei
+        evolution_scores - scorul evolutiei
         """
-        check_distance = np.allclose(self.__score_evolution.mean(), evolutionScores["score"], rtol=1e-03, atol=1e-08)
+        check_distance = np.allclose(self.__score_evolution.mean(), evolution_scores["score"], rtol=1e-03, atol=1e-08)
         #print("distance evolution {}, distance {}".format(check_distance, best_distance))
         if (check_distance):
             self.__score_evolution[:] = 0
             self.__last_mutation_rate = self.MUTATION_RATE
-            print("evolutionScores {}".format(evolutionScores))
+            print("evolution_scores {}".format(evolution_scores))
             self.setParameters(MUTATION_RATE=1.)
             #self.mutate.increaseSubsetSize()
             self.externCommand()

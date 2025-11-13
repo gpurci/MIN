@@ -16,8 +16,8 @@ class Fitness(RootGA):
         self.__configs = kw
         self.__setMethods(method)
 
-    def __call__(self, population, metric_values):
-        return self.fn(population, metric_values, **self.__configs)
+    def __call__(self, metric_values):
+        return self.fn(metric_values, **self.__configs)
 
     def __str__(self):
         info = """Fitness: 
@@ -51,14 +51,14 @@ class Fitness(RootGA):
         self.__method = method
         self.__method_fn()
 
-    def fitnessAbstract(self, population, metric_values):
+    def fitnessAbstract(self, metric_values:dict):
         raise NameError("Lipseste metoda '{}',pentru functia de 'Fitness', configs '{}'".format(self.__method, self.__configs))
 
     # TSP F1score problem------------------------------
-    def fitnessF1scoreTSP(self, population, metric_values):
+    def fitnessF1scoreTSP(self, metric_values:dict):
         """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
-        population - populatia, vector de indivizi
+        metric_values - metricile pentru fiecare individ
         """
         # despacheteaza metricile
         distances   = metric_values["distances"]
@@ -87,10 +87,10 @@ class Fitness(RootGA):
     # TSP F1score problem=================================
 
     # TSP Norm problem------------------------------
-    def fitnessNormTSP(self, population, metric_values):
+    def fitnessNormTSP(self, metric_values:dict):
         """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
-        population - populatia, vector de indivizi
+        metric_values - metricile pentru fiecare individ
         """
         # despacheteaza metricile
         distances   = metric_values["distances"]
@@ -117,7 +117,7 @@ class Fitness(RootGA):
     
     # TTP linear------------------------------
     # functia fitness cu decadere liniara
-    def fitness_ttp_linear(self, population, metric_values, v_min=0.1, v_max=1, W=2000, R=1, alpha=0.01):
+    def fitness_ttp_linear(self, metric_values, v_min=0.1, v_max=1, W=2000, R=1, alpha=0.01):
         """
         Fitness cu decadere liniara.
         Pentru fiecare individ:
@@ -166,7 +166,7 @@ class Fitness(RootGA):
 
     # TTP exponential------------------------------
     # functia fitness cu decadere exponentiala
-    def fitness_ttp_exp(self, population, metric_values, v_min=0.1, v_max=1, W=2000, R=1, lam=0.01):
+    def fitness_ttp_exp(self, metric_values, v_min=0.1, v_max=1, W=2000, R=1, lam=0.01):
         """
         - pe măsură ce vizităm oraşele, luăm obiectele găsite acolo
         - fiecare obiect are profitul iniţial p0

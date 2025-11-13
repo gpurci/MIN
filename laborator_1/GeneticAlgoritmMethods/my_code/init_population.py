@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import numpy as np
 from root_GA import *
-#from genoms import *
+from genoms import *
 
 class InitPopulation(RootGA):
     """
@@ -12,10 +12,11 @@ class InitPopulation(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, method, metrics, **kw):
+    def __init__(self, method, metrics, genoms, **kw):
         super().__init__()
         # metrics = obiectul Metrics — folosit pentru dataset
         self.metrics   = metrics
+        self.__genoms  = genoms
         self.__configs = kw
         self.__setMethods(method)
 
@@ -34,20 +35,19 @@ class InitPopulation(RootGA):
         self.fn = self.initPopulationAbstract
         if (self.__method is not None):
             if   (self.__method == "TTP_vecin"):
-                # folosim versiunea ta (Matei)
                 self.fn = self.initPopulationTTP
             elif (self.__method == "TSP_rand"):
                 self.fn = self.initPopulationsTSPRand
             elif (self.__method == "TTP_rand"):
-                self.fn = self.initPopulationsTSPRand
+                self.fn = self.initPopulationsTTPRand
         else:
             pass
 
     def help(self):
         info = """InitPopulation:
-    metoda: 'TTP_vecin';   config: -> lambda_time, vmax, vmin, Wmax, seed;
-    metoda: 'TTP_rand'; config: None;
-    metoda: 'TSP_rand'; config: None;\n"""
+    metoda: 'TTP_vecin'; config: -> lambda_time, vmax, vmin, Wmax, seed;
+    metoda: 'TTP_rand';  config: None;
+    metoda: 'TSP_rand';  config: None;\n"""
         return info
 
     def __setMethods(self, method):
@@ -58,25 +58,21 @@ class InitPopulation(RootGA):
         # default: nu exista implementare
         raise NameError("Lipseste metoda '{}' pentru functia de 'InitPopulation': config '{}'".format(self.__method, self.__configs))
 
-    # initPopulationRand -------------------------------------
-    def __permutePopulation(self, individ):
-        new_individ = np.random.permutation(individ)
-        return new_individ
-
+    # initPopulationsTSPRand -------------------------------------
     def initPopulationsTSPRand(self, population_size=-1):
         """Initializarea populatiei, cu drumuri aleatorii"""
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
-        size = (population_size, self.GENOME_LENGTH)
-
-        #population = Genoms(keys=["tsp"], gene_range=[], size=self.GENOME_LENGTH)
-
-
-        population = np.arange(np.prod(size), dtype=np.int32).reshape(*size) % self.GENOME_LENGTH
-        population = np.apply_along_axis(self.__permutePopulation, axis=1, arr=population)
-        print("population {}".format(population.shape))
-        return population
-    # initPopulationRand =====================================
+        # creaza un individ
+        individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+        # creaza o populatie aleatorie
+        for _ in range(population_size):
+            # adauga individ in genome
+            self.__genoms.add(tsp=np.random.permutation(individ))
+        # adauga indivizi in noua generatie
+        self.__genoms.save()
+        print("population {}".format(self.__genoms.shape))
+    # initPopulationsTSPRand =====================================
 
     # initPopulationRand -------------------------------------
     def initPopulationsTTPRand(self, population_size=-1):

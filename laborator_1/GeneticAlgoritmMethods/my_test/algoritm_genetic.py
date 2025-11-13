@@ -2,10 +2,9 @@
 
 import numpy as np
 from my_code.algoritm_genetic import GeneticAlgorithm
-from my_code.metrics import Metrics
 
 
-class TestGeneticAlgorithm:
+class TestGeneticAlgorithm(GeneticAlgorithm):
 
     def __init__(self):
         cfg = {
@@ -50,6 +49,23 @@ class TestGeneticAlgorithm:
 
         self.metric_values = self.ga.metrics(self.pop)
         self.fit = self.ga.fitness(self.pop, self.metric_values)
+
+    def test_setConfig():
+
+        filename_logs = "/logs/history.csv"
+        extern_commnad_file ="/extern_command.cmd"
+        self.setConfig(
+                    name="test",
+                    extern_commnad_file=extern_commnad_file,
+                    genoms={"tsp":(0, dataset["GENOME_LENGTH"])},
+                    init_population={"method":"TSP_rand", },
+                    metric={"method":"TSP", },
+                    fitness={"method":"TSP_f1score", },
+                    select_parent1={"method":"turneu", }, 
+                    select_parent2={"method":"turneu_choice", },
+                    crossover_tsp={"method":"split", },
+                    mutate_tsp={"method":"swap", },
+                    callback=filename_logs)
 
     def test_run(self):
         print("\n=== test_run (__call__) ===")
@@ -114,3 +130,11 @@ class TestGeneticAlgorithm:
     def test_getArgsElite(self):
         print("\n=== test_getArgsElite ===")
         print(self.ga.getArgsElite(self.fit))
+
+
+
+
+
+
+
+

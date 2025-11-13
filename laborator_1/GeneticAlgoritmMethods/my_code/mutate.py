@@ -10,51 +10,62 @@ class Mutate(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, method, **kw):
+    def __init__(self, genome, **chromozomes):
         super().__init__()
-        self.__configs = kw
-        self.__setMethods(method)
+        self.__genome     = genome
+        self.__chromozoms = chromozomes
+        self.__setMethods()
 
     def __str__(self):
-        info = """Mutate: 
-        method:  {}
-        configs: {}""".format(self.__method, self.__configs)
+        info = "Mutate:\n"
+        for chrom_name in self.__genome.keys():
+            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromozoms[chrom_name])
+            info += "\t{}".format(tmp)
         return info
 
     def __call__(self, parent1, parent2, offspring):
+        tmp_genome = []
+        for chromozome_name in self.__genome.keys():
+            tmp_genome.append(self.__call_chromozome(parent1, parent2, offspring, chromozome_name))
+        return self.__genome.concat(tmp_genome)
+
+    def __call_chromozome(self, parent1, parent2, offspring, chromozome_name):
         # calcularea ratei de probabilitate a mutatiei
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
-            offspring = self.fn(parent1, parent2, offspring, **self.__configs)
+            offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
+                                                    offspring[chromozome_name], 
+                                                    **self.__chromozoms[chromozome_name])
+        else:
+            offspring = offspring[chromozome_name]
+
         return offspring
 
-    def __method_fn(self):
-        self.fn = self.mutateAbstract
-        if (self.__method is not None):
-            if   (self.__method == "inversion"):
-                self.fn = self.mutateInversion
-            elif (self.__method == "scramble"):
-                self.fn = self.mutateScramble
-            elif (self.__method == "swap"):
-                self.fn = self.mutateSwap
-            elif (self.__method == "diff_swap"):
-                self.fn = self.mutateDiffSwap
-            elif (self.__method == "roll"):
-                self.fn = self.mutateRoll
-            elif (self.__method == "insertion"):
-                self.fn = self.mutateInsertion
-            elif (self.__method == "rool_sim"):
-                self.fn = self.mutateRollSim
-            elif (self.__method == "perm_sim"):
-                self.fn = self.mutatePermSim
-            elif (self.__method == "flip_sim"):
-                self.fn = self.mutateFlipSim
-            elif (self.__method == "mixt"):
-                self.fn = self.mutateMixtDSSII
+    def __unpack_method(self, method):
+        fn = self.mutateAbstract
+        if (method is not None):
+            if   (method == "inversion"):
+                fn = self.mutateInversion
+            elif (method == "scramble"):
+                fn = self.mutateScramble
+            elif (method == "swap"):
+                fn = self.mutateSwap
+            elif (method == "diff_swap"):
+                fn = self.mutateDiffSwap
+            elif (method == "roll"):
+                fn = self.mutateRoll
+            elif (method == "insertion"):
+                fn = self.mutateInsertion
+            elif (method == "rool_sim"):
+                fn = self.mutateRollSim
+            elif (method == "perm_sim"):
+                fn = self.mutatePermSim
+            elif (method == "flip_sim"):
+                fn = self.mutateFlipSim
+            elif (method == "mixt"):
+                fn = self.mutateMixtDSSII
 
-                
-        else:
-            pass
+        return fn
 
     def help(self):
         info = """Mutate:
@@ -69,12 +80,19 @@ class Mutate(RootGA):
     metoda: 'mixt';      config: -> p_method=[4/10, 1/10, 1/10, 3/10, 1/10], subset_size=7;\n"""
         return info
 
-    def __setMethods(self, method):
-        self.__method = method
-        self.__method_fn()
+    def __setMethods(self):
+        self.__fn      = {}
+        self.__methods = {}
+        for key in self.__genome.keys():
+            method = self.__chromozoms[key].pop("method", None)
+            self.__methods[key] = method
+            self.__fn[key]      = self.__unpack_method(method)
 
     def mutateAbstract(self, parent1, parent2, offspring):
-        raise NameError("Lipseste metoda '{}' pentru functia de 'Mutate': config '{}'".format(self.__method, self.__config))
+        error_mesage = ""
+        for chrom_name in self.__genome.keys():
+            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Mutate': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromozoms[chrom_name])
+        raise NameError(error_mesage)
 
     def mutateSwap(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
@@ -244,22 +262,24 @@ class Mutate(RootGA):
 
 
     @staticmethod
-    def recSim(individ, start, lenght, arg):
-        if (arg < individ.shape[0]):
+    def recSim(mask_genes, start, lenght, arg):
+        """Cautarea celei mai mari zone, in care genele sunt identice"""
+        if (arg < mask_genes.shape[0]):
             tmp_arg = arg
             tmp_st  = arg
             tmp_lenght = 0
-            while tmp_arg < individ.shape[0]:
-                if (individ[tmp_arg] == True):
+            while tmp_arg < mask_genes.shape[0]:
+                if (mask_genes[tmp_arg]):
                     tmp_arg   += 1
                 else:
                     tmp_lenght = tmp_arg - tmp_st
                     if (lenght < tmp_lenght):
                         start, lenght = tmp_st, tmp_lenght
-                    return Mutate.recSim(individ, start, lenght, tmp_arg+1)
+                    return Mutate.recSim(mask_genes, start, lenght, tmp_arg+1)
         else:
             return start, lenght
         return start, lenght
+
 
     # helper pentru debugging mutatii: TO DO: Adauga in test aici esto doar functionalul!!!
     def _diff(self, before, after):

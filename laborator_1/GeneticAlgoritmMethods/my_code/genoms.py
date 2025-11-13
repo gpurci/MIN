@@ -1,21 +1,42 @@
 #!/usr/bin/python
 
 import numpy as np
+import warnings
 
 class Genoms(object):
     """
     Clasa 'Genoms', ofera metode pentru a structura si procesa populatia.
     """
-
     def __init__(self, size=10, **gene_range):
         # if condition returns False, AssertionError is raised:
         #assert (isinstance(gene_range, dict)), "Parametrul 'gene_range': '{}', are un type differit de 'dict'".format(type(gene_range))
 
         # Define the structure: name (string), age (int), weight (float)
-        self.__keys       = list(gene_range.keys())
-        # initt range of genes
+        self.__keys = list(gene_range.keys())
+        if (len(self.__keys) == 0):
+            warnings.warn("Lipseste numele chromozomilor '{}'".format(gene_range))
+        # init range of genes
         self.__gene_range = gene_range
         # Define the structure: key (string), gene range (int32/float32)
+        # init chromosome datatype
+        self.setSize(size)
+
+    def __getitem__(self, key):
+        return self.__genoms[key]
+
+    def __setitem__(self, key, value):
+        self.__genoms[key] = value
+
+    def __str__(self):
+        info = "Genoms:\n"
+        for key in self.__keys:
+            info += "\tChromozom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
+        return info
+
+    def population(self, chromozome_name):
+        return self.__genoms[chromozome_name]
+        
+    def setSize(self, size):
         # init chromosome datatype
         tmp_types = []
         for key in self.__keys:
@@ -30,28 +51,34 @@ class Genoms(object):
         # new genoms este lista de genomuri care nu fac parte din noua generatie
         self.__new_genoms = []
         # genoms este un vector de genomuri formate, care face parte din noua generatie
-        self.__genoms     = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
-        self.shape        = (1, len(self.__keys), size)
+        self.__genoms = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
+        # set population shape
+        self.shape    = (1, len(self.__keys), (size, size))
 
-    def __getitem__(self, key):
-        return self.__genoms[key]
+    def setPopulationSize(self, size):
+        if (self.shape[0] != size):
+            del self.__new_genoms
+            self.__new_genoms = []
+            self.save()
 
-    def __setitem__(self, key, value):
-        self.__genoms[key] = value
+    def is_genoms(self):
+        return (self.__genoms.shape[0] > 0)
 
-    def __str__(self):
-        info = ""
-        for genom in self.__genoms:
-            info += str(genom) + "\n"
-        return info
-
-    def getKeys(self):
+    def keys(self):
         return self.__keys
 
     def getGeneRange(self, key):
         return self.__gene_range[key]
 
-    def append(self, **kw):
+    def concat(self, chromozomes:list):
+        # salveaza chromozomii in genom
+        return np.array(tuple(chromozomes), dtype=self.__chromosome_dtype)
+
+    def append(self, genome):
+        # adauga genomul in lista de genomi
+        self.__new_genoms.append(genome)
+
+    def add(self, **kw):
         tmp = []
         # adauga chromozomii in ordinea care au fost initializati
         for key in self.__keys:
@@ -73,8 +100,9 @@ class Genoms(object):
         tmp_shape = []
         for key in self.__keys:
             tmp_shape.append(self.__genoms[key].shape[1])
-        self.shape        = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
+        # update shape
+        self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
 
     def help(self):
-        info = """Genoms:\n"""
+        info = """Genoms: (chromosome_name1: (min_range, max_range), chromosome_name2: (min_range, max_range), ...)\n"""
         return info

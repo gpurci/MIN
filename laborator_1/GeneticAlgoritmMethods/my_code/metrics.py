@@ -22,8 +22,8 @@ class Metrics(RootGA):
         configs: {}""".format(self.__method, self.__configs)
         return info
 
-    def __call__(self, population):
-        return self.fn(population, **self.__configs)
+    def __call__(self, genomics):
+        return self.fn(genomics, **self.__configs)
 
     def help(self):
         info = """Metrics: 
@@ -86,6 +86,7 @@ class Metrics(RootGA):
     # TS problem------------------------------
     def __getIndividDistance(self, individ):
         """Calculul distantei pentru un individ"""
+        #print("individ", individ.shape, end=", ")
         distances = self.dataset["distance"][individ[:-1], individ[1:]]
         distance  = distances.sum() + self.dataset["distance"][individ[-1], individ[0]]
         return distance
@@ -105,11 +106,14 @@ class Metrics(RootGA):
                                         axis=1,
                                         arr=population)
 
-    def metricsTSP(self, population):
+    def metricsTSP(self, genomics):
         """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
         population - populatia, vector de indivizi
         """
+        population = genomics.population("tsp")
+        #print("\nmetricsTSP, genomics: {}, population {}, last {}".format(genomics.shape, population.shape, population[-1].shape))
+        #print("\nmetricsTSP, population {}".format(population))
         # calculeaza distanta
         distances   = self.__getDistances(population)
         # calculeaza numarul de orase unice
@@ -117,10 +121,10 @@ class Metrics(RootGA):
         metric_values = {"distances": distances, "number_city":number_city}
         return metric_values
 
-    def getScoreTSP(self, population, fitness_values):
+    def getScoreTSP(self, genomics, fitness_values):
         # obtinerea celui mai bun individ
         arg_best = self.getArgBest(fitness_values)
-        individ  = population[arg_best]
+        individ  = genomics[arg_best]["tsp"]
         best_fitness = fitness_values[arg_best]
         self.__best_individ = individ
         score = self.__getIndividDistance(individ)

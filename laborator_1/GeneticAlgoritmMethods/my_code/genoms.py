@@ -33,9 +33,12 @@ class Genoms(object):
             info += "\tChromozom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
         return info
 
-    def population(self, chromozome_name):
+    def population(self):
+        return self.__genoms
+
+    def chromozomes(self, chromozome_name):
         return self.__genoms[chromozome_name]
-        
+
     def setSize(self, size):
         # init chromosome datatype
         tmp_types = []

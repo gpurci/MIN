@@ -141,12 +141,16 @@ class Fitness(RootGA):
         """
         # unpack metrics
         profits = metric_values["profits"]
+        weights = metric_values["weights"]
         times   = metric_values["times"]
+        number_city = metric_values["number_city"]
         # normalization
         profits = self.__norm(profits)
         times   = self.__norm(times)
+        mask_city = self.__cityBinaryTSP(number_city)
+        print("weights {}".format(weights.min(), end=", "))
         # calculate fitness
-        fitness = profits - R*times
+        fitness = (profits - R*times) * mask_city
         return fitness
     # TTP =================================
 
@@ -165,12 +169,14 @@ class Fitness(RootGA):
             vector np.array cu fitness pentru fiecare individ
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        times   = metric_values["times"]
+        profits     = metric_values["profits"]
+        times       = metric_values["times"]
+        number_city = metric_values["number_city"]
         # normalization
         profits = self.__norm(profits)
-        times   = self.__norm(times)
+        times   = self.__min_norm(times)
+        mask_city = self.__cityBinaryTSP(number_city)
         # calculate fitness
-        fitness = (profits * times) / (profits + R*times)
+        fitness = ((profits * times) / (profits + R*times)) * mask_city
         return fitness
     # TTP =================================

@@ -175,7 +175,7 @@ class Metrics(RootGA):
         # calculeaza viteza
         v = v_max - (v_max - v_min) * (Wcur / W)
         Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
-        return Pcur, Tcur
+        return Pcur, Tcur, Wcur
 
     def metricsTTPLiniar(self, genomics, **kw):
         # unpack datassets
@@ -186,16 +186,19 @@ class Metrics(RootGA):
         args = [distance, item_profit, item_weight]
         # calculate metrics for every individ
         profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
-            profit, time = self.__computeIndividLiniarTTP(individ, *args, **kw)
+            profit, time, weight = self.__computeIndividLiniarTTP(individ, *args, **kw)
             profits[idx] = profit
+            weights[idx] = weight
             times[idx]   = time
 
         # pack metrick values
         metric_values = {
             "profits"  : profits,
-            "times"    : times
+            "times"    : times,
+            "weights"  : weights
         }
         return metric_values
     # TTP Liniar =================================
@@ -232,7 +235,7 @@ class Metrics(RootGA):
         # calculeaza viteza
         v = v_max - (v_max - v_min) * (Wcur / CAPACITY)
         Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
-        return Pcur, Tcur
+        return Pcur, Tcur, Wcur
 
     def metricsTTPMeanLiniar(self, genomics, **kw):
         # unpack datassets
@@ -245,7 +248,7 @@ class Metrics(RootGA):
         W = kw.get("W", 20000)
         if (min_weight > W):
             CAPACITY = weights.mean()
-            CAPACITY = W
+            #CAPACITY = W
         else:
             CAPACITY = W
 
@@ -253,18 +256,22 @@ class Metrics(RootGA):
         args = [distance, item_profit, item_weight]
         # calculate metrics for every individ
         profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
-            profit, time = self.__computeIndividLiniarMeanTTP(individ, *args, CAPACITY=CAPACITY, **kw)
+            profit, time, weight = self.__computeIndividLiniarMeanTTP(individ, *args, CAPACITY=CAPACITY, **kw)
             profits[idx] = profit
+            weights[idx] = weight
             times[idx]   = time
 
-        # mask city
-        mask_city = self.__getDistances(genomics.chromozomes("tsp"))
+        # number city
+        number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
         # pack metrick values
         metric_values = {
-            "profits"  : profits,
-            "times"    : times*mask_city,
+            "profits"    : profits,
+            "times"      : times,
+            "weights"    : weights,
+            "number_city": number_city
         }
         return metric_values
     # TTP Liniar =================================
@@ -301,7 +308,7 @@ class Metrics(RootGA):
         # calculeaza viteza
         v = v_max - (v_max - v_min) * (Wcur / W)
         Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
-        return Pcur, Tcur
+        return Pcur, Tcur, Wcur
 
     def metricsTTPExp(self, genomics, **kw):
         # unpack datassets
@@ -312,14 +319,17 @@ class Metrics(RootGA):
         args = [distance, item_profit, item_weight]
         # calculate metrics for every individ
         profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
-            profit, time = self.__computeIndividLiniarTTP(individ, *args, **kw)
+            profit, time, weight = self.__computeIndividLiniarTTP(individ, *args, **kw)
             profits[idx] = profit
+            weights[idx] = weight
             times[idx]   = time
         # pack metrick values
         metric_values = {
             "profits"  : profits,
+            "weights"  : weights,
             "times"    : times
         }
         return metric_values

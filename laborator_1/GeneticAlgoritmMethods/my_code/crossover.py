@@ -143,7 +143,7 @@ class Crossover(RootGA):
         sim_locus = np.argwhere(mask_sim_locus)
         size = sim_locus.shape[0]
         if (size >= 4):
-            start, lenght = Crossover.recSim(mask_sim_locus, 0, 0, 0)
+            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
             if (lenght > 1):
                 locuses = np.arange(start, start+lenght)
                 offspring[locuses] = np.random.permutation(offspring[locuses])
@@ -163,7 +163,7 @@ class Crossover(RootGA):
         sim_locus = np.argwhere(mask_sim_locus)
         size = sim_locus.shape[0]
         if (size >= 4):
-            start, lenght = Crossover.recSim(mask_sim_locus, 0, 0, 0)
+            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
             if (lenght > 1):
                 locuses = np.arange(start, start+lenght)
                 offspring[locuses] = np.flip(offspring[locuses])
@@ -185,24 +185,22 @@ class Crossover(RootGA):
             offspring = self.crossoverFlipSim(parent1, parent2, low, high)
         return offspring
 
-
-    @staticmethod
-    def recSim(mask_genes, start, lenght, arg):
-        """Cautarea celei mai mari zone, in care genele sunt identice,
-        sau cauta cea mai mare secveta de unitati"""
-        if (arg < mask_genes.shape[0]):
-            tmp_arg = arg
-            tmp_st  = arg
-            tmp_lenght = 0
-            while tmp_arg < mask_genes.shape[0]:
-                if (mask_genes[tmp_arg]):
-                    tmp_arg   += 1
-                else:
-                    tmp_lenght = tmp_arg - tmp_st
-                    if (lenght < tmp_lenght):
-                        start, lenght = tmp_st, tmp_lenght
-                    return Crossover.recSim(mask_genes, start, lenght, tmp_arg+1)
-        else:
-            return start, lenght
+def recSim(mask_genes, start, lenght, arg):
+    """Cautarea celei mai mari zone, in care genele sunt identice,
+    sau cauta cea mai mare secveta de unitati"""
+    if (arg < mask_genes.shape[0]):
+        tmp_arg = arg
+        tmp_st  = arg
+        tmp_lenght = 0
+        while tmp_arg < mask_genes.shape[0]:
+            if (mask_genes[tmp_arg]):
+                tmp_arg   += 1
+            else:
+                tmp_lenght = tmp_arg - tmp_st
+                if (lenght < tmp_lenght):
+                    start, lenght = tmp_st, tmp_lenght
+                return recSim(mask_genes, start, lenght, tmp_arg+1)
+    else:
         return start, lenght
+    return start, lenght
 

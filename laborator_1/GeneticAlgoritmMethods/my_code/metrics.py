@@ -41,6 +41,7 @@ class Metrics(RootGA):
                 self.getScore = self.getScoreTSP
             elif (method == "TTP_linear"):
                 fn = self.metricsTTPLiniar
+                self.getScore = self.getScoreTTP
             elif (method == "TTP_mean_linear"):
                 fn = self.metricsTTPMeanLiniar
                 self.getScore = self.getScoreTTP
@@ -168,12 +169,12 @@ class Metrics(RootGA):
             Pcur += max(0.0, profit - alpha*Tcur)
             Wcur += weight
             # calculeaza viteza de tranzitie
-            v = v_max - (v_max - v_min) * (Wcur / W)
+            v = v_max - v_min * (Wcur / W)
+            v = max(v_min, v)
             # calculeaza timpul de tranzitie
             Tcur += distance[city, tsp_individ[i+1]] / v
         # intorcerea in orasul de start
         # calculeaza viteza
-        v = v_max - (v_max - v_min) * (Wcur / W)
         Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
         return Pcur, Tcur, Wcur
 
@@ -194,11 +195,14 @@ class Metrics(RootGA):
             weights[idx] = weight
             times[idx]   = time
 
+        # number city
+        number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
         # pack metrick values
         metric_values = {
-            "profits"  : profits,
-            "times"    : times,
-            "weights"  : weights
+            "profits"    : profits,
+            "times"      : times,
+            "weights"    : weights,
+            "number_city": number_city
         }
         return metric_values
     # TTP Liniar =================================
@@ -229,6 +233,7 @@ class Metrics(RootGA):
             Wcur += weight
             # calculeaza viteza de tranzitie
             v = v_max - (v_max - v_min) * (Wcur / CAPACITY)
+            v = max(v_min, v)
             # calculeaza timpul de tranzitie
             Tcur += distance[city, tsp_individ[i+1]] / v
         # intorcerea in orasul de start

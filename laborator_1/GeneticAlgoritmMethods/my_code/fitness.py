@@ -171,12 +171,14 @@ class Fitness(RootGA):
         # unpack metrics
         profits     = metric_values["profits"]
         times       = metric_values["times"]
+        weights     = metric_values["weights"]
         number_city = metric_values["number_city"]
         # normalization
         profits = self.__norm(profits)
         times   = self.__min_norm(times)
         mask_city = self.__cityBinaryTSP(number_city)
+        print("profits {}, weights {}, times {}, ".format(profits.min(), weights.min(), times.min(), ))
         # calculate fitness
-        fitness = ((profits * times) / (profits + R*times)) * mask_city
+        fitness = mask_city * ((profits * times) / (profits + R*times))
         return fitness
     # TTP =================================

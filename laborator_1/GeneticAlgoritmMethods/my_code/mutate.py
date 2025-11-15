@@ -62,8 +62,14 @@ class Mutate(RootGA):
                 fn = self.mutatePermSim
             elif (method == "flip_sim"):
                 fn = self.mutateFlipSim
+            elif (method == "binary"):
+                fn = self.mutateBinary
+            elif (method == "binary_sim"):
+                fn = self.mutateBinarySim
+            elif (method == "binary_mixt"):
+                fn = self.mutateBinaryMixt
             elif (method == "mixt"):
-                fn = self.mutateMixtDSSII
+                fn = self.mutateMixt
 
         return fn
 
@@ -77,6 +83,9 @@ class Mutate(RootGA):
     metoda: 'rool_sim';  config: None;
     metoda: 'perm_sim';  config: None;
     metoda: 'flip_sim';  config: None;
+    metoda: 'binary';    config: None;
+    metoda: 'binary_sim';config: None;
+    metoda: 'binary_mixt';config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;
     metoda: 'mixt';      config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;\n"""
         return info
 
@@ -239,8 +248,54 @@ class Mutate(RootGA):
                 offspring[locuses] = np.flip(offspring[locuses])
         return offspring
 
+    def mutateBinary(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        # modifica doar genele care sunt asemanatoare
+        locus = np.random.randint(low=0, high=self.GENOME_LENGTH-1, size=None)
+        offspring[locus] = 1 - offspring[locus]
+        return offspring
 
-    def mutateMixtDSSII(self, parent1, parent2, offspring, p_method=None, subset_size=7):
+    def mutateBinarySim(self, parent1, parent2, offspring):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        # modifica doar genele care sunt asemanatoare
+        mask_sim_locus = parent1==parent2
+        sim_locus = np.argwhere(mask_sim_locus)
+        size = sim_locus.shape[0]
+        if (size >= 4):
+            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            if (lenght > 1):
+                locus = np.random.randint(low=start, high=start+lenght, size=None)
+                offspring[locus] = 1 - offspring[locus]
+        return offspring
+
+    def mutateBinaryMixt(self, parent1, parent2, offspring, p_method=None, subset_size=7):
+        """Mutatia genetica a indivizilor, operatie in_place
+            parent1 - individul parinte 1
+            parent2 - individul parinte 2
+            offspring - individul copil/descendent
+        """
+        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
+        if   (cond == 0):
+            offspring = self.mutateDiffSwap(parent1, parent2, offspring)
+        elif (cond == 1):
+            offspring = self.mutateScramble(parent1, parent2, offspring, subset_size)
+        elif (cond == 2):
+            offspring = self.mutateInversion(parent1, parent2, offspring, subset_size)
+        elif (cond == 3):
+            offspring = self.mutateInsertion(parent1, parent2, offspring)
+        elif (cond == 4):
+            offspring = self.mutateBinary(parent1, parent2, offspring)
+        return offspring
+
+    def mutateMixt(self, parent1, parent2, offspring, p_method=None, subset_size=7):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
             parent2 - individul parinte 2

@@ -207,7 +207,7 @@ class Mutate(RootGA):
         sim_locus = np.argwhere(mask_sim_locus)
         size = sim_locus.shape[0]
         if (size >= 4):
-            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
             if (lenght > 3):
                 locuses    = np.arange(start, start+lenght)
                 size_shift = np.random.randint(low=1, high=lenght//2, size=None)
@@ -225,7 +225,7 @@ class Mutate(RootGA):
         sim_locus = np.argwhere(mask_sim_locus)
         size = sim_locus.shape[0]
         if (size >= 4):
-            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
             if (lenght > 1):
                 locuses = np.arange(start, start+lenght)
                 offspring[locuses] = np.random.permutation(offspring[locuses])
@@ -242,7 +242,7 @@ class Mutate(RootGA):
         sim_locus = np.argwhere(mask_sim_locus)
         size = sim_locus.shape[0]
         if (size >= 4):
-            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
             if (lenght > 1):
                 locuses = np.arange(start, start+lenght)
                 offspring[locuses] = np.flip(offspring[locuses])
@@ -270,7 +270,7 @@ class Mutate(RootGA):
         sim_locus = np.argwhere(mask_sim_locus)
         size = sim_locus.shape[0]
         if (size >= 4):
-            start, lenght = Mutate.recSim(mask_sim_locus, 0, 0, 0)
+            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
             if (lenght > 1):
                 locus = np.random.randint(low=start, high=start+lenght, size=None)
                 offspring[locus] = 1 - offspring[locus]
@@ -316,28 +316,20 @@ class Mutate(RootGA):
 
 
 
-    @staticmethod
-    def recSim(mask_genes, start, lenght, arg):
-        """Cautarea celei mai mari zone, in care genele sunt identice"""
-        if (arg < mask_genes.shape[0]):
-            tmp_arg = arg
-            tmp_st  = arg
-            tmp_lenght = 0
-            while tmp_arg < mask_genes.shape[0]:
-                if (mask_genes[tmp_arg]):
-                    tmp_arg   += 1
-                else:
-                    tmp_lenght = tmp_arg - tmp_st
-                    if (lenght < tmp_lenght):
-                        start, lenght = tmp_st, tmp_lenght
-                    return Mutate.recSim(mask_genes, start, lenght, tmp_arg+1)
-        else:
-            return start, lenght
+def recSim(mask_genes, start, lenght, arg):
+    """Cautarea celei mai mari zone, in care genele sunt identice"""
+    if (arg < mask_genes.shape[0]):
+        tmp_arg = arg
+        tmp_st  = arg
+        tmp_lenght = 0
+        while tmp_arg < mask_genes.shape[0]:
+            if (mask_genes[tmp_arg]):
+                tmp_arg   += 1
+            else:
+                tmp_lenght = tmp_arg - tmp_st
+                if (lenght < tmp_lenght):
+                    start, lenght = tmp_st, tmp_lenght
+                return recSim(mask_genes, start, lenght, tmp_arg+1)
+    else:
         return start, lenght
-
-
-    # helper pentru debugging mutatii: TO DO: Adauga in test aici esto doar functionalul!!!
-    def _diff(self, before, after):
-        """returneaza tuple(index, val_before, val_after) pentru gene schimbate"""
-        idx = np.where(before != after)[0]
-        return [(int(i), int(before[i]), int(after[i])) for i in idx]
+    return start, lenght

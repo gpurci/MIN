@@ -1,335 +1,434 @@
 #!/usr/bin/python
-
 import numpy as np
 from root_GA import *
 
 class Mutate(RootGA):
     """
-    Clasa 'Mutate', ofera doar metode pentru a face mutatia genetica a unui individ din populatie.
-    Functia 'mutate' are 3 parametri, parinte1, parinte2, descendent.
-    Metoda 'call', returneaza functia din configuratie.
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    Clasa 'Mutate' – operatori genetici de mutație pentru TSP / TTP.
     """
+
     def __init__(self, genome, **chromozomes):
         super().__init__()
-        self.__genome     = genome
+        self.__genome = genome
         self.__chromozoms = chromozomes
         self.__setMethods()
 
     def __str__(self):
         info = "Mutate:\n"
         for chrom_name in self.__genome.keys():
-            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromozoms[chrom_name])
-            info += "\t{}".format(tmp)
+            tmp = (
+                f"Chromozome name: '{chrom_name}', "
+                f"method '{self.__methods[chrom_name]}', "
+                f"configs: '{self.__chromozoms[chrom_name]}'\n"
+            )
+            info += f"\t{tmp}"
         return info
 
+    # ===============================================================
+    # Main __call__
+    # ===============================================================
     def __call__(self, parent1, parent2, offspring):
         tmp_genome = []
-        for chromozome_name in self.__genome.keys():
-            tmp_genome.append(self.__call_chromozome(parent1, parent2, offspring, chromozome_name))
+        for name in self.__genome.keys():
+            tmp_genome.append(
+                self.__call_chromozome(parent1, parent2, offspring, name)
+            )
         return self.__genome.concat(tmp_genome)
 
-    def __call_chromozome(self, parent1, parent2, offspring, chromozome_name):
-        # calcularea ratei de probabilitate a mutatiei
-        rate = np.random.uniform(low=0, high=1, size=None)
-        if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
-            offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
-                                                    offspring[chromozome_name], 
-                                                    **self.__chromozoms[chromozome_name])
-        else:
-            offspring = offspring[chromozome_name]
+    def __call_chromozome(self, parent1, parent2, offspring, chrom_name):
+        rate = np.random.uniform(0, 1)
+        if rate <= self.MUTATION_RATE:
+            return self.__fn[chrom_name](
+                parent1[chrom_name],
+                parent2[chrom_name],
+                offspring[chrom_name],
+                **self.__chromozoms[chrom_name]
+            )
+        return offspring[chrom_name]
 
-        return offspring
-
-    def __unpack_method(self, method):
-        fn = self.mutateAbstract
-        if (method is not None):
-            if   (method == "inversion"):
-                fn = self.mutateInversion
-            elif (method == "scramble"):
-                fn = self.mutateScramble
-            elif (method == "swap"):
-                fn = self.mutateSwap
-            elif (method == "diff_swap"):
-                fn = self.mutateDiffSwap
-            elif (method == "roll"):
-                fn = self.mutateRoll
-            elif (method == "insertion"):
-                fn = self.mutateInsertion
-            elif (method == "rool_sim"):
-                fn = self.mutateRollSim
-            elif (method == "perm_sim"):
-                fn = self.mutatePermSim
-            elif (method == "flip_sim"):
-                fn = self.mutateFlipSim
-            elif (method == "binary"):
-                fn = self.mutateBinary
-            elif (method == "binary_sim"):
-                fn = self.mutateBinarySim
-            elif (method == "binary_mixt"):
-                fn = self.mutateBinaryMixt
-            elif (method == "mixt"):
-                fn = self.mutateMixt
-
-        return fn
-
-    def help(self):
-        info = """Mutate:
-    metoda: 'inversion'; config: -> "subset_size":7;
-    metoda: 'scramble';  config: -> "subset_size":7;
-    metoda: 'swap';      config: None;
-    metoda: 'roll';      config: None;
-    metoda: 'insertion'; config: None;
-    metoda: 'rool_sim';  config: None;
-    metoda: 'perm_sim';  config: None;
-    metoda: 'flip_sim';  config: None;
-    metoda: 'binary';    config: None;
-    metoda: 'binary_sim';config: None;
-    metoda: 'binary_mixt';config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;
-    metoda: 'mixt';      config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;\n"""
-        return info
-
+    # ===============================================================
+    # Method selection
+    # ===============================================================
     def __setMethods(self):
-        self.__fn      = {}
         self.__methods = {}
+        self.__fn = {}
+
         for key in self.__genome.keys():
             method = self.__chromozoms[key].pop("method", None)
             self.__methods[key] = method
-            self.__fn[key]      = self.__unpack_method(method)
+            self.__fn[key] = self.__unpack_method(method)
 
+    def __unpack_method(self, method):
+        # default
+        fn = self.mutateAbstract
+
+        if method is None:
+            return fn
+
+        return {
+            "inversion": self.mutateInversion,
+            "scramble": self.mutateScramble,
+            "swap": self.mutateSwap,
+            "diff_swap": self.mutateDiffSwap,
+            "roll": self.mutateRoll,
+            "insertion": self.mutateInsertion,
+            "rool_sim": self.mutateRollSim,
+            "perm_sim": self.mutatePermSim,
+            "flip_sim": self.mutateFlipSim,
+            "binary": self.mutateBinary,
+            "binary_sim": self.mutateBinarySim,
+            "binary_mixt": self.mutateBinaryMixt,
+            "mixt": self.mutateMixt,
+            "bitflip": self.mutateBitflip,
+            "mixt_ttp": self.mutateMixtTTP,
+            "hybrid_2opt": self.mutateHybrid2Opt,
+        }.get(method, fn)
+
+    def help(self):
+        return (
+            "Mutate: metoda: 'inversion'; config: subset_size\n"
+            "        metoda: 'scramble'; config: subset_size\n"
+            "        metoda: 'swap';\n"
+            "        metoda: 'roll';\n"
+            "        metoda: 'insertion';\n"
+            "        metoda: 'binary';\n"
+            "        metoda: 'bitflip';\n"
+            "        metoda: 'mixt_ttp';\n"
+        )
+
+    # ===============================================================
+    # FAILBACK
+    # ===============================================================
     def mutateAbstract(self, parent1, parent2, offspring):
-        error_mesage = ""
-        for chrom_name in self.__genome.keys():
-            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Mutate': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromozoms[chrom_name])
-        raise NameError(error_mesage)
+        msg = ""
+        for chrom in self.__genome.keys():
+            msg += (
+                f"Lipseste metoda '{self.__methods[chrom]}' pentru "
+                f"chromozomul '{chrom}', config '{self.__chromozoms[chrom]}'\n"
+            )
+        raise NameError(msg)
+
+    # ===============================================================
+    # Basic Operators
+    # ===============================================================
+
+    def mutateBitflip(self, parent1, parent2, offspring, rate=0.01):
+        """Flips each bit with probability `rate`."""
+        offspring = offspring.copy()
+        mask = np.random.rand(len(offspring)) < rate
+        offspring[mask] = 1 - offspring[mask]
+        return offspring
 
     def mutateSwap(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # obtinere locus-urile aleator
-        loc1, loc2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=2)
+        loc1, loc2 = np.random.randint(0, self.GENOME_LENGTH, size=2)
         offspring[loc1], offspring[loc2] = offspring[loc2], offspring[loc1]
         return offspring
 
     def mutateDiffSwap(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-        este aplicata mutatia doar pentru zonele unde codul genetic al parintilor este identic
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele, unde codul genetic al parintilor este identic
-        mask = parent1==parent2
-        similar_locus = np.argwhere(mask).reshape(-1)
-        if (similar_locus.shape[0] > 1):
-            similar_locus = similar_locus.reshape(-1)
-            # obtine locusul 1
-            locus1        = np.random.permutation(similar_locus)[0]
-            # obtine locus-urile pentru genele diferite
-            not_similar_locus = np.ones(self.GENOME_LENGTH, dtype=bool)
-            # obtine genele similare
-            similar_genes = parent1[similar_locus]
-            not_similar_locus[similar_genes] = False
-            # obtine o gena de pe locusuri diferite
-            not_similar_locus = np.argwhere(not_similar_locus).reshape(-1)
-            if (not_similar_locus.shape[0] > 0):
-                locus2 = np.random.permutation(not_similar_locus)[0]
+        mask = parent1 == parent2
+        loci = np.argwhere(mask).reshape(-1)
+
+        if len(loci) > 1:
+            locus1 = np.random.choice(loci)
+
+            diff_mask = np.ones(self.GENOME_LENGTH, dtype=bool)
+            diff_mask[parent1[loci]] = False
+            diff_loci = np.argwhere(diff_mask).reshape(-1)
+
+            if len(diff_loci) > 0:
+                locus2 = np.random.choice(diff_loci)
             else:
-                locus2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
-            # schimba genele
-            offspring[locus1], offspring[locus2] = offspring[locus2], offspring[locus1]
+                locus2 = np.random.randint(0, self.GENOME_LENGTH)
         else:
-            # obtinere locus-urile aleator
-            locus1, locus2 = np.random.randint(low=0, high=self.GENOME_LENGTH, size=2)
-            offspring[locus1], offspring[locus2] = offspring[locus2], offspring[locus1]
+            locus1, locus2 = np.random.randint(0, self.GENOME_LENGTH, size=2)
+
+        offspring[locus1], offspring[locus2] = offspring[locus2], offspring[locus1]
         return offspring
 
     def mutateRoll(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        size_shift = np.random.randint(low=1, high=self.GENOME_LENGTH-2, size=None)
-        offspring  = np.roll(offspring, size_shift)
-        return offspring
+        shift = np.random.randint(1, self.GENOME_LENGTH - 1)
+        return np.roll(offspring, shift)
 
     def mutateScramble(self, parent1, parent2, offspring, subset_size=7):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
-        locuses    = np.arange(size_shift, size_shift+subset_size)
-        shufle_genes = np.random.permutation(offspring[locuses])
-        offspring[locuses] = shufle_genes
+        start = np.random.randint(0, self.GENOME_LENGTH - subset_size)
+        loc = slice(start, start + subset_size)
+        offspring[loc] = np.random.permutation(offspring[loc])
         return offspring
 
     def mutateInversion(self, parent1, parent2, offspring, subset_size=7):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        size_shift = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
-        locuses    = np.arange(size_shift, size_shift+subset_size)
-        offspring[locuses] = np.flip(offspring[locuses])
+        start = np.random.randint(0, self.GENOME_LENGTH - subset_size)
+        loc = slice(start, start + subset_size)
+        offspring[loc] = offspring[loc][::-1]
         return offspring
 
     def mutateInsertion(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        locus1 = np.random.randint(low=0,      high=self.GENOME_LENGTH//2, size=None)
-        locus2 = np.random.randint(low=locus1, high=self.GENOME_LENGTH-1,  size=None)
-        # copy gene
-        gene1  = offspring[locus1]
-        # make change locuses
-        locuses= np.arange(locus1, locus2)
-        offspring[locuses] = offspring[locuses+1]
-        offspring[locus2]  = gene1
+        i = np.random.randint(0, self.GENOME_LENGTH // 2)
+        j = np.random.randint(i, self.GENOME_LENGTH - 1)
+        gene = offspring[i]
+        offspring[i:j] = offspring[i + 1 : j + 1]
+        offspring[j] = gene
         return offspring
 
+    # ===============================================================
+    # Similarity-based Operators
+    # ===============================================================
     def mutateRollSim(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        mask_sim_locus = parent1==parent2
-        sim_locus = np.argwhere(mask_sim_locus)
-        size = sim_locus.shape[0]
-        if (size >= 4):
-            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
-            if (lenght > 3):
-                locuses    = np.arange(start, start+lenght)
-                size_shift = np.random.randint(low=1, high=lenght//2, size=None)
-                offspring[locuses] = np.roll(offspring[locuses], size_shift)
+        mask = parent1 == parent2
+        start, length = recSim(mask, 0, 0, 0)
+
+        if length > 3:
+            loc = slice(start, start + length)
+            shift = np.random.randint(1, length // 2)
+            offspring[loc] = np.roll(offspring[loc], shift)
+
         return offspring
 
     def mutatePermSim(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        mask_sim_locus = parent1==parent2
-        sim_locus = np.argwhere(mask_sim_locus)
-        size = sim_locus.shape[0]
-        if (size >= 4):
-            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
-            if (lenght > 1):
-                locuses = np.arange(start, start+lenght)
-                offspring[locuses] = np.random.permutation(offspring[locuses])
+        mask = parent1 == parent2
+        start, length = recSim(mask, 0, 0, 0)
+
+        if length > 1:
+            loc = slice(start, start + length)
+            offspring[loc] = np.random.permutation(offspring[loc])
+
         return offspring
 
     def mutateFlipSim(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        mask_sim_locus = parent1==parent2
-        sim_locus = np.argwhere(mask_sim_locus)
-        size = sim_locus.shape[0]
-        if (size >= 4):
-            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
-            if (lenght > 1):
-                locuses = np.arange(start, start+lenght)
-                offspring[locuses] = np.flip(offspring[locuses])
+        mask = parent1 == parent2
+        start, length = recSim(mask, 0, 0, 0)
+
+        if length > 1:
+            loc = slice(start, start + length)
+            offspring[loc] = offspring[loc][::-1]
+
         return offspring
 
     def mutateBinary(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        locus = np.random.randint(low=0, high=self.GENOME_LENGTH-1, size=None)
-        offspring[locus] = 1 - offspring[locus]
+        locus = np.random.randint(0, self.GENOME_LENGTH)
+        offspring[locus] ^= 1
         return offspring
 
     def mutateBinarySim(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        mask_sim_locus = parent1==parent2
-        sim_locus = np.argwhere(mask_sim_locus)
-        size = sim_locus.shape[0]
-        if (size >= 4):
-            start, lenght = recSim(mask_sim_locus, 0, 0, 0)
-            if (lenght > 1):
-                locus = np.random.randint(low=start, high=start+lenght, size=None)
-                offspring[locus] = 1 - offspring[locus]
+        mask = parent1 == parent2
+        start, length = recSim(mask, 0, 0, 0)
+
+        if length > 1:
+            locus = np.random.randint(start, start + length)
+            offspring[locus] ^= 1
+
         return offspring
 
     def mutateBinaryMixt(self, parent1, parent2, offspring, p_method=None, subset_size=7):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
-        if   (cond == 0):
-            offspring = self.mutateDiffSwap(parent1, parent2, offspring)
-        elif (cond == 1):
-            offspring = self.mutateScramble(parent1, parent2, offspring, subset_size)
-        elif (cond == 2):
-            offspring = self.mutateInversion(parent1, parent2, offspring, subset_size)
-        elif (cond == 3):
-            offspring = self.mutateInsertion(parent1, parent2, offspring)
-        elif (cond == 4):
-            offspring = self.mutateBinary(parent1, parent2, offspring)
+        op = np.random.choice([0, 1, 2, 3, 4], p=p_method)
+
+        if op == 0:
+            return self.mutateDiffSwap(parent1, parent2, offspring)
+        if op == 1:
+            return self.mutateScramble(parent1, parent2, offspring, subset_size)
+        if op == 2:
+            return self.mutateInversion(parent1, parent2, offspring, subset_size)
+        if op == 3:
+            return self.mutateInsertion(parent1, parent2, offspring)
+        if op == 4:
+            return self.mutateBinary(parent1, parent2, offspring)
+
         return offspring
 
     def mutateMixt(self, parent1, parent2, offspring, p_method=None, subset_size=7):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
-        if   (cond == 0):
-            offspring = self.mutateDiffSwap(parent1, parent2, offspring)
-        elif (cond == 1):
-            offspring = self.mutateScramble(parent1, parent2, offspring, subset_size)
-        elif (cond == 2):
-            offspring = self.mutateInversion(parent1, parent2, offspring, subset_size)
-        elif (cond == 3):
-            offspring = self.mutateInsertion(parent1, parent2, offspring)
-        elif (cond == 4):
-            offspring = self.mutateRollSim(parent1, parent2, offspring)
+        op = np.random.choice([0, 1, 2, 3, 4], p=p_method)
+
+        if op == 0:
+            return self.mutateDiffSwap(parent1, parent2, offspring)
+        if op == 1:
+            return self.mutateScramble(parent1, parent2, offspring, subset_size)
+        if op == 2:
+            return self.mutateInversion(parent1, parent2, offspring, subset_size)
+        if op == 3:
+            return self.mutateInsertion(parent1, parent2, offspring)
+        if op == 4:
+            return self.mutateRollSim(parent1, parent2, offspring)
+
         return offspring
 
+    # ===============================================================
+    # HYBRID 2-OPT (TTP-AWARE)
+    # ===============================================================
+    def mutateHybrid2Opt(
+        self,
+        parent1,
+        parent2,
+        offspring,
+        kp_bits=None,
+        dataset=None,
+        alpha=0.01,
+        v_min=0.1,
+        v_max=1.0,
+        W=25936,
+        R=5.61,
+        max_samples=8,
+    ):
+        if kp_bits is None or dataset is None:
+            return offspring
+
+        route = offspring.copy()
+        n = len(route) - 1
+
+        distance = dataset["distance"]
+        item_profit = dataset["item_profit"]
+        item_weight = dataset["item_weight"]
+
+        def ttp_score(r):
+            Pcur = 0.0
+            Wcur = 0.0
+            Tcur = 0.0
+
+            for i in range(len(r) - 1):
+                city = r[i]
+
+                if city > 0 and kp_bits[city] == 1:
+                    item_idx = city - 1
+                    profit = item_profit[item_idx]
+                    weight = item_weight[item_idx]
+
+                    Pcur += max(0, profit - alpha * Tcur)
+                    Wcur += weight
+
+                v = max(v_min, v_max - (v_max - v_min) * (Wcur / W))
+                nxt = r[i + 1]
+                Tcur += distance[city, nxt] / v
+
+            last = r[-1]
+            start = r[0]
+            v = max(v_min, v_max - (v_max - v_min) * (Wcur / W))
+            Tcur += distance[last, start] / v
+
+            return Pcur - R * Tcur
+
+        base = ttp_score(route)
+
+        for _ in range(max_samples):
+            i = np.random.randint(1, n - 1)
+            k = np.random.randint(i + 1, n)
+
+            new_route = route.copy()
+            new_route[i : k + 1] = new_route[i : k + 1][::-1]
+
+            new_score = ttp_score(new_route)
+
+            if new_score > base:
+                route = new_route
+                base = new_score
+
+        return route
+
+    # ===============================================================
+    # MIXT TTP (COMBINED TSP + KP CLEANUP)
+    # ===============================================================
+    def mutateMixtTTP(
+        self,
+        parent1,
+        parent2,
+        offspring,
+        p_method=None,
+        subset_size=20,
+        kp_bits=None,
+        dataset=None,
+        alpha=0.01,
+        v_min=0.1,
+        v_max=1.0,
+        W=25936,
+        R=5.61,
+    ):
+        if kp_bits is None or dataset is None or p_method is None:
+            return offspring
+
+        route = offspring.copy()
+
+        # -------- hybrid 2-opt shortcut --------
+        def apply_h2opt(r):
+            return self.mutateHybrid2Opt(
+                parent1,
+                parent2,
+                r,
+                kp_bits=kp_bits,
+                dataset=dataset,
+                alpha=alpha,
+                v_min=v_min,
+                v_max=v_max,
+                W=W,
+                R=R,
+            )
+
+        def tsp_micro_op(r):
+            op = np.random.choice([0, 1, 2, 3], p=p_method)
+            if op == 0:
+                return self.mutateDiffSwap(parent1, parent2, r)
+            if op == 1:
+                return self.mutateInversion(parent1, parent2, r, subset_size)
+            if op == 2:
+                return self.mutateInsertion(parent1, parent2, r)
+            if op == 3:
+                return apply_h2opt(r)
+            return r
+
+        # multiple micro-operators
+        n_ops = np.random.randint(2, 5)
+        for _ in range(n_ops):
+            route = tsp_micro_op(route)
+
+        # KP cleanup (repair overweight)
+        def cleanup(bits):
+            profit = dataset["item_profit"][1:]
+            weight = dataset["item_weight"][1:]
+
+            mask = bits[1 : 1 + len(weight)].astype(bool)
+            total = np.dot(weight, mask)
+
+            capacity = self.__chromozoms["tsp"].get("W", 25936)
+
+            if total <= capacity:
+                return bits
+
+            pw = np.zeros_like(profit, float)
+            nonzero = weight > 0
+            pw[nonzero] = profit[nonzero] / weight[nonzero]
+            pw[~nonzero] = np.inf
+
+            order = np.argsort(pw)
+
+            for idx in order:
+                city = idx + 1
+                if bits[city] == 1:
+                    bits[city] = 0
+                    total -= weight[idx]
+                    if total <= capacity:
+                        break
+
+            return bits
+
+        cleanup(kp_bits)
+        return route
 
 
-def recSim(mask_genes, start, lenght, arg):
-    """Cautarea celei mai mari zone, in care genele sunt identice"""
-    if (arg < mask_genes.shape[0]):
+# ===============================================================
+# Similarity helper
+# ===============================================================
+def recSim(mask_genes, start, length, arg):
+    """Caută cea mai lungă secvență de gene identice."""
+    if arg < mask_genes.shape[0]:
         tmp_arg = arg
-        tmp_st  = arg
-        tmp_lenght = 0
+        tmp_start = arg
+        tmp_len = 0
+
         while tmp_arg < mask_genes.shape[0]:
-            if (mask_genes[tmp_arg]):
-                tmp_arg   += 1
+            if mask_genes[tmp_arg]:
+                tmp_arg += 1
             else:
-                tmp_lenght = tmp_arg - tmp_st
-                if (lenght < tmp_lenght):
-                    start, lenght = tmp_st, tmp_lenght
-                return recSim(mask_genes, start, lenght, tmp_arg+1)
+                tmp_len = tmp_arg - tmp_start
+                if length < tmp_len:
+                    start, length = tmp_start, tmp_len
+                return recSim(mask_genes, start, length, tmp_arg + 1)
     else:
-        return start, lenght
-    return start, lenght
+        return start, length
+
+    return start, length

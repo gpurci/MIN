@@ -1,184 +1,187 @@
 #!/usr/bin/python
-
 import numpy as np
 from root_GA import *
 
+
 class Fitness(RootGA):
     """
-    Clasa 'Fitness', ofera doar metode pentru a calcula functia fitness din populatie.
-    Functia 'fitness' are 1 parametru, numarul populatiei.
-    Metoda '__config_fn', selecteaza functia de initializare.
-    Metoda '__call__', aplica functia de initializare ce a fost selectata in '__config_fn'
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    Clasa 'Fitness'
+    Oferă metode pentru a calcula funcția fitness a populației.
     """
+
     def __init__(self, method, **kw):
         super().__init__()
         self.__configs = kw
         self.__setMethods(method)
 
+    # ------------------------------------------------------------------
     def __call__(self, metric_values):
         return self.fn(metric_values, **self.__configs)
 
+    # ------------------------------------------------------------------
     def __str__(self):
-        info = """Fitness: 
-        method:  {}
-        configs: {}""".format(self.__method, self.__configs)
-        return info
+        return f"Fitness: method: {self.__method} configs: {self.__configs}"
 
-    def __unpack_method(self, method):
-        fn = self.fitnessAbstract
-        if (method is not None):
-            if   (method == "TSP_f1score"):
-                fn = self.fitnessF1scoreTSP
-            elif (method == "TSP_norm"):
-                fn = self.fitnessNormTSP
-            elif (method == "TTP_f1score"):
-                fn = self.fitnessF1scoreTTP
-            elif (method == "TTP"):
-                fn = self.fitnessTTP
-
-        return fn
-
+    # ------------------------------------------------------------------
     def help(self):
-        info = """Fitness:
-    metoda: 'TSP_f1score'; config: None;
-    metoda: 'TSP_norm';    config: None;
-    metoda: 'TTP_f1score'; config: -> "R":1, ;
-    metoda: 'TTP';         config: -> "R":1, ;\n"""
-        return info
+        return """Fitness:
+    metoda: 'TSP_f1score'
+    metoda: 'TSP_norm'
+    metoda: 'TTP_f1score' -> config: R=1
+    metoda: 'TTP' -> config: R=1
+"""
 
+    # ------------------------------------------------------------------
     def __setMethods(self, method):
         self.__method = method
         self.fn = self.__unpack_method(method)
 
-    def fitnessAbstract(self, metric_values:dict):
-        raise NameError("Lipseste metoda '{}',pentru functia de 'Fitness', configs '{}'".format(self.__method, self.__configs))
+    # ------------------------------------------------------------------
+    def __unpack_method(self, method):
 
-    # TSP F1score problem------------------------------
-    def fitnessF1scoreTSP(self, metric_values:dict):
-        """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
-        unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
-        metric_values - metricile pentru fiecare individ
+        fn = self.fitnessAbstract
+
+        if method == "TSP_f1score":
+            fn = self.fitnessF1scoreTSP
+        elif method == "TSP_norm":
+            fn = self.fitnessNormTSP
+        elif method == "TTP_f1score":
+            fn = self.fitnessF1scoreTTP
+        elif method == "TTP":
+            fn = self.fitnessTTP
+
+        return fn
+
+    # ------------------------------------------------------------------
+    def fitnessAbstract(self, metric_values: dict):
+        raise NameError(
+            f"Lipseste metoda '{self.__method}' pentru functia Fitness, configs={self.__configs}"
+        )
+
+    # ==================================================================
+    #                   FITNESS — TSP F1 SCORE
+    # ==================================================================
+    def fitnessF1scoreTSP(self, metric_values: dict):
         """
-        # despacheteaza metricile
-        distances   = metric_values["distances"]
+        Returnează F1 pentru TSP:
+            2 * dist_norm * city_norm / (dist_norm + city_norm)
+        """
+
+        distances = metric_values["distances"]
         number_city = metric_values["number_city"]
-        # normalizeaza intervalul 0...1
-        #print("number_city {}".format(number_city))
+
+        # normalize
         number_city = self.__cityBinaryTSP(number_city)
-        #print("number_city {}".format(number_city.sum()))
-        distances   = self.__distanceF1scoreTSP(distances)
-        fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
+        distances = self.__distanceF1scoreTSP(distances)
+
+        fitness_values = (2 * distances * number_city) / (
+            distances + number_city + 1e-7
+        )
+
         return fitness_values
 
+    # ------------------------------------------------------------------
     def __distanceF1scoreTSP(self, distances):
-        mask_not_zero   = (distances!=0)
-        valid_distances = distances[mask_not_zero]
-        if (valid_distances.shape[0] > 0):
-            min_distance = valid_distances.min()
-        else:
-            min_distance = 0.1
-            distances[:] = 0.1
-        return (2*min_distance)/(distances+min_distance)
 
+        mask_not_zero = distances != 0
+        valid = distances[mask_not_zero]
+
+        min_distance = valid.min() if valid.size > 0 else 0.1
+
+        distances[:] = 0.1
+        return (2 * min_distance) / (distances + min_distance)
+
+    # ------------------------------------------------------------------
     def __cityBinaryTSP(self, number_city):
-        mask_cities = (number_city>=(self.GENOME_LENGTH-1)).astype(np.float32)
-        return mask_cities
-    # TSP F1score problem=================================
+        return (number_city >= (self.GENOME_LENGTH - 1)).astype(np.float32)
 
-    # TSP Norm problem------------------------------
-    def fitnessNormTSP(self, metric_values:dict):
-        """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
-        unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
-        metric_values - metricile pentru fiecare individ
-        """
-        # despacheteaza metricile
-        distances   = metric_values["distances"]
+    # ==================================================================
+    #                        FITNESS — TSP NORM
+    # ==================================================================
+    def fitnessNormTSP(self, metric_values: dict):
+
+        distances = metric_values["distances"]
         number_city = metric_values["number_city"]
-        # normalizeaza intervalul 0...1
-        #print("number_city {}".format(number_city))
-        number_city = self.__cityNormTSP(number_city)
-        #print("number_city {}".format(number_city.sum()))
-        distances   = self.__norm(distances)
-        fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
-        #print("fitness {}".format(fitness_values))
-        return fitness_values
 
+        number_city = self.__cityNormTSP(number_city)
+        distances = self.__norm(distances)
+
+        return (2 * distances * number_city) / (distances + number_city + 1e-7)
+
+    # ------------------------------------------------------------------
     def __norm(self, x):
         x_min = x.min()
         x_max = x.max()
-        return (x_max-x)/(x_max-x_min)
+        return (x_max - x) / (x_max - x_min)
 
-    def __min_norm(self, x):
-        mask_not_zero = (x!=0)
-        valid_x = x[mask_not_zero]
-        if (valid_x.shape[0] > 0):
-            x_min = valid_x.min()
-        else:
-            x_min = 0.1
-            x[:] = 0.1
-        return (2*x_min)/(x+x_min)
-
-
+    # ------------------------------------------------------------------
     def __cityNormTSP(self, number_city):
-        mask_cities = (number_city>=(self.GENOME_LENGTH-5)).astype(np.float32)
-        return mask_cities*(number_city/self.GENOME_LENGTH)**5
-    # TSP Norm problem=================================
+        mask = (number_city >= (self.GENOME_LENGTH - 5)).astype(np.float32)
+        return mask * (number_city / self.GENOME_LENGTH) ** 5
 
-    # TTP ------------------------------
+    # ==================================================================
+    #                           FITNESS — TTP
+    # ==================================================================
     def fitnessTTP(self, metric_values, R=1):
         """
-        Fitness cu decadere liniara.
-        Pentru fiecare individ:
-        - mergem pe traseu (route)
-        - cand ajungem intr-un oras luam obiectele de acolo
-        - profitul scade liniar cu timpul:
-                p(t) = p0 - alpha * t
-        - viteza scade in functie de greutatea acumulata
-        - costul de timp este penalizat cu R
-        Returneaza:
-            vector np.array cu fitness pentru fiecare individ
-        """
-        # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"]
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        # normalization
-        profits = self.__norm(profits)
-        times   = self.__norm(times)
-        mask_city = self.__cityBinaryTSP(number_city)
-        print("weights {}".format(weights.min(), end=", "))
-        # calculate fitness
-        fitness = (profits - R*times) * mask_city
-        return fitness
-    # TTP =================================
+        Fitness direct din TTP:
+            score = profit - R * time
 
-    # TTP ------------------------------
-    def fitnessF1scoreTTP(self, metric_values, R=1):
+        Normalizat la > 0.
         """
-        Fitness cu decadere liniara.
-        Pentru fiecare individ:
-        - mergem pe traseu (route)
-        - cand ajungem intr-un oras luam obiectele de acolo
-        - profitul scade liniar cu timpul:
-                p(t) = p0 - alpha * t
-        - viteza scade in functie de greutatea acumulata
-        - costul de timp este penalizat cu R
-        Returneaza:
-            vector np.array cu fitness pentru fiecare individ
+
+        scores = metric_values.get("score", None)
+        if scores is None:
+            raise KeyError("metric_values must contain key 'score' for TTP fitness")
+
+        # shift to positive
+        min_score = scores.min()
+        if min_score <= 0:
+            scores = scores - min_score + 1e-6
+
+        # normalize 0..1
+        max_score = scores.max()
+        return scores / max_score if max_score > 0 else scores
+
+    # ==================================================================
+    #                        FITNESS — TTP F1 SCORE
+    # ==================================================================
+    def fitnessF1scoreTTP(self, metric_values, R=1, beta=1.0, W=None):
         """
-        # unpack metrics
-        profits     = metric_values["profits"]
-        times       = metric_values["times"]
-        weights     = metric_values["weights"]
+        F1-like pentru TTP, cu penalizare soft pe depășirea capacității.
+
+        raw = 2 * profit / (profit + R*time + penalty)
+        """
+
+        profits = metric_values["profits"]
+        times = metric_values["times"]
+        weights = metric_values["weights"]
         number_city = metric_values["number_city"]
-        # normalization
-        profits = self.__norm(profits)
-        times   = self.__min_norm(times)
+
+        # trebuie rută completă
         mask_city = self.__cityBinaryTSP(number_city)
-        print("profits {}, weights {}, times {}, ".format(profits.min(), weights.min(), times.min(), ))
-        # calculate fitness
-        fitness = mask_city * ((profits * times) / (profits + R*times))
-        return fitness
-    # TTP =================================
+
+        # determină Wmax
+        if W is None:
+            Wmax = self.__configs.get("W", None)
+        else:
+            Wmax = W
+
+        if Wmax is None:
+            raise ValueError("Trebuie fitness={'method':'TTP_f1score', 'W':25936}")
+
+        # penalizare depășire
+        overweight = np.maximum(0.0, weights - Wmax)
+        penalty = beta * overweight
+
+        # scor F1-like
+        raw = mask_city * (
+            2.0 * profits / (profits + R * times + penalty + 1e-9)
+        )
+
+        # shift la > 0
+        min_raw = raw.min()
+        if min_raw <= 0:
+            raw = raw - min_raw + 1e-6
+
+        return raw

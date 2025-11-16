@@ -1,51 +1,54 @@
 #!/usr/bin/python
-
 import numpy as np
 from root_GA import *
 
+
 class Metrics(RootGA):
     """
-    Clasa 'Metrics', ofera doar metode pentru a calcula metrici pentru clase de probleme de optimizare.
-    Functia 'metrics' are 1 parametru, populatia.
-    Metoda '__config_fn', selecteaza functia ce calculeaza metricile.
-    Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    Clasa 'Metrics', ofera metode pentru a calcula metrici pentru probleme
+    TSP si TTP. Functia '__call__' aplica metrica configurata.
     """
+
     def __init__(self, method, **kw):
         super().__init__()
         self.__configs = kw
         self.__setMethods(method)
 
     def __str__(self):
-        info = """Metrics: 
-        method:  {}
-        configs: {}""".format(self.__method, self.__configs)
-        return info
+        return f"Metrics: method: {self.__method} configs: {self.__configs}"
 
     def __call__(self, genomics):
         return self.fn(genomics, **self.__configs)
 
     def help(self):
-        info = """Metrics:
-    metoda: 'TTP_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
-    metoda: 'TTP_mean_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
-    metoda: 'TTP_exp';    config: -> "v_min":0.1, "v_max":1, "W":2000, "lam":0.01;
-    metoda: 'TSP';        config: None;\n"""
-        return info
+        return (
+            "Metrics:\n"
+            "  metoda: 'TTP_linear'; config: v_min, v_max, W, alpha\n"
+            "  metoda: 'TTP_mean_linear'; config: v_min, v_max, W, alpha\n"
+            "  metoda: 'TTP_exp'; config: v_min, v_max, W, lam\n"
+            "  metoda: 'TSP'; config: None\n"
+        )
 
+    # =============================================================
+    # METHOD SELECTION
+    # =============================================================
     def __unpack_method(self, method):
         fn = self.metricsAbstract
-        if (method is not None):
-            if   (method == "TSP"):
+
+        if method is not None:
+            if method == "TSP":
                 fn = self.metricsTSP
                 self.getScore = self.getScoreTSP
-            elif (method == "TTP_linear"):
+
+            elif method == "TTP_linear":
                 fn = self.metricsTTPLiniar
                 self.getScore = self.getScoreTTP
-            elif (method == "TTP_mean_linear"):
+
+            elif method == "TTP_mean_linear":
                 fn = self.metricsTTPMeanLiniar
                 self.getScore = self.getScoreTTP
-            elif (method == "TTP_exp"):
+
+            elif method == "TTP_exp":
                 fn = self.metricsTTPExp
                 self.getScore = self.getScoreTTP
 
@@ -55,301 +58,341 @@ class Metrics(RootGA):
         self.__method = method
         self.fn = self.__unpack_method(method)
 
+    # =============================================================
+    # DATASET MANAGEMENT
+    # =============================================================
     def setDataset(self, dataset):
-        print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))
+        print(
+            f"Utilizezi metoda: {self.__method}, datele trebuie sa corespunda "
+            f"metodei de calcul a metricilor!!!"
+        )
         self.dataset = dataset
 
     def getDataset(self):
         return self.dataset
 
+    # =============================================================
+    # BEST INDIVIDUAL
+    # =============================================================
     def getArgBest(self, fitness_values):
-        """Cautarea rutei optime din populatie"""
-        index = np.argmax(fitness_values, axis=None, keepdims=False)
-        return index
+        return np.argmax(fitness_values)
 
     def getBestIndivid(self):
         return self.__best_individ
 
+    # =============================================================
+    # DEFAULT METRIC
+    # =============================================================
     def metricsAbstract(self, population):
-        raise NameError("Lipseste metoda '{}' pentru functia de 'Metrics': config '{}'".format(self.__method, self.__configs))
+        raise NameError(
+            f"Lipseste metoda '{self.__method}' pentru functia de 'Metrics': "
+            f"config '{self.__configs}'"
+        )
 
-    # TS problem------------------------------
+    # =============================================================
+    #                 TSP METRICS
+    # =============================================================
     def __getIndividDistance(self, individ):
-        """Calculul distantei pentru un individ"""
-        #print("individ", individ.shape, end=", ")
         distances = self.dataset["distance"][individ[:-1], individ[1:]]
-        distance  = distances.sum() + self.dataset["distance"][individ[-1], individ[0]]
-        return distance
+        return distances.sum() + self.dataset["distance"][individ[-1], individ[0]]
 
     def __getIndividNumberCities(self, individ):
-        return np.unique(individ[:-1], return_index=False, return_inverse=False, return_counts=False, axis=None).shape[0]
+        return np.unique(individ[:-1]).shape[0]
 
     def __getDistances(self, population):
-        """Calculaza distanta pentru fiecare individ din populatiei"""
-        return np.apply_along_axis(self.__getIndividDistance,
-                                        axis=1,
-                                        arr=population)
+        return np.apply_along_axis(self.__getIndividDistance, 1, population)
 
     def __getNumberCities(self, population):
-        """Calculeaza numarul de orase pentru fiecare individ din populatie"""
-        return np.apply_along_axis(self.__getIndividNumberCities,
-                                        axis=1,
-                                        arr=population)
+        return np.apply_along_axis(self.__getIndividNumberCities, 1, population)
 
     def metricsTSP(self, genomics):
-        """ Returneaza o valoare normalizata, formula 2*weights*profits/(weights+profits)
-        unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
-        population - populatia, vector de indivizi
-        """
         population = genomics.chromozomes("tsp")
-        #print("\nmetricsTSP, genomics: {}, population {}, last {}".format(genomics.shape, population.shape, population[-1].shape))
-        #print("\nmetricsTSP, population {}".format(population))
-        # calculeaza distanta
-        distances   = self.__getDistances(population)
-        # calculeaza numarul de orase unice
+
+        distances = self.__getDistances(population)
         number_city = self.__getNumberCities(population)
-        metric_values = {"distances": distances, "number_city":number_city}
-        return metric_values
 
-    def getScoreTSP(self, genomics, fitness_values):
-        # obtinerea celui mai bun individ
-        arg_best = self.getArgBest(fitness_values)
-        individ  = genomics[arg_best]["tsp"]
-        best_fitness = fitness_values[arg_best]
-        self.__best_individ = individ
-        score = self.__getIndividDistance(individ)
-        return {"score": score, "best_fitness": best_fitness}
-
-    # TSP problem finish =================================
-
-    # TTP problem metrics ---------------------
-    def computeIndividProfitKP(self, kp_individ):
-        return (self.dataset["item_profit"]*kp_individ).sum()
-
-    def computeIndividWeightKP(self, kp_individ):
-        return (self.dataset["item_weight"]*kp_individ).sum()
-
-    def computeProfitKP(self, kp_population):
-        """
-        Calculeaza profitul pentru intrega populatie
-        """
-        return np.apply_along_axis(self.computeIndividProfitKP,
-                                        axis=1,
-                                        arr=kp_population)
-
-    def computeWeightKP(self, kp_population):
-        """
-        Calculeaza profitul pentru intrega populatie
-        """
-        return np.apply_along_axis(self.computeIndividWeightKP,
-                                        axis=1,
-                                        arr=kp_population)
-    #  TTP Liniar ---------------------
-    def __computeIndividLiniarTTP(self, individ, *args, v_min=0.1, v_max=1, W=2000, alpha=0.01):
-        # init 
-        Wcur = 0.0
-        Tcur = 0.0
-        Pcur = 0.0
-        # unpack chromosomes
-        tsp_individ = individ["tsp"]
-        kp_individ  = individ["kp"]
-        # unpack args
-        # unpack datassets
-        distance, item_profit, item_weight = args
-        # vizităm secvenţial
-        for i in range(self.GENOME_LENGTH-1):
-            # get city
-            city = tsp_individ[i]
-            # take or not take object
-            take = kp_individ[city]
-            # calculate profit and weight
-            profit = item_profit[city]*take
-            weight = item_weight[city]*take
-            # calculate liniar profit and weight
-            Pcur += max(0.0, profit - alpha*Tcur)
-            Wcur += weight
-            # calculeaza viteza de tranzitie
-            v = v_max - v_min * (Wcur / W)
-            v = max(v_min, v)
-            # calculeaza timpul de tranzitie
-            Tcur += distance[city, tsp_individ[i+1]] / v
-        # intorcerea in orasul de start
-        # calculeaza viteza
-        Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
-        return Pcur, Tcur, Wcur
-
-    def metricsTTPLiniar(self, genomics, **kw):
-        # unpack datassets
-        distance    = self.dataset["distance"]
-        item_profit = self.dataset["item_profit"]
-        item_weight = self.dataset["item_weight"]
-        # pack args
-        args = [distance, item_profit, item_weight]
-        # calculate metrics for every individ
-        profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        for idx, individ in enumerate(genomics.population(), 0):
-            profit, time, weight = self.__computeIndividLiniarTTP(individ, *args, **kw)
-            profits[idx] = profit
-            weights[idx] = weight
-            times[idx]   = time
-
-        # number city
-        number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
-        # pack metrick values
-        metric_values = {
-            "profits"    : profits,
-            "times"      : times,
-            "weights"    : weights,
+        return {
+            "distances": distances,
             "number_city": number_city
         }
-        return metric_values
-    # TTP Liniar =================================
 
-    #  TTP Liniar ---------------------
-    def __computeIndividLiniarMeanTTP(self, individ, *args, v_min=0.1, v_max=1, W=2000, CAPACITY=0, alpha=0.01):
-        # init 
+    def getScoreTSP(self, genomics, fitness_values):
+        arg_best = self.getArgBest(fitness_values)
+        individ = genomics[arg_best]["tsp"]
+
+        score = self.__getIndividDistance(individ)
+        best_fitness = fitness_values[arg_best]
+
+        self.__best_individ = individ
+        return {"score": score, "best_fitness": best_fitness}
+
+    # =============================================================
+    #                 TTP – PROFIT / WEIGHT
+    # =============================================================
+    def computeIndividProfitKP(self, kp_individ):
+        return (self.dataset["item_profit"] * kp_individ).sum()
+
+    def computeIndividWeightKP(self, kp_individ):
+        return (self.dataset["item_weight"] * kp_individ).sum()
+
+    def computeProfitKP(self, kp_population):
+        return np.apply_along_axis(self.computeIndividProfitKP, 1, kp_population)
+
+    def computeWeightKP(self, kp_population):
+        return np.apply_along_axis(self.computeIndividWeightKP, 1, kp_population)
+
+    # =============================================================
+    #                 TTP – LINEAR MODEL
+    # =============================================================
+    def __computeIndividLiniarTTP(
+        self, individ, v_min=0.1, v_max=1.0, W=25936, alpha=0.0, R=5.61
+    ):
+        tsp = individ["tsp"]
+        kp = individ["kp"]
+
+        Pcur = 0.0
+        Wcur = 0.0
+        Tcur = 0.0
+
+        distance = self.dataset["distance"]
+        item_profit = self.dataset["item_profit"]
+        item_weight = self.dataset["item_weight"]
+
+        for i in range(len(tsp) - 1):
+            city = tsp[i]
+
+            # one item per city
+            if city > 0 and kp[city] == 1:
+                item_idx = city - 1
+                profit = item_profit[item_idx]
+                weight = item_weight[item_idx]
+
+                Pcur += max(0.0, profit - alpha * Tcur)
+                Wcur += weight
+
+            v = v_max - (v_max - v_min) * (Wcur / W)
+            v = max(v_min, v)
+
+            nxt = tsp[i + 1]
+            Tcur += distance[city, nxt] / v
+
+        # return to start
+        last = tsp[-1]
+        start = tsp[0]
+        v = v_max - (v_max - v_min) * (Wcur / W)
+        v = max(v_min, v)
+        Tcur += distance[last, start] / v
+
+        score = Pcur - R * Tcur
+        return score, Pcur, Tcur, Wcur
+
+    def metricsTTPLiniar(self, genomics, **kw):
+        N = self.POPULATION_SIZE
+        scores = np.zeros(N)
+        profits = np.zeros(N)
+        times = np.zeros(N)
+        weights = np.zeros(N)
+
+        for i, individ in enumerate(genomics.population()):
+            score, P, T, W = self.__computeIndividLiniarTTP(
+                individ,
+                v_min=kw.get("v_min", 0.1),
+                v_max=kw.get("v_max", 1.0),
+                W=kw.get("W", 25936),
+                alpha=kw.get("alpha", 0.0),
+                R=kw.get("R", 5.61)
+            )
+            scores[i] = score
+            profits[i] = P
+            times[i] = T
+            weights[i] = W
+
+        number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
+
+        return {
+            "score": scores,
+            "profits": profits,
+            "times": times,
+            "weights": weights,
+            "number_city": number_city
+        }
+
+    # =============================================================
+    #                 TTP – MEAN LINEAR MODEL
+    # =============================================================
+    def __computeIndividLiniarMeanTTP(
+        self, individ, *args, v_min=0.1, v_max=1, W=2000,
+        CAPACITY=0, alpha=0.01
+    ):
         Wcur = 0.0
         Tcur = 0.0
         Pcur = 0.0
-        # unpack chromosomes
-        tsp_individ = individ["tsp"]
-        kp_individ  = individ["kp"]
-        # unpack args
-        # unpack datassets
+
+        tsp = individ["tsp"]
+        kp = individ["kp"]
+
         distance, item_profit, item_weight = args
-        # vizităm secvenţial
-        for i in range(self.GENOME_LENGTH-1):
-            # get city
-            city = tsp_individ[i]
-            # take or not take object
-            take = kp_individ[city]
-            # calculate profit and weight
-            profit = item_profit[city]*take
-            weight = item_weight[city]*take
-            # calculate liniar profit and weight
-            Pcur += max(0.0, profit - alpha*Tcur)
+
+        for i in range(self.GENOME_LENGTH - 1):
+            city = tsp[i]
+
+            take = kp[city]
+            profit = item_profit[city] * take
+            weight = item_weight[city] * take
+
+            Pcur += max(0.0, profit - alpha * Tcur)
             Wcur += weight
-            # calculeaza viteza de tranzitie
+
             v = v_max - (v_max - v_min) * (Wcur / CAPACITY)
             v = max(v_min, v)
-            # calculeaza timpul de tranzitie
-            Tcur += distance[city, tsp_individ[i+1]] / v
-        # intorcerea in orasul de start
-        # calculeaza viteza
+
+            Tcur += distance[city, tsp[i + 1]] / v
+
         v = v_max - (v_max - v_min) * (Wcur / CAPACITY)
-        Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
+        Tcur += distance[tsp[-1], tsp[0]] / v
+
         return Pcur, Tcur, Wcur
 
     def metricsTTPMeanLiniar(self, genomics, **kw):
-        # unpack datassets
-        distance    = self.dataset["distance"]
+        distance = self.dataset["distance"]
         item_profit = self.dataset["item_profit"]
         item_weight = self.dataset["item_weight"]
-        # calcularea greutatilor
+
         weights = self.computeWeightKP(genomics.chromozomes("kp"))
         min_weight = weights.min()
         W = kw.get("W", 20000)
-        if (min_weight > W):
-            CAPACITY = weights.mean()
-            #CAPACITY = W
-        else:
-            CAPACITY = W
 
-        # pack args
+        CAPACITY = weights.mean() if min_weight > W else W
+
         args = [distance, item_profit, item_weight]
-        # calculate metrics for every individ
-        profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        for idx, individ in enumerate(genomics.population(), 0):
-            profit, time, weight = self.__computeIndividLiniarMeanTTP(individ, *args, CAPACITY=CAPACITY, **kw)
-            profits[idx] = profit
-            weights[idx] = weight
-            times[idx]   = time
 
-        # number city
+        N = self.POPULATION_SIZE
+        profits = np.zeros(N, dtype=np.float32)
+        times = np.zeros(N, dtype=np.float32)
+        weights = np.zeros(N, dtype=np.float32)
+
+        for i, individ in enumerate(genomics.population()):
+            profit, time, weight = self.__computeIndividLiniarMeanTTP(
+                individ, *args, CAPACITY=CAPACITY, **kw
+            )
+            profits[i] = profit
+            times[i] = time
+            weights[i] = weight
+
         number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
-        # pack metrick values
-        metric_values = {
-            "profits"    : profits,
-            "times"      : times,
-            "weights"    : weights,
+
+        return {
+            "profits": profits,
+            "times": times,
+            "weights": weights,
             "number_city": number_city
         }
-        return metric_values
-    # TTP Liniar =================================
-    
-    #  TTP Exponential ---------------------
-    def __computeIndividExpTTP(self, individ, *args, v_min=0.1, v_max=1, W=2000, lam=0.01):
-        # init 
+
+    # =============================================================
+    #                 TTP – EXPONENTIAL MODEL
+    # =============================================================
+    def __computeIndividExpTTP(
+        self, individ, *args, v_min=0.1, v_max=1, W=2000, lam=0.01
+    ):
         Wcur = 0.0
         Tcur = 0.0
         Pcur = 0.0
-        # unpack chromosomes
-        tsp_individ = individ["tsp"]
-        kp_individ  = individ["kp"]
-        # unpack args
-        # unpack datassets
+
+        tsp = individ["tsp"]
+        kp = individ["kp"]
+
         distance, item_profit, item_weight = args
-        # vizităm secvenţial
-        for i in range(self.GENOME_LENGTH-1):
-            # get city
-            city = tsp_individ[i]
-            # take or not take object
-            take = kp_individ[city]
-            # calculate profit and weight
-            profit = item_profit[city]*take
-            weight = item_weight[city]*take
-            # calculate liniar profit and weight
+
+        for i in range(self.GENOME_LENGTH - 1):
+            city = tsp[i]
+            take = kp[city]
+
+            profit = item_profit[city] * take
+            weight = item_weight[city] * take
+
             Pcur += profit * np.exp(-lam * Tcur)
             Wcur += weight
-            # calculeaza viteza de tranzitie
+
             v = v_max - (v_max - v_min) * (Wcur / W)
-            # calculeaza timpul de tranzitie
-            Tcur += distance[city, tsp_individ[i+1]] / v
-        # intorcerea in orasul de start
-        # calculeaza viteza
+            Tcur += distance[city, tsp[i + 1]] / v
+
         v = v_max - (v_max - v_min) * (Wcur / W)
-        Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
+        Tcur += distance[tsp[-1], tsp[0]] / v
+
         return Pcur, Tcur, Wcur
 
     def metricsTTPExp(self, genomics, **kw):
-        # unpack datassets
-        distance    = self.dataset["distance"]
+        distance = self.dataset["distance"]
         item_profit = self.dataset["item_profit"]
         item_weight = self.dataset["item_weight"]
-        # pack args
-        args = [distance, item_profit, item_weight]
-        # calculate metrics for every individ
-        profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        for idx, individ in enumerate(genomics.population(), 0):
-            profit, time, weight = self.__computeIndividLiniarTTP(individ, *args, **kw)
-            profits[idx] = profit
-            weights[idx] = weight
-            times[idx]   = time
-        # pack metrick values
-        metric_values = {
-            "profits"  : profits,
-            "weights"  : weights,
-            "times"    : times
-        }
-        return metric_values
-    # TTP Exponential =================================
 
+        args = [distance, item_profit, item_weight]
+
+        N = self.POPULATION_SIZE
+        profits = np.zeros(N, dtype=np.float32)
+        weights = np.zeros(N, dtype=np.float32)
+        times = np.zeros(N, dtype=np.float32)
+
+        for i, individ in enumerate(genomics.population()):
+            profit, time, weight = self.__computeIndividLiniarTTP(
+                individ, *args, **kw
+            )
+            profits[i] = profit
+            weights[i] = weight
+            times[i] = time
+
+        return {
+            "profits": profits,
+            "weights": weights,
+            "times": times
+        }
+
+    # =============================================================
+    #                 TTP SCORE SUMMARY
+    # =============================================================
     def getScoreTTP(self, genomics, fitness_values):
-        # find best individual
+        """Returnează scorul real TTP = profit - R * time."""
+
+        # Best individual
         arg_best = self.getArgBest(fitness_values)
-        individ  = genomics[arg_best]
+        individ = genomics[arg_best]
         best_fitness = fitness_values[arg_best]
-        self.__best_individ = individ
-        distance = self.__getIndividDistance(individ["tsp"])
+
+        tsp_individ = individ["tsp"]
         kp_individ = individ["kp"]
+
+        # baseline stats
+        distance = self.__getIndividDistance(tsp_individ)
         profit = self.computeIndividProfitKP(kp_individ)
         weight = self.computeIndividWeightKP(kp_individ)
 
-        return {"score": profit, "distance":distance, "weight":weight, "best_fitness": best_fitness}
-    # TTP problem finish =================================
+        # extract configs
+        R = self.__configs.get("R", 5.61)
+        v_min = self.__configs.get("v_min", 0.1)
+        v_max = self.__configs.get("v_max", 1.0)
+        Wcap = self.__configs.get("W", 25936)
+        alpha = self.__configs.get("alpha", 0.01)
+
+        # compute time using the same TTP-linear evaluator (4 returned values!)
+        score_lin, Pcur_lin, time, Wcur_lin = self._Metrics__computeIndividLiniarTTP(
+            individ,
+            v_min=v_min,
+            v_max=v_max,
+            W=Wcap,
+            alpha=alpha,
+            R=R
+        )
+
+        # true TTP objective
+        score = profit - R * time
+
+        self.__best_individ = individ
+
+        return {
+            "score": score,
+            "profit": profit,
+            "distance": distance,
+            "time": time,
+            "weight": weight,
+            "best_fitness": best_fitness
+        }

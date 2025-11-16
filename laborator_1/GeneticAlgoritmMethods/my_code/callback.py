@@ -1,56 +1,64 @@
 #!/usr/bin/python
-
 import pandas as pd
 from pathlib import Path
 import warnings
 
 class Callback(object):
     """
-    Salveaza rezultatele obtinute pentru fiecare generatie in 'csv' file.
+    Salveaza rezultatele pentru fiecare generatie in fisierul CSV.
     """
+
     def __init__(self, filename="", freq=1):
-        self.filename   = filename
+
+        self.filename = filename
+        self.freq = freq
+
         self.pd_history = None
-        self.epoch = 0
-        self.freq  = freq
-        # daca este fisierul se actualizeaza valoarea epocii
-        if (isinstance(self.filename, str)):
-            if (Path(self.filename).is_file()):
-                self.pd_history = pd.read_csv(self.filename)
-                is_epoch = self.pd_history.get("epoch", None)
-                if (is_epoch is not None):
-                    self.epoch = self.pd_history.at[len(self.pd_history)-1, "epoch"]
+        self.base_epoch = 0  # offset pentru continuare
+
+        if isinstance(filename, str):
+            path = Path(filename)
+
+            if path.is_file():
+                # Încarcă istoricul
+                self.pd_history = pd.read_csv(path)
+
+                if "Generatia" in self.pd_history.columns:
+                    # ultima generație salvată
+                    self.base_epoch = int(self.pd_history["Generatia"].iloc[-1]) + 1
+
             else:
-                path = Path(self.filename).parent
-                Path(path).mkdir(mode=0o777, parents=True, exist_ok=True)
-                Path(self.filename).touch(mode=0o666, exist_ok=True)
+                # creează folderul
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.touch(mode=0o666, exist_ok=True)
+
         else:
-            warnings.warn("Callback: Numele fisierului '{}' este type '{}'".format(self.filename, type(self.filename)))
+            warnings.warn(f"Callback filename must be str, got {type(filename)}")
 
-
-    def __str__(self):
-        info = "Callback: filename {}".format(self.filename)
-        return info
-
+    # ----------------------------------------------------------------------
     def __call__(self, epoch, logs):
-        # salvare cu o frecventa
-        if ((epoch % self.freq) == 0):
-            # valorile de pe 'key' trebuie sa fie liste sau vector
-            tmp_logs = logs.copy()
-            tmp_logs["epoch"] = epoch+self.epoch
-            for key in tmp_logs.keys():
-                val = [tmp_logs[key]]
-                tmp_logs[key] = val
-            # salveaza logurile in data frame
-            pd_df = pd.DataFrame(data=tmp_logs)
-            # adauga logurile in lista de loguri
-            if (self.pd_history is None):
-                self.pd_history = pd_df
-            else:
-                self.pd_history = pd.concat([self.pd_history, pd_df], ignore_index=True)
-            # salveaza in 'csv' file
-            self.pd_history.to_csv(self.filename, index=False) 
 
-    def help(self):
-        info = """Callback: "filename":filename, "freq":1\n"""
-        return info
+        # salvează doar la fiecare freq generații
+        if (epoch % self.freq) != 0:
+            return
+
+        # adaugă generația reală
+        row = {"Epoch": self.base_epoch + epoch}
+
+        # copiază toate metricele (score, profit, distance, time, weight…)
+        row.update(logs)
+
+        # Adaugă în DataFrame
+        df_row = pd.DataFrame([row])   # o singură linie
+
+        if self.pd_history is None:
+            self.pd_history = df_row
+        else:
+            self.pd_history = pd.concat([self.pd_history, df_row], ignore_index=True)
+
+        # Scrie în CSV
+        self.pd_history.to_csv(self.filename, index=False)
+
+    # ----------------------------------------------------------------------
+    def __str__(self):
+        return f"Callback: filename={self.filename}"

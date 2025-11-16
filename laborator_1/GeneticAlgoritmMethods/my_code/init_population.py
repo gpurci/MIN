@@ -3,165 +3,160 @@ import numpy as np
 from root_GA import *
 from genoms import *
 
+
 class InitPopulation(RootGA):
     """
     Clasa 'InitPopulation', ofera doar metode pentru a initializa populatia.
+
     Functia 'initPopulation' are 1 parametru, numarul populatiei.
-    Metoda '__config_fn', selecteaza functia de initializare.
-    Metoda '__call__', aplica functia de initializare ce a fost selectata in '__config_fn'
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    Metoda '__config_fn' selecteaza functia de initializare.
+    Metoda '__call__' aplica functia selectata.
     """
 
     def __init__(self, method, metrics, genoms, **kw):
         super().__init__()
-        # metrics = obiectul Metrics — folosit pentru dataset
-        self.metrics   = metrics
-        self.__genoms  = genoms
+        self.metrics = metrics          # obiect Metrics (TTP dataset)
+        self.__genoms = genoms
         self.__configs = kw
         self.__setMethods(method)
 
     def __str__(self):
-        info = """InitPopulation: 
-        method:  {}
-        configs: {}""".format(self.__method, self.__configs)
+        info = f"InitPopulation: method: {self.__method} configs: {self.__configs}"
         return info
 
     def __call__(self, size):
-        # apel direct: obiect(config)(size)
+        """apel direct: obiect(config)(size)"""
         return self.fn(size, **self.__configs)
 
+    # ------------------------------------------------------------------
     def __unpack_method(self, method):
-        # selecteaza metoda dupa care se aplica metrica
+        """Selecteaza metoda de initializare."""
         fn = self.initPopulationAbstract
-        if (method is not None):
-            if   (method == "TTP_vecin"):
+        if method is not None:
+            if method == "TTP_vecin":
                 fn = self.initPopulationTTP
-            elif (method == "TSP_rand"):
+            elif method == "TSP_rand":
                 fn = self.initPopulationsTSPRand
-            elif (method == "TTP_rand"):
+            elif method == "TTP_rand":
                 fn = self.initPopulationsTTPRand
         return fn
 
     def help(self):
-        info = """InitPopulation:
-    metoda: 'TTP_vecin'; config: -> "lambda_time":0.1, "vmax":1.0, "vmin":0.1, "Wmax":25936, "seed":None;
-    metoda: 'TTP_rand';  config: None;
-    metoda: 'TSP_rand';  config: None;\n"""
-        return info
+        return (
+            "InitPopulation: "
+            "metoda: 'TTP_vecin'; config: -> lambda_time, vmax, vmin, Wmax, seed;\n"
+            "metoda: 'TTP_rand'; config: None;\n"
+            "metoda: 'TSP_rand'; config: None;\n"
+        )
 
+    # ------------------------------------------------------------------
     def __setMethods(self, method):
         self.__method = method
         self.fn = self.__unpack_method(method)
 
+    # ------------------------------------------------------------------
     def initPopulationAbstract(self, size):
-        # default: nu exista implementare
-        raise NameError("Lipseste metoda '{}' pentru functia de 'InitPopulation': config '{}'".format(self.__method, self.__configs))
+        raise NameError(
+            f"Lipseste metoda '{self.__method}' pentru functia de 'InitPopulation': "
+            f"config '{self.__configs}'"
+        )
 
-    # initPopulationsTSPRand -------------------------------------
+    # ================================================================
+    #                 RANDOM TSP INITIALIZATION
+    # ================================================================
     def initPopulationsTSPRand(self, population_size=-1):
-        """Initializarea populatiei, cu drumuri aleatorii"""
-        if (population_size == -1):
+        """Initializare TSP random."""
+        if population_size == -1:
             population_size = self.POPULATION_SIZE
-        # creaza un individ
+
         individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
-        # creaza o populatie aleatorie
+
         for _ in range(population_size):
-            # adauga individ in genome
             self.__genoms.add(tsp=np.random.permutation(individ))
-        # adauga indivizi in noua generatie
-        self.__genoms.save()
-        print("population {}".format(self.__genoms.shape))
-    # initPopulationsTSPRand =====================================
 
-    # initPopulationsTTPRand -------------------------------------
+        self.__genoms.save()
+        print("population", self.__genoms.shape)
+
+    # ================================================================
+    #                 RANDOM TTP INITIALIZATION
+    # ================================================================
     def initPopulationsTTPRand(self, population_size=-1):
-        """Initializarea populatiei, cu drumuri aleatorii"""
-        if (population_size == -1):
+        """Initializare TTP random (TSP random + KP random)."""
+        if population_size == -1:
             population_size = self.POPULATION_SIZE
-        # creaza un individ
+
         tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
-        # creaza o populatie aleatorie
+
         for _ in range(population_size):
-            # adauga tsp_individ in genome
             kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
-            self.__genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
-        # adauga indivizi in noua generatie
+            self.__genoms.add(
+                tsp=np.random.permutation(tsp_individ),
+                kp=kp_individ
+            )
+
         self.__genoms.save()
-        print("population {}".format(self.__genoms.shape))
-    # initPopulationsTTPRand =====================================
+        print("population", self.__genoms.shape)
 
-    # initPopulationMatei -------------------------------------
-    def initPopulationTTP(self, size, lambda_time=0.1,
-                            vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
+    # ================================================================
+    #                 GREEDY TTP INITIALIZATION
+    # ================================================================
+    def initPopulationTTP(self, size, lambda_time=0.1, vmax=1.0,
+                          vmin=0.1, Wmax=25936, seed=None):
         """
-        Genereaza `size` indivizi folosind o euristica greedy TTP:
-        - fiecare individ incepe dintr-un oras random
-        - la fiecare pas alegem urmatorul oras dupa: profit - λ * timp_de_calatorie
-        - dupa ce rute se construiesc → aplicam 2-opt simplu
-
-    Generează populația inițială TTP.
-    Pentru fiecare individ se alege un oraș de start random și se construiește ruta
-    alegând la fiecare pas următorul oraș în funcție de un scor simplu:
-        scor = profit - λ * timp_de_deplasare
-    După construirea rutei se aplică o singură îmbunătățire 2-opt (+ eliminare duplicate).
-    Returnează un array de rute valide (start == end).
+        Genereaza size indivizi folosind o euristica greedy TTP:
+        - fiecare individ incepe din orasul 0
+        - scor = profit - λ * timp
+        - dupa ce rute se construiesc → aplicam o singură trecere 2-opt
         """
 
         if seed is not None:
             np.random.seed(seed)
 
-        # load TTP dataset
         self._loadTTPdataset()
-
-        seen = set()  # avoid duplicate TSP routes
-
+        seen = set()
         count = 0
-        while count < size:
 
-            # always start from city 0 (as required)
+        while count < size:
             start_city = 0
 
-            # greedy TTP route + KP vector
             route, kp = self._constructGreedyRoute(
                 start_city, lambda_time, vmax, vmin, Wmax
             )
 
-            # apply one-pass 2-opt
+            # aplicam 2-opt
             route = self._twoOpt(route)
 
-            # avoid duplicates
+            # evitam duplicatele TSP
             key = tuple(route)
             if key in seen:
                 continue
             seen.add(key)
 
-            # add to Genoms object
+            # salvam in Genoms
             self.__genoms.add(tsp=route, kp=kp)
-
             count += 1
 
-        # finalize new generation
         self.__genoms.save()
-
         print("population initialized:", self.__genoms.shape)
 
-    # HELPER — incarcare dataset TTP
+    # ================================================================
+    #                         TTP DATASET I/O
+    # ================================================================
     def _loadTTPdataset(self):
         dataset = self.metrics.getDataset()
-        self.coords      = dataset["coords"]
-        self.distance    = dataset["distance"]    # matrice NxN CEIL_2D
-        self.item_profit = dataset["item_profit"] # vector de profit per oras
-        self.item_weight = dataset["item_weight"] # vector de weight per oras
+        self.coords = dataset["coords"]
+        self.distance = dataset["distance"]
+        self.item_profit = dataset["item_profit"]
+        self.item_weight = dataset["item_weight"]
 
-    # construieste o ruta greedy pornind dintr-un oras
+    # ================================================================
+    #               GREEDY ROUTE CONSTRUCTION FOR TTP
+    # ================================================================
     def _constructGreedyRoute(self, start, lambda_time, vmax, vmin, Wmax):
         """
-        Greedy TTP route construction:
-        - always starts from city 0
-        - supports MULTIPLE items per city from self.metrics.items
-        - selects at most 1 item per city (0 or 1)
+        Greedy TTP: scor = profit - λ * time.
+        1 item per city (TTP standard).
         """
-
         start = 0
         visited = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited[start] = True
@@ -172,96 +167,76 @@ class InitPopulation(RootGA):
         cur = start
         Wcur = 0.0
 
-        # Pre-organize items by city for fast lookup
-        items_by_city = {c: [] for c in range(self.GENOME_LENGTH)}
-        for (city_id, w, p) in self.metrics.items:
-            items_by_city[city_id].append((w, p))
-
         for _ in range(self.GENOME_LENGTH - 1):
 
             cand = np.where(~visited)[0]
+            if cand.size == 0:
+                break
 
-            # current speed
-            v_cur = self.metrics.computeSpeedTTP(Wcur, vmax, vmin, Wmax)
+            v_cur = vmax - (vmax - vmin) * (Wcur / Wmax)
+            v_cur = max(vmin, v_cur)
 
             dist = self.distance[cur, cand]
             time_to_candidate = dist / v_cur
+            profit_raw = self.item_profit[cand].astype(float)
 
-            # profit per candidate city = sum of all item profits in that city
-            profit_raw = np.array([
-                sum(p for (w, p) in items_by_city[c])
-                for c in cand
-            ], dtype=float)
-
-            # profit after penalty
             profit_if_take = np.maximum(
-                0.0, profit_raw - lambda_time * time_to_candidate
+                0.0,
+                profit_raw - lambda_time * time_to_candidate
             )
 
-            # minimal feasible weight per city
-            min_item_weight = np.array([
-                min([w for (w, p) in items_by_city[c]]) if items_by_city[c] else 0
-                for c in cand
-            ])
-
-            can_take = (Wcur + min_item_weight) <= Wmax
-
-            # heuristic score
+            can_take = (Wcur + self.item_weight[cand]) <= Wmax
             score = profit_if_take * can_take
 
-            # choose from top-5
-            order = np.argsort(score)
-            top_k = min(5, len(order))
-            choices = cand[order[-top_k:]]
+            # fallback: nearest
+            if np.all(score == 0):
+                j = cand[np.argmin(dist)]
+            else:
+                order = np.argsort(score)
+                top_k = min(5, len(order))
+                j = np.random.choice(cand[order[-top_k:]])
 
-            j = np.random.choice(choices)
             path.append(j)
             visited[j] = True
 
-            # ---- item picking in city j ----
-            items_j = items_by_city[j]
-            if items_j:
-                vj = v_cur
-                tj = self.distance[cur, j] / vj
+            # picking decision
+            w_j = float(self.item_weight[j])
+            p_j = float(self.item_profit[j])
 
-                best_gain = -1e9
-                best_weight = None
-
-                for (w, p) in items_j:
-                    gain = p - lambda_time * tj
-                    if gain > best_gain and (Wcur + w) <= Wmax:
-                        best_gain = gain
-                        best_weight = w
-
-                if best_gain > 0 and best_weight is not None:
-                    Wcur += best_weight
+            if (Wcur + w_j) <= Wmax:
+                tj = self.distance[cur, j] / v_cur
+                gain = p_j - lambda_time * tj
+                if gain > 0:
+                    Wcur += w_j
                     kp[j] = 1
 
             cur = j
 
-        # close cycle
-        path.append(path[0])
-
         return np.array(path, dtype=np.int32), kp
 
-    # one-shot 2-opt improvement
+    # ================================================================
+    #                         ONE-PASS 2-OPT
+    # ================================================================
     def _twoOpt(self, route):
         """
-        single-pass 2-opt: testeaza O(N^2) swap-uri
-        si se opreste la PRIMA imbunatatire gasita.
+        Single-pass 2-opt:
+        Găsește prima îmbunătățire și se oprește.
         """
-        best = route.copy()
-        best_dist = self.metrics.getIndividDistanceTTP(best, self.distance)
         n = len(route) - 1
 
-        for i in range(1, n-2):
-            for k in range(i+1, n-1):
-                new_route = best.copy()
-                new_route[i:k] = best[k-1:i-1:-1]
+        def route_length(r):
+            return self.distance[r[:-1], r[1:]].sum()
 
-                d = self.metrics.getIndividDistanceTTP(new_route, self.distance)
-                if d < best_dist:
-                    return new_route     # improvement found — imediat return!
+        best = route.copy()
+        best_len = route_length(best)
 
-        return best                     # nici o imbunatatire gasita
-    # initPopulationMatei =====================================
+        for i in range(1, n - 1):
+            for k in range(i + 1, n):
+                new = best.copy()
+                new[i:k+1] = new[i:k+1][::-1]
+                new_len = route_length(new)
+
+                if new_len < best_len - 1e-9:
+                    return new  # prima imbunatatire
+
+        return best

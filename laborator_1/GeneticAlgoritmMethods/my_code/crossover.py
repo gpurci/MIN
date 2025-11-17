@@ -72,6 +72,8 @@ class Crossover(RootGA):
             fn = self.crossoverUniform
         elif method == "binary":
             fn = self.crossoverBinary
+        elif method == "binary_mixt":
+            fn = self.crossoverBinaryMixt
 
         return fn
 
@@ -114,6 +116,24 @@ class Crossover(RootGA):
         offspring = parent1.copy()
         offspring[p1:p2] = parent2[p1:p2]
         return offspring
+
+
+    def crossoverBinaryMixt(self, parent1, parent2, low, high, p_method=None):
+        """
+        Mixture of binary crossovers:
+        - option 0: two-point crossover
+        - option 1: uniform crossover
+        """
+        if p_method is None:
+            p_method = [0.5, 0.5]
+
+        op = np.random.choice([0, 1], p=p_method)
+
+        if op == 0:
+            return self.crossoverBinary(parent1, parent2, low, high)
+
+        # uniform crossover
+        return self.crossoverUniform(parent1, parent2, low, high)
 
     # -------------------------------------------------------
     def crossoverDiff(self, parent1, parent2, low, high):

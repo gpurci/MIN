@@ -18,6 +18,7 @@ class InitPopulation(RootGA):
         self.metrics = metrics          # obiect Metrics (TTP dataset)
         self.__genoms = genoms
         self.__configs = kw
+        print("DEBUG InitPopulation: method =", method, "configs =", kw)
         self.__setMethods(method)
 
     def __str__(self):
@@ -39,6 +40,9 @@ class InitPopulation(RootGA):
                 fn = self.initPopulationsTSPRand
             elif method == "TTP_rand":
                 fn = self.initPopulationsTTPRand
+            elif method == "TTP_rand_mix":
+                fn = self.initPopulationTTP_rand_mix
+
         return fn
 
     def help(self):
@@ -100,44 +104,45 @@ class InitPopulation(RootGA):
     # ================================================================
     #                 GREEDY TTP INITIALIZATION
     # ================================================================
-    def initPopulationTTP(self, size, lambda_time=0.1, vmax=1.0,
-                          vmin=0.1, Wmax=25936, seed=None):
+    def initPopulationTTP_rand_mix(self, size, ratio=0.1):
         """
-        Genereaza size indivizi folosind o euristica greedy TTP:
-        - fiecare individ incepe din orasul 0
-        - scor = profit - λ * timp
-        - dupa ce rute se construiesc → aplicam o singură trecere 2-opt
+        Mixed initialization:
+        ratio portion = greedy TTP_vecin
+        rest          = random TTP_rand
+        Built without resetting Genoms multiple times.
         """
 
-        if seed is not None:
-            np.random.seed(seed)
+        # reset storage
+        self.__genoms._Genoms__current = {
+            name: np.zeros((0, self.GENOME_LENGTH), dtype=np.int32)
+            for name in self.__genoms.keys()
+        }
+        self.__genoms._Genoms__new = []
+        self.__genoms._Genoms__population_size = 0
 
-        self._loadTTPdataset()
-        seen = set()
-        count = 0
+        n_vecin = int(size * ratio)
+        n_rand  = size - n_vecin
 
-        while count < size:
-            start_city = 0
-
+        # 1. greedy individuals
+        for _ in range(n_vecin):
             route, kp = self._constructGreedyRoute(
-                start_city, lambda_time, vmax, vmin, Wmax
+                0, 0.1, 1.0, 0.1, 25936
             )
-
-            # aplicam 2-opt
             route = self._twoOpt(route)
-
-            # evitam duplicatele TSP
-            key = tuple(route)
-            if key in seen:
-                continue
-            seen.add(key)
-
-            # salvam in Genoms
             self.__genoms.add(tsp=route, kp=kp)
-            count += 1
 
+        # 2. random individuals
+        tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+        for _ in range(n_rand):
+            tsp = np.random.permutation(tsp_individ)
+            kp  = np.random.randint(0, 2, self.GENOME_LENGTH)
+            self.__genoms.add(tsp=tsp, kp=kp)
+
+        # one final save
         self.__genoms.save()
-        print("population initialized:", self.__genoms.shape)
+
+        print("population initialized (mixed):", self.__genoms.shape)
+
 
     # ================================================================
     #                         TTP DATASET I/O
@@ -148,6 +153,64 @@ class InitPopulation(RootGA):
         self.distance = dataset["distance"]
         self.item_profit = dataset["item_profit"]
         self.item_weight = dataset["item_weight"]
+
+
+    def initPopulationTTP_rand_mix(self, size, ratio=0.1):
+
+        n_vecin = int(size * ratio)
+        n_rand  = size - n_vecin
+
+        vecin_list = []
+        attempts = 0
+        max_attempts = n_vecin * 50
+
+        # load TTP dataset once
+        self._loadTTPdataset()
+
+        # ---------- produce greedy vecin individuals ----------
+        seen = set()
+        while len(vecin_list) < n_vecin and attempts < max_attempts:
+            attempts += 1
+
+            # build route
+            route, kp = self._constructGreedyRoute(
+                start=0,
+                lambda_time=0.1,
+                vmax=1.0,
+                vmin=0.1,
+                Wmax=25936
+            )
+
+            # apply 2-opt
+            route = self._twoOpt(route)
+
+            key = tuple(route)
+            if key in seen:
+                continue
+            
+            seen.add(key)
+            vecin_list.append({"tsp": route, "kp": kp})
+
+        if len(vecin_list) < n_vecin:
+            print(f"[WARN] Only {len(vecin_list)}/{n_vecin} unique greedy individuals generated.")
+
+        # ---------- produce random individuals ----------
+        rand_list = []
+        for _ in range(n_rand):
+            tsp = np.random.permutation(np.arange(self.GENOME_LENGTH))
+            kp  = np.random.randint(0, 2, self.GENOME_LENGTH)
+            rand_list.append({"tsp": tsp, "kp": kp})
+
+        # ---------- build final population ----------
+        self.__genoms.clear()
+
+        for indiv in vecin_list + rand_list:
+            self.__genoms.add(**indiv)
+
+        self.__genoms.save()
+
+        print(f"population initialized (mixed): {self.__genoms.shape}")
+
 
     # ================================================================
     #               GREEDY ROUTE CONSTRUCTION FOR TTP

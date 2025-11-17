@@ -66,6 +66,7 @@ class Mutate(RootGA):
             return fn
 
         return {
+            "segment_invert": self.mutateInvertSegment,
             "inversion": self.mutateInversion,
             "scramble": self.mutateScramble,
             "swap": self.mutateSwap,
@@ -123,6 +124,16 @@ class Mutate(RootGA):
         loc1, loc2 = np.random.randint(0, self.GENOME_LENGTH, size=2)
         offspring[loc1], offspring[loc2] = offspring[loc2], offspring[loc1]
         return offspring
+    
+    def invert_segment(self, tour):
+        a, b = sorted(np.random.choice(len(tour), 2, replace=False))
+        tour[a:b] = tour[a:b][::-1]
+        return tour
+    
+    def mutateInvertSegment(self, parent1, parent2, offspring, **kw):
+        """Wrapper for invert_segment so GA can call it."""
+        return self.invert_segment(offspring.copy())
+
 
     def mutateDiffSwap(self, parent1, parent2, offspring):
         mask = parent1 == parent2
@@ -360,7 +371,7 @@ class Mutate(RootGA):
             )
 
         def tsp_micro_op(r):
-            op = np.random.choice([0, 1, 2, 3], p=p_method)
+            op = np.random.choice([0, 1, 2, 3, 4], p=p_method)
             if op == 0:
                 return self.mutateDiffSwap(parent1, parent2, r)
             if op == 1:
@@ -369,10 +380,12 @@ class Mutate(RootGA):
                 return self.mutateInsertion(parent1, parent2, r)
             if op == 3:
                 return apply_h2opt(r)
+            if op == 4:
+                return self.invert_segment(r.copy())
             return r
 
         # multiple micro-operators
-        n_ops = np.random.randint(2, 5)
+        n_ops = 1
         for _ in range(n_ops):
             route = tsp_micro_op(route)
 
@@ -406,8 +419,10 @@ class Mutate(RootGA):
 
             return bits
 
-        cleanup(kp_bits)
+        new_bits = kp_bits.copy()
+        cleanup(new_bits)
         return route
+
 
 
 # ===============================================================

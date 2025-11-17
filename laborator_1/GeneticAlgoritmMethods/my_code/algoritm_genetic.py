@@ -338,22 +338,27 @@ class GeneticAlgorithm(RootGA):
     # ============================================================
     def stres(self, evolution_scores):
 
-        check = np.allclose(
-            self.__score_evolution.mean(),
-            evolution_scores["score"],
-            rtol=1e-3,
-            atol=1e-8
-        )
+        score_now = evolution_scores["score"]
+        score_mean = self.__score_evolution.mean()
 
-        if check:
+        plateau = np.allclose(score_now, score_mean, rtol=1e-3, atol=1e-8)
+
+        if plateau:
+            # reset history
             self.__score_evolution[:] = 0
-            self.__last_mutation_rate = self.MUTATION_RATE
-            print(f"evolution_scores {evolution_scores}")
-            self.setParameters(MUTATION_RATE=1.0)
-            self.externCommand()
+
+            # increase mutation for 10 generations
+            if self.__last_mutation_rate is None:
+                self.__last_mutation_rate = self.MUTATION_RATE
+
+            print("⚠️ Plateau detected → increasing mutation temporarily")
+            self.setParameters(MUTATION_RATE = 0.8)
+
         else:
+            # return to normal mutation
             if self.__last_mutation_rate is not None:
-                self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
+                self.setParameters(MUTATION_RATE = self.__last_mutation_rate)
+
 
     # ============================================================
     #                          RANKING

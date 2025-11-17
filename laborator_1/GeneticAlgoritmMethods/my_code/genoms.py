@@ -88,6 +88,15 @@ class Genoms(object):
     def chromozomes(self, name):
         return self.__current[name]
 
+    def clear(self):
+        """Reset all stored genomes (delete current + new population)."""
+        self.__current = {
+            name: np.zeros((0, self.__size), dtype=np.int32)
+            for name in self.__keys
+        }
+        self.__new = []
+        self.__population_size = 0
+
     # ------------------------------------------------------------------
     #                     INDEXARE INDIVIZI
     # ------------------------------------------------------------------

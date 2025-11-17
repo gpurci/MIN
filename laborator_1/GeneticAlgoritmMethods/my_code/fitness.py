@@ -123,34 +123,26 @@ class Fitness(RootGA):
     #                           FITNESS — TTP
     # ==================================================================
     def fitnessTTP(self, metric_values, R=1):
-        """
-        Fitness direct din TTP:
-            score = profit - R * time
-
-        Normalizat la > 0.
-        """
-
         scores = metric_values.get("score", None)
         if scores is None:
             raise KeyError("metric_values must contain key 'score' for TTP fitness")
 
-        # shift to positive
+        # shift to positive if needed
         min_score = scores.min()
         if min_score <= 0:
             scores = scores - min_score + 1e-6
 
-        # normalize 0..1
-        max_score = scores.max()
-        return scores / max_score if max_score > 0 else scores
+        return scores
 
     # ==================================================================
-    #                        FITNESS — TTP F1 SCORE
+    #                        FITNESS — TTP F1 SCOREr
     # ==================================================================
-    def fitnessF1scoreTTP(self, metric_values, R=1, beta=1.0, W=None):
+    def fitnessF1scoreTTP(self, metric_values, R=1, beta=1.0, W=None, alpha=None):
         """
-        F1-like pentru TTP, cu penalizare soft pe depășirea capacității.
+        F1-like fitness for TTP with weight penalty.
+        Includes dynamic selective pressure scaling.
 
-        raw = 2 * profit / (profit + R*time + penalty)
+        Fitness = (2 * profit / (profit + R * time + penalty)) ** alpha
         """
 
         profits = metric_values["profits"]
@@ -158,30 +150,31 @@ class Fitness(RootGA):
         weights = metric_values["weights"]
         number_city = metric_values["number_city"]
 
-        # trebuie rută completă
+        # Ensures only complete tours score (true for TTP)
         mask_city = self.__cityBinaryTSP(number_city)
 
-        # determină Wmax
+        # Determine Wmax
         if W is None:
             Wmax = self.__configs.get("W", None)
         else:
             Wmax = W
-
         if Wmax is None:
             raise ValueError("Trebuie fitness={'method':'TTP_f1score', 'W':25936}")
 
-        # penalizare depășire
+        # Overweight penalty
         overweight = np.maximum(0.0, weights - Wmax)
         penalty = beta * overweight
 
-        # scor F1-like
-        raw = mask_city * (
-            2.0 * profits / (profits + R * times + penalty + 1e-9)
-        )
+        # Base F1-like score
+        raw = mask_city * (2.0 * profits / (profits + R * times + penalty + 1e-9))
 
-        # shift la > 0
+        # Shift to positive (GA needs all positive fitness)
         min_raw = raw.min()
         if min_raw <= 0:
             raw = raw - min_raw + 1e-6
 
-        return raw
+        # Selective pressure scaling
+        if alpha is None:
+            alpha = self.__configs.get("alpha", 2.0)
+
+        return raw ** alpha

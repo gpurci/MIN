@@ -58,6 +58,12 @@ class GeneticAlgorithm(RootGA):
         self.__extern_commnad_file = extern_commnad_file
         self.__is_stop = False
 
+        # ✨ NEW: memetic / LS parameters
+        self.LS_START_GEN = 1     # incepe LS dupa generatia 500
+        self.LS_FREQ      = 10      # aplica LS o data la 10 generatii
+        self.LS_ELITE_N   = 20      # LS pe cei mai buni 20 indivizi
+        self.LS_MAX_ITER  = 25      # iteratii 2-opt
+
         self.setConfig(**configs)
 
     # --------------------------------------------------------
@@ -121,10 +127,10 @@ class GeneticAlgorithm(RootGA):
                 # Mutatie
                 offspring = self.mutate(parent1, parent2, offspring)
 
-                # Adăugare la noua generație
+                # Add to new generation
                 self.__genoms.append(offspring)
 
-            # Elită veche
+            # Elită veche (din generația anterioară)
             genome_elites = {
                 key: self.__genoms.chromozomes(key)[args_elite]
                 for key in self.__genoms.keys()
@@ -137,14 +143,24 @@ class GeneticAlgorithm(RootGA):
             # Finalizare generație
             self.__genoms.save()
 
-            # Metrici + fitness
+            # Metrici + fitness (inainte de LS)
             metric_values = self.metrics(self.__genoms)
             fitness_values = self.fitness(metric_values)
 
-            # Reinserare elită
+            # Memetic 2-opt pe elite (nu pe toata populatia)
+            if (
+                generation >= self.LS_START_GEN and
+                (generation % self.LS_FREQ == 0)
+            ):
+                self.local_search_elites(fitness_values)
+                # Recalculeaza metrici si fitness dupa LS
+                metric_values = self.metrics(self.__genoms)
+                fitness_values = self.fitness(metric_values)
+
+            # Reinserare elită anterioară (din generatia t-1)
             self.setElitesByFitness(fitness_values, genome_elites)
 
-            # Pozițiile noilor elite
+            # Pozițiile noilor elite (dupa LS + reinserare)
             args_elite = self.getArgsElite(fitness_values)
 
             # Metrici generale
@@ -163,6 +179,40 @@ class GeneticAlgorithm(RootGA):
             self.evolutionMonitor(scores)
 
         return self.metrics.getBestIndivid()
+
+    # ============================================================
+    #         LOCAL SEARCH ON ELITES (MEMETIC STEP)
+    # ============================================================
+    def local_search_elites(self, fitness_values):
+        """
+        Aplica 2-opt doar pe cei mai buni LS_ELITE_N indivizi.
+        Ruleaza rar (definit de LS_FREQ) si cu max_iter mic.
+        """
+        n_elite = min(self.LS_ELITE_N, self.POPULATION_SIZE)
+        if n_elite <= 0:
+            return
+
+        # Indicii celor mai buni indivizi
+        elite_args = np.argpartition(fitness_values, -n_elite)[-n_elite:]
+
+        tsp_mat = self.__genoms.chromozomes("tsp")
+        dist = self.dataset["distance"]
+
+        improved_count = 0
+        for idx in elite_args:
+            try:
+                route = tsp_mat[idx]
+                new_route = self.initPopulation.local_search_2opt(
+                    route,
+                    dist,
+                    max_iter=self.LS_MAX_ITER
+                )
+                tsp_mat[idx] = new_route
+                improved_count += 1
+            except Exception as e:
+                print(f"[LS elite] error on idx {idx}:", e)
+
+        print(f"[LS elite] applied 2-opt on {improved_count}/{n_elite} elites.")
 
     # ============================================================
     #               CONFIGURARE AUTOMATĂ
@@ -341,24 +391,48 @@ class GeneticAlgorithm(RootGA):
         score_now = evolution_scores["score"]
         score_mean = self.__score_evolution.mean()
 
+        # Update sliding window
+        self.__score_evolution[:-1] = self.__score_evolution[1:]
+        self.__score_evolution[-1] = score_now
+
         plateau = np.allclose(score_now, score_mean, rtol=1e-3, atol=1e-8)
 
-        if plateau:
-            # reset history
-            self.__score_evolution[:] = 0
+        # Get reference to fitness config
+        fit_cfg = self.fitness._Fitness__configs
 
-            # increase mutation for 10 generations
+        if plateau:
+            # ----------------------------
+            # Plateau detected
+            # ----------------------------
+            print("⚠️ Plateau detected → boosting mutation + selective pressure")
+
+            # Boost mutation temporarily
             if self.__last_mutation_rate is None:
                 self.__last_mutation_rate = self.MUTATION_RATE
+            self.setParameters(MUTATION_RATE=0.8)
 
-            print("⚠️ Plateau detected → increasing mutation temporarily")
-            self.setParameters(MUTATION_RATE = 0.8)
+            # Increase alpha (selective pressure)
+            old_alpha = fit_cfg.get("alpha", 2.0)
+            new_alpha = min(6.0, old_alpha + 0.5)
+            fit_cfg["alpha"] = new_alpha
+
+            print(f"   • alpha increased: {old_alpha} → {new_alpha}")
+
+            # Reset stagnation history
+            self.__score_evolution[:] = score_now
 
         else:
-            # return to normal mutation
+            # ----------------------------
+            # No plateau → restore values
+            # ----------------------------
             if self.__last_mutation_rate is not None:
-                self.setParameters(MUTATION_RATE = self.__last_mutation_rate)
+                self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
 
+            # Decay alpha slowly back to baseline
+            base_alpha = 2.0
+            cur_alpha = fit_cfg.get("alpha", base_alpha)
+            if cur_alpha > base_alpha:
+                fit_cfg["alpha"] = max(base_alpha, cur_alpha - 0.2)
 
     # ============================================================
     #                          RANKING

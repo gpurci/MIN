@@ -107,58 +107,14 @@ class InitPopulation(RootGA):
     def initPopulationTTP_rand_mix(self, size, ratio=0.1):
         """
         Mixed initialization:
-        ratio portion = greedy TTP_vecin
+        ratio portion = greedy TTP_vecin (with 2-opt)
         rest          = random TTP_rand
-        Built without resetting Genoms multiple times.
+
+        ✨ This is only called once → 2-opt here is cheap.
         """
 
-        # reset storage
-        self.__genoms._Genoms__current = {
-            name: np.zeros((0, self.GENOME_LENGTH), dtype=np.int32)
-            for name in self.__genoms.keys()
-        }
-        self.__genoms._Genoms__new = []
-        self.__genoms._Genoms__population_size = 0
-
         n_vecin = int(size * ratio)
-        n_rand  = size - n_vecin
-
-        # 1. greedy individuals
-        for _ in range(n_vecin):
-            route, kp = self._constructGreedyRoute(
-                0, 0.1, 1.0, 0.1, 25936
-            )
-            route = self._twoOpt(route)
-            self.__genoms.add(tsp=route, kp=kp)
-
-        # 2. random individuals
-        tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
-        for _ in range(n_rand):
-            tsp = np.random.permutation(tsp_individ)
-            kp  = np.random.randint(0, 2, self.GENOME_LENGTH)
-            self.__genoms.add(tsp=tsp, kp=kp)
-
-        # one final save
-        self.__genoms.save()
-
-        print("population initialized (mixed):", self.__genoms.shape)
-
-
-    # ================================================================
-    #                         TTP DATASET I/O
-    # ================================================================
-    def _loadTTPdataset(self):
-        dataset = self.metrics.getDataset()
-        self.coords = dataset["coords"]
-        self.distance = dataset["distance"]
-        self.item_profit = dataset["item_profit"]
-        self.item_weight = dataset["item_weight"]
-
-
-    def initPopulationTTP_rand_mix(self, size, ratio=0.1):
-
-        n_vecin = int(size * ratio)
-        n_rand  = size - n_vecin
+        n_rand = size - n_vecin
 
         vecin_list = []
         attempts = 0
@@ -181,13 +137,13 @@ class InitPopulation(RootGA):
                 Wmax=25936
             )
 
-            # apply 2-opt
-            route = self._twoOpt(route)
+            # 🔄 CHANGED: cheaper 2-opt (max_iter=50)
+            route = self.local_search_2opt(route, self.distance, max_iter=50)
 
             key = tuple(route)
             if key in seen:
                 continue
-            
+
             seen.add(key)
             vecin_list.append({"tsp": route, "kp": kp})
 
@@ -198,7 +154,7 @@ class InitPopulation(RootGA):
         rand_list = []
         for _ in range(n_rand):
             tsp = np.random.permutation(np.arange(self.GENOME_LENGTH))
-            kp  = np.random.randint(0, 2, self.GENOME_LENGTH)
+            kp = np.random.randint(0, 2, self.GENOME_LENGTH)
             rand_list.append({"tsp": tsp, "kp": kp})
 
         # ---------- build final population ----------
@@ -211,6 +167,15 @@ class InitPopulation(RootGA):
 
         print(f"population initialized (mixed): {self.__genoms.shape}")
 
+    # ================================================================
+    #                         TTP DATASET I/O
+    # ================================================================
+    def _loadTTPdataset(self):
+        dataset = self.metrics.getDataset()
+        self.coords = dataset["coords"]
+        self.distance = dataset["distance"]
+        self.item_profit = dataset["item_profit"]
+        self.item_weight = dataset["item_weight"]
 
     # ================================================================
     #               GREEDY ROUTE CONSTRUCTION FOR TTP
@@ -278,28 +243,50 @@ class InitPopulation(RootGA):
         return np.array(path, dtype=np.int32), kp
 
     # ================================================================
-    #                         ONE-PASS 2-OPT
+    #                    FULL LOCAL-SEARCH 2-OPT
     # ================================================================
-    def _twoOpt(self, route):
+    def local_search_2opt(self, route, distance, max_iter=200):
         """
-        Single-pass 2-opt:
-        Găsește prima îmbunătățire și se oprește.
+        Full local-search 2-opt (best-improvement or first-improvement).
+        Repeats until no improvement is found or max_iter reached.
+
+        route: 1D numpy array, permutation of cities
+        distance: precomputed distance matrix (NxN)
+        max_iter: safety stop
         """
-        n = len(route) - 1
+        n = len(route)
+        best = route.copy()
+
+        def dist(i, j):
+            return distance[i, j]
 
         def route_length(r):
-            return self.distance[r[:-1], r[1:]].sum()
+            return dist(r[-1], r[0]) + np.sum(distance[r[:-1], r[1:]])
 
-        best = route.copy()
         best_len = route_length(best)
+        improved = True
+        it = 0
 
-        for i in range(1, n - 1):
-            for k in range(i + 1, n):
-                new = best.copy()
-                new[i:k+1] = new[i:k+1][::-1]
-                new_len = route_length(new)
+        while improved and it < max_iter:
+            improved = False
+            it += 1
 
-                if new_len < best_len - 1e-9:
-                    return new  # prima imbunatatire
+            for i in range(1, n - 2):
+                a, b = best[i - 1], best[i]
+                for k in range(i + 1, n - 1):
+                    c, d = best[k], best[k + 1]
+
+                    # compute gain without rebuilding whole route
+                    gain = dist(a, c) + dist(b, d) - dist(a, b) - dist(c, d)
+
+                    if gain < -1e-12:
+                        # apply 2-opt inversion
+                        best[i:k+1] = best[i:k+1][::-1]
+                        best_len += gain
+                        improved = True
+                        break
+
+                if improved:
+                    break
 
         return best

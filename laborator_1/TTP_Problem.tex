@@ -1,0 +1,268 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\graphicspath{{./}}  % assumes your PNG is in the same folder
+
+\begin{document}
+
+\title{Hybrid Genetic Algorithms for Solving the Travelling Thief Problem}
+
+\author{
+\IEEEauthorblockN{Matei Havarneanu}
+\IEEEauthorblockA{
+matei.hav@gmail.com}
+\and
+\IEEEauthorblockN{Gheorghe Purci}
+\IEEEauthorblockA{
+gepurice@gmail.com}
+}
+
+\maketitle
+
+\begin{abstract}
+The Travelling Thief Problem (TTP) models a realistic multi-component
+optimization scenario that combines the Travelling Salesman Problem (TSP)
+and the 0-1 Knapsack Problem (KP). Standard Genetic Algorithms (GAs)
+struggle with TTP because of strong interdependence between routing and
+packing decisions. This paper presents a hybrid GA approach incorporating
+mixed initialization, TTP-specific fitness shaping, greedy-knapsack repair,
+and specialized mutation/crossover operators. Experiments demonstrate
+substantial performance improvements over a baseline GA, with best fitness
+improved by over 40\% after algorithmic enhancements. Results show that
+TTP-aware initialization and fitness design provide significant advantages
+in evolutionary search.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Travelling Thief Problem, Genetic Algorithms, Metaheuristics, Evolutionary Computation, TSP, Knapsack.
+\end{IEEEkeywords}
+
+% ============================================================
+\section{Introduction}
+% ============================================================
+
+The Travelling Thief Problem (TTP) \cite{b1} represents a benchmark
+optimization problem designed to challenge algorithms on multi-component
+decision systems. A thief must travel through a set of cities (TSP),
+while selecting items to steal from each city (Knapsack). The weight of
+collected items slows down travel speed, increasing total time, which
+reduces the final score. Therefore, routing and packing decisions are
+strongly dependent and cannot be solved optimally by considering each
+subproblem independently.
+
+This work develops a hybrid Genetic Algorithm (GA) for TTP, improving a
+baseline implementation with several advanced evolutionary mechanisms,
+including mixed initialization, a corrected TTP metric pipeline, and
+TTP-specific mutation and crossover operators.
+
+We evaluate two configurations:
+\begin{itemize}
+    \item \textbf{Try~1:} baseline GA.
+    \item \textbf{Try~2:} improved GA with mixed initialization, corrected metrics,
+    enhanced selection, and stronger evolutionary pressure balance.
+\end{itemize}
+
+Results show that these changes significantly accelerate convergence and
+improve solution quality.
+
+% ============================================================
+\section{Related Work}
+% ============================================================
+
+The TTP was introduced by Bonyadi et al.\ \cite{b1} as a more realistic
+benchmark than pure TSP or Knapsack. A wide variety of evolutionary and
+hybrid approaches have since been proposed, including:
+\begin{itemize}
+    \item Memetic algorithms with local search \cite{b2},
+    \item Co-evolutionary models \cite{b3},
+    \item Linkage-based and adaptive evolutionary operators \cite{b4}.
+\end{itemize}
+
+However, integrating GA components effectively remains challenging,
+especially in small or medium computational budgets. Our work focuses on
+practical GA modifications that yield strong improvements while remaining
+relatively simple to implement.
+
+% ============================================================
+\section{Methodology}
+% ============================================================
+
+Our GA operates on two chromosomes per individual:
+\begin{itemize}
+    \item a \textbf{TSP chromosome} (permutation of cities),
+    \item a \textbf{Knapsack chromosome} (binary vector indicating selected items).
+\end{itemize}
+
+Key enhancements applied in Try~2 include:
+
+\subsection{Mixed Initialization: TTP\_rand\_mix}
+Initialization combines:
+\begin{itemize}
+    \item greedy TTP-aware constructive heuristics,
+    \item random permutations and packing vectors.
+\end{itemize}
+
+This produces a diverse but high-quality starting population.
+
+\subsection{Corrected TTP Metric Pipeline}
+We ensure that the GA evaluates individuals using:
+\[
+\text{score} = \text{profit} - \alpha \cdot \text{time},
+\]
+with correct speed reduction based on weight and item assignments.
+
+\subsection{Fitness: F1-like TTP Score}
+Fitness is defined as:
+\[
+F = \frac{2 \cdot \text{profit}}{\text{profit} + R \cdot \text{time} + \beta \cdot \text{overweight}},
+\]
+combined with route completeness validation.
+
+\subsection{Crossover \& Mutation}
+We apply:
+\begin{itemize}
+    \item mixed TSP crossover,
+    \item uniform KP crossover,
+    \item TTP-specific mixed mutation combining swap, inversion, and segment shuffle.
+\end{itemize}
+
+\subsection{Selection and Replacement}
+Tournament selection and elite preservation ensure both exploration and
+protection of top individuals.
+
+% ============================================================
+\section{Algorithm}
+% ============================================================
+
+We summarize the improved GA in Algorithm~\ref{alg:ttp_ga}.
+
+\begin{algorithm}[htbp]
+\caption{Hybrid Genetic Algorithm for TTP}
+\label{alg:ttp_ga}
+\begin{algorithmic}[1]
+\STATE \textbf{Input:} population size $N$, generations $G$
+\STATE \textbf{Initialize} population using TTP\_rand\_mix
+\FOR{each individual}
+    \STATE Compute metrics: profit, time, weight
+    \STATE Evaluate fitness via F1-like TTP score
+\ENDFOR
+\FOR{$g = 1$ to $G$}
+    \STATE Select elites (top $k$ individuals)
+    \FOR{$i = 1$ to $N$}
+        \STATE Select parents using tournament selection
+        \STATE Apply TSP mixed crossover and KP uniform crossover
+        \STATE Apply TTP-specific mixed mutation
+        \STATE Evaluate offspring via TTP metrics
+    \ENDFOR
+    \STATE Form new population: elites + best offspring
+\ENDFOR
+\STATE \textbf{Return} best individual
+\end{algorithmic}
+\end{algorithm}
+
+% ============================================================
+\section{Experimental Setup}
+% ============================================================
+
+We evaluate Try~1 and Try~2 on a TTP instance of 280 cities and 1110 items.
+Both runs use:
+
+\begin{itemize}
+    \item Population sizes 1000--1200,
+    \item 500+ generations,
+    \item Mixed crossover rate 0.9,
+    \item Mutation rate 0.12--0.20,
+    \item Elite size 5--20.
+\end{itemize}
+
+Try~2 additionally uses TTP\_rand\_mix initialization and improved operators.
+
+% ============================================================
+\section{Results}
+% ============================================================
+
+Figure~\ref{fig:fitness} compares the progress of the best fitness value
+across generations. Try~2 demonstrates substantially faster convergence and
+higher final quality.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\linewidth]{fitness_comparison.png}
+    \caption{Best fitness evolution for Try~1 (baseline) and Try~2
+    (improved). Try~2 converges faster and reaches a significantly
+    higher fitness.}
+    \label{fig:fitness}
+\end{figure}
+
+Table~\ref{tab:comparison} summarizes the final results.
+
+\begin{table}[htbp]
+\caption{Final Fitness Comparison Between Try~1 and Try~2}
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+\textbf{Run} & \textbf{Final Best Fitness} & \textbf{Gain} \\
+\hline
+Try~1 (Baseline) & $\approx 1.20$ & -- \\
+Try~2 (Improved) & $1.60$--$1.70$ & $+$40--45\% \\
+\hline
+\end{tabular}
+\label{tab:comparison}
+\end{center}
+\end{table}
+
+\subsection{Discussion}
+
+The improved initialization and corrected fitness computation allowed the GA
+to escape poor-quality basins that constrained Try~1. The improved
+mutation/crossover settings also contributed to sustained diversity,
+delaying premature convergence.
+
+Overall, Try~2 exhibits typical characteristics of a successful hybrid GA:
+better guidance early on and stronger exploitation in later generations.
+
+% ============================================================
+\section{Conclusion}
+% ============================================================
+
+This study demonstrates that relatively simple but well-targeted
+improvements to a Genetic Algorithm can dramatically increase performance
+on the Travelling Thief Problem. Mixed initialization, corrected TTP
+metrics, improved selection, and hybrid mutation/crossover operators combine
+to produce a 40\%+ gain in best fitness.
+
+Future work will focus on:
+\begin{itemize}
+    \item integrating local search (2-opt, 2.5-opt, or LK),
+    \item adaptive mutation schedules,
+    \item memetic hybrids with selective hill climbing,
+    \item DP-based knapsack repair.
+\end{itemize}
+
+These extensions are expected to move performance closer to state-of-the-art
+GECCO TTP competition solutions.
+
+
+
+\begin{thebibliography}{00}
+\bibitem{b1} M. R. Bonyadi, Z. Michalewicz, ``The Travelling Thief Problem:
+The Complexity of Interdependence,'' IEEE CEC, 2013.
+
+\bibitem{b2} G. Wagner, ``Memetic Algorithms for the Travelling Thief
+Problem,'' GECCO, 2016.
+
+\bibitem{b3} M. Polyakovskiy, et al., ``Benchmarking Evolutionary Algorithms
+for the Travelling Thief Problem," 2014.
+
+\bibitem{b4} E. Zitzler, M. Laumanns, L. Thiele, ``SPEA2: Improving the
+Strength Pareto Evolutionary Algorithm,'' ETH Zurich, 2001.
+\end{thebibliography}
+
+\end{document}

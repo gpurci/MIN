@@ -32,6 +32,8 @@ class SelectParent(RootGA):
         if (method is not None):
             if   (method == "choice"):
                 fn = self.selectParentChoice
+            elif (method == "rand"):
+                fn = self.selectParentRand
             elif (method == "wheel"):
                 fn = self.selectParentWheel
             elif (method == "tour"):
@@ -48,6 +50,7 @@ class SelectParent(RootGA):
     def help(self):
         info = """SelectParent:
     metoda: 'choice';      config: None;
+    metoda: 'rand';        config: None;
     metoda: 'wheel';       config: None;
     metoda: 'tour';        config: -> "size_subset":7;
     metoda: 'tour_choice'; config: -> "size_subset":7;
@@ -83,6 +86,14 @@ class SelectParent(RootGA):
         """
         # selectare aleatorie
         arg = np.random.choice(self.POPULATION_SIZE, size=None, p=self.fitness_values)
+        return arg
+
+    def selectParentRand(self):
+        """Selecteaza un parinte aleator din populatie,
+            - unde valoarea fitness este probabilitatea de a fi ales
+        """
+        # selectare aleatorie
+        arg = np.random.randint(low=0, high=self.POPULATION_SIZE, size=None)
         return arg
 
     def selectParentWheel(self):

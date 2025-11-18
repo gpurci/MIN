@@ -39,15 +39,16 @@ class GeneticAlgorithm(RootGA):
     def __init__(self, name="", extern_commnad_file="", **configs):
         super().__init__()
         self.__name = name
-        self.__score_evolution = np.zeros(5, dtype=np.float32)
-        self.__last_mutation_rate = None
+        self.__last_mutation_rate  = None
         self.__extern_commnad_file = extern_commnad_file
         self.__is_stop = False
-        self.setConfig(**configs)
+        self.unpackConfig(**configs)
+        self.initByConfig()
 
     def __str__(self):
         str_info = "Name: {}\n{}".format(self.__name, super().__str__())
-        str_info += "\nConfigs:"
+        str_info += "\nExtern comand filename '{}'".format(self.__extern_commnad_file)
+        str_info += "\nConfigs: {}".format(self.__configs)
         for function in self.__functions:
             str_info += "\n{}".format(str(function))
         str_info += "\n"
@@ -91,7 +92,11 @@ class GeneticAlgorithm(RootGA):
                 # adauga urmasii la noua generatie
                 self.__genoms.append(offspring)
             # obtinerea indivizilor ce fac parte din elita
-            genome_elites = self.__genoms[args_elite]
+            genome_elites  = self.__genoms[args_elite]
+            if (self.__update_elite_fitness):
+                fitness_elites = fitness_values[args_elite]
+            else:
+                fitness_elites = None
             # schimbarea generatiei
             self.__genoms.save()
             # calculate metrics
@@ -99,8 +104,7 @@ class GeneticAlgorithm(RootGA):
             # calculare fitness
             fitness_values = self.fitness(metric_values)
             # adaugare elita in noua populatie
-            self.setElitesByFitness(fitness_values, genome_elites)
-            # set elite fitness
+            self.setElitesByFitness(fitness_values, genome_elites, fitness_elites)
             # obtinerea pozitiei pentru elite
             args_elite = self.getArgsElite(fitness_values)
             # calculare metrici
@@ -145,7 +149,20 @@ class GeneticAlgorithm(RootGA):
 
         return method, method_configs
 
-    def setConfig(self, **configs):
+    def initByConfig(self):
+        if (self.__configs is not None):
+            #
+            subset_size = self.__configs.get("subset_size", 5)
+            self.__score_evolution = np.zeros(subset_size, dtype=np.float32)
+            #
+            self.__update_elite_fitness = self.__configs.get("update_elite_fitness", True)
+        else:
+            subset_size = 5
+            self.__score_evolution = np.zeros(subset_size, dtype=np.float32)
+            #
+            self.__update_elite_fitness = True
+
+    def unpackConfig(self, **configs):
         # salveaza configuratiile
         self.__functions = []
         # configureaza genoms
@@ -185,10 +202,14 @@ class GeneticAlgorithm(RootGA):
         config        = configs.get("callback", {})
         self.callback = Callback(**config)
         self.__functions.append(self.callback)
+        # configurare manager salvare, istoricul de antrenare
+        self.__configs = configs.get("manager", None)
+
 
     def help(self):
         info  = "'nume': numele obiectului\n"
         info += "'extern_commnad_file': numele fisierului in care vor fi adaugate comenzile externe, (oprire fortata = stop=True)\n"
+        info += "'manager': {\"subset_size\":5, \"update_elite_fitness\": True}\n"
         info += "'genoms': "+self.__genoms.help()
         info += "'metric': "+self.metrics.help()
         info += "'init_population': "+self.initPopulation.help()
@@ -235,20 +256,24 @@ class GeneticAlgorithm(RootGA):
         if (self.__genoms.is_genoms()==False):
             self.initPopulation(self.POPULATION_SIZE)
 
-        # MUST compute metrics first
-        metric_values  = self.metrics(self.__genoms)
-        fitness_values = self.fitness(metric_values)
+        if (elites.shape[0] > 0):
+            # MUST compute metrics first
+            metric_values  = self.metrics(self.__genoms)
+            fitness_values = self.fitness(metric_values)
+            # set elites
+            args = self.getArgsWeaks(fitness_values, elites.shape[0])
+            self.__genoms[args] = elites
 
-        args = self.getArgsWeaks(fitness_values, self.ELITE_SIZE)
-        self.__genoms[args] = elites
-
-    def setElitesByFitness(self, fitness_values, elites):
+    def setElitesByFitness(self, fitness_values, elites, fitness_elites=None):
         if (self.__genoms.is_genoms()==False):
             self.initPopulation(self.POPULATION_SIZE)
 
         # here fitness_values already exists (caller passed it)
-        args = self.getArgsWeaks(fitness_values, elites.shape[0])
-        self.__genoms[args] = elites
+        if (elites.shape[0] > 0):
+            args = self.getArgsWeaks(fitness_values, elites.shape[0])
+            self.__genoms[args]  = elites
+            if (fitness_elites is not None):
+                fitness_values[args] = fitness_elites
 
     def showMetrics(self, generation, d_info):
         """Afisare metrici"""
@@ -285,15 +310,21 @@ class GeneticAlgorithm(RootGA):
         fitness_values - valorile fitness a populatiei
         size           - numarul de argumente cu cei mai buni indivizi
         """
-        args = np.argpartition(fitness_values, size)
-        return args[:size]
+        if (size > 0):
+            args = np.argpartition(fitness_values, size)[:size]
+        else:
+            args = np.array([], dtype=np.int32)
+        return args
 
     def getArgsElite(self, fitness_values):
         """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
         fitness_values - valorile fitness a populatiei
         """
-        args = np.argpartition(fitness_values,-self.ELITE_SIZE)
-        args = args[-self.ELITE_SIZE:]
+        if (self.ELITE_SIZE > 0):
+            args = np.argpartition(fitness_values,-self.ELITE_SIZE)
+            args = args[-self.ELITE_SIZE:]
+        else:
+            args = np.array([], dtype=np.int32)
         return args
 
     def externCommand(self):

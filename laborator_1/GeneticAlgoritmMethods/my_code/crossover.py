@@ -28,7 +28,6 @@ class Crossover(RootGA):
         # adaugare crossover rate
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.CROSSOVER_RATE): # operatia de incrucisare
-            self.__extern_fn = self.__externs_fn[chromozome_name]
             low, high = self.__genome.getGeneRange(chromozome_name)
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                         low, high, 
@@ -49,7 +48,7 @@ class Crossover(RootGA):
             info += "\t{}".format(tmp)
         return info
 
-    def __unpack_method(self, method):
+    def __unpack_method(self, method, extern_fn):
         fn = self.crossoverAbstract
         if (method is not None):
             if   (method == "diff"):
@@ -62,6 +61,8 @@ class Crossover(RootGA):
                 fn = self.crossoverFlipSim
             elif (method == "mixt"):
                 fn = self.crossoverMixt
+            elif (method == "extern"):
+                fn = extern_fn
 
         return fn
 
@@ -71,7 +72,8 @@ class Crossover(RootGA):
     metoda: 'split';    config None;
     metoda: 'perm_sim'; config None;
     metoda: 'flip_sim'; config None;
-    metoda: 'mixt';     config -> "p_method":[1/4, 1/4, 1/4, 1/4], ;\n"""
+    metoda: 'mixt';     config -> "p_method":[1/4, 1/4, 1/4, 1/4], ;
+    metoda: 'extern';   config -> 'extern_kw' ;\n"""
         return info
 
     def __unpackConfigs(self):
@@ -81,9 +83,8 @@ class Crossover(RootGA):
         for idx, key in enumerate(self.__genome.keys(), 0):
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
-            extern_fn = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__externs_fn[key] = extern_fn
-            self.__fn[key]      = self.__unpack_method(method)
+            extern_fn           = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__fn[key]      = self.__unpack_method(method, extern_fn)
 
     def crossoverAbstract(self, parent1, parent2, low, high):
         error_mesage = ""

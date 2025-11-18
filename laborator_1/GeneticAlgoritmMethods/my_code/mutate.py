@@ -34,7 +34,6 @@ class Mutate(RootGA):
         # calcularea ratei de probabilitate a mutatiei
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
-            self.__extern_fn = self.__externs_fn[chromozome_name]
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                                     offspring[chromozome_name], 
                                                     **self.__chromosom_configs[chromozome_name])
@@ -43,7 +42,7 @@ class Mutate(RootGA):
 
         return offspring
 
-    def __unpack_method(self, method):
+    def __unpack_method(self, method, extern_fn):
         fn = self.mutateAbstract
         if (method is not None):
             if   (method == "swap"):
@@ -89,20 +88,23 @@ class Mutate(RootGA):
             elif (method == "mixt_binary"):
                 fn = self.mutateMixtBinary
 
+            elif (method == "extern"):
+                fn = extern_fn
+
         return fn
 
     def help(self):
         info = """Mutate:
     metoda: 'swap';      config: None;
-    metoda: 'swap_sim'; config: None;
+    metoda: 'swap_sim';  config: None;
     metoda: 'swap_diff'; config: None;
     metoda: 'roll';      config: -> "subset_size":7;
     metoda: 'rool_sim';  config: -> "subset_size":7;
     metoda: 'rool_diff'; config: -> "subset_size":7;
     metoda: 'scramble';  config: -> "subset_size":7;
-    metoda: 'scramble_sim';  config: None;
-    metoda: 'scramble_diff'; config: None;
-    metoda: 'inversion'; config: -> "subset_size":7;
+    metoda: 'scramble_sim';   config: None;
+    metoda: 'scramble_diff';  config: None;
+    metoda: 'inversion';      config: -> "subset_size":7;
     metoda: 'inversion_sim';  config: None;
     metoda: 'inversion_diff'; config: None;
     metoda: 'insertion'; config: None;
@@ -110,19 +112,18 @@ class Mutate(RootGA):
     metoda: 'binary';     config: None;
     metoda: 'binary_sim'; config: None;
     metoda: 'binary_diff';config: None;
-    metoda: 'mixt_binary';config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;\n"""
+    metoda: 'mixt_binary';config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;
+    metoda: 'extern';     config: 'extern_kw';\n"""
         return info
 
     def __unpackConfigs(self):
         self.__fn      = {}
         self.__methods = {}
-        self.__externs_fn = {}
         for key in self.__genome.keys():
             method = self.__chromosom_configs[key].pop("method", None)
-            self.__methods[key]   = method
-            extern_fn = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__externs_fn[key] = extern_fn
-            self.__fn[key]        = self.__unpack_method(method)
+            self.__methods[key] = method
+            extern_fn           = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__fn[key]      = self.__unpack_method(method, extern_fn)
 
     def mutateAbstract(self, parent1, parent2, offspring):
         error_mesage = ""
@@ -214,7 +215,7 @@ class Mutate(RootGA):
             offspring - individul copil/descendent
         """
         # gaseste locusul unde vom modifica
-        locus = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
+        locus = np.random.randint(low=0, high=self.GENOME_LENGTH-subset_size, size=None)
         return self.__mutateRoll(offspring, locus, locus+subset_size, subset_size)
 
     def mutateRollSim(self, parent1, parent2, offspring, subset_size=7):
@@ -267,7 +268,7 @@ class Mutate(RootGA):
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
+        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH-subset_size, size=None)
         return self.__mutateScramble(offspring, locus, locus+subset_size)
 
     def mutateScrambleSim(self, parent1, parent2, offspring, subset_size=7):
@@ -314,7 +315,7 @@ class Mutate(RootGA):
             parent2 - individul parinte 2
             offspring - individul copil/descendent
         """
-        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH-(subset_size+1), size=None)
+        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH-subset_size, size=None)
         locuses = np.arange(locus, locus+subset_size)
         offspring[locuses] = np.flip(offspring[locuses])
         return offspring
@@ -359,7 +360,6 @@ class Mutate(RootGA):
             offspring = self.mutateInversion(parent1, parent2, offspring, subset_size)
         return offspring
 
-
     def mutateInsertion(self, parent1, parent2, offspring):
         """Mutatia genetica a indivizilor, operatie in_place
             parent1 - individul parinte 1
@@ -367,7 +367,7 @@ class Mutate(RootGA):
             offspring - individul copil/descendent
         """
         locus1 = np.random.randint(low=0,      high=self.GENOME_LENGTH//2, size=None)
-        locus2 = np.random.randint(low=locus1, high=self.GENOME_LENGTH-1,  size=None)
+        locus2 = np.random.randint(low=locus1, high=self.GENOME_LENGTH,    size=None)
         # copy gene
         gene1  = offspring[locus1]
         # make change locuses
@@ -383,7 +383,7 @@ class Mutate(RootGA):
             offspring - individul copil/descendent
         """
         # modifica doar genele care sunt asemanatoare
-        locus = np.random.randint(low=0, high=self.GENOME_LENGTH-1, size=None)
+        locus = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
         offspring[locus] = 1 - offspring[locus]
         return offspring
 

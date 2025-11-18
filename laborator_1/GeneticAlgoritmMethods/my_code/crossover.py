@@ -10,11 +10,11 @@ class Crossover(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, genome, **chromozoms):
+    def __init__(self, genome, **chromosom_configs):
         super().__init__()
-        self.__genome     = genome
-        self.__chromozoms = chromozoms
-        self.__setMethods()
+        self.__genome = genome
+        self.__chromosom_configs = chromosom_configs
+        self.__unpackConfigs()
 
     def __call__(self, parent1, parent2):
         tmp_genome = []
@@ -31,7 +31,7 @@ class Crossover(RootGA):
             low, high = self.__genome.getGeneRange(chromozome_name)
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                         low, high, 
-                                        **self.__chromozoms[chromozome_name])
+                                        **self.__chromosom_configs[chromozome_name])
         else: # selectie chromosom intreg
             if (self.__select_parent_chromosome == 0): # mosteneste chromosome parinte 1
                 offspring = parent1[chromozome_name].copy()
@@ -44,7 +44,7 @@ class Crossover(RootGA):
     def __str__(self):
         info = "Crossover:\n"
         for chrom_name in self.__genome.keys():
-            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromozoms[chrom_name])
+            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromosom_configs[chrom_name])
             info += "\t{}".format(tmp)
         return info
 
@@ -73,18 +73,21 @@ class Crossover(RootGA):
     metoda: 'mixt';     config -> "p_method":[1/4, 1/4, 1/4, 1/4], ;\n"""
         return info
 
-    def __setMethods(self):
+    def __unpackConfigs(self):
         self.__fn      = {}
         self.__methods = {}
+        self.__extern_fn = {}
         for idx, key in enumerate(self.__genome.keys(), 0):
-            method = self.__chromozoms[key].pop("method", None)
+            method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
+            extern_fn = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__extern_fn[key] = extern_fn
             self.__fn[key]      = self.__unpack_method(method)
 
     def crossoverAbstract(self, parent1, parent2, low, high):
         error_mesage = ""
         for chrom_name in self.__genome.keys():
-            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Crossover': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromozoms[chrom_name])
+            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Crossover': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromosom_configs[chrom_name])
         raise NameError(error_mesage)
 
     def crossoverDiff(self, parent1, parent2, low, high):

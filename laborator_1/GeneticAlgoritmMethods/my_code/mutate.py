@@ -10,16 +10,16 @@ class Mutate(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, genome, **chromozomes):
+    def __init__(self, genome, **chromosom_configs):
         super().__init__()
-        self.__genome     = genome
-        self.__chromozoms = chromozomes
-        self.__setMethods()
+        self.__genome = genome
+        self.__chromosom_configs = chromosom_configs
+        self.__unpackConfigs()
 
     def __str__(self):
         info = "Mutate:\n"
         for chrom_name in self.__genome.keys():
-            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromozoms[chrom_name])
+            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromosom_configs[chrom_name])
             info += "\t{}".format(tmp)
         return info
 
@@ -36,7 +36,7 @@ class Mutate(RootGA):
         if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                                     offspring[chromozome_name], 
-                                                    **self.__chromozoms[chromozome_name])
+                                                    **self.__chromosom_configs[chromozome_name])
         else:
             offspring = offspring[chromozome_name]
 
@@ -112,18 +112,21 @@ class Mutate(RootGA):
     metoda: 'mixt_binary';config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;\n"""
         return info
 
-    def __setMethods(self):
+    def __unpackConfigs(self):
         self.__fn      = {}
         self.__methods = {}
+        self.__extern_fn = {}
         for key in self.__genome.keys():
-            method = self.__chromozoms[key].pop("method", None)
-            self.__methods[key] = method
-            self.__fn[key]      = self.__unpack_method(method)
+            method = self.__chromosom_configs[key].pop("method", None)
+            self.__methods[key]   = method
+            extern_fn = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__extern_fn[key] = extern_fn
+            self.__fn[key]        = self.__unpack_method(method)
 
     def mutateAbstract(self, parent1, parent2, offspring):
         error_mesage = ""
         for chrom_name in self.__genome.keys():
-            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Mutate': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromozoms[chrom_name])
+            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Mutate': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromosom_configs[chrom_name])
         raise NameError(error_mesage)
 
     def mutateSwap(self, parent1, parent2, offspring):

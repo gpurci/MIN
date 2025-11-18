@@ -34,6 +34,7 @@ class Mutate(RootGA):
         # calcularea ratei de probabilitate a mutatiei
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
+            self.__extern_fn = self.__externs_fn[chromozome_name]
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                                     offspring[chromozome_name], 
                                                     **self.__chromosom_configs[chromozome_name])
@@ -115,12 +116,12 @@ class Mutate(RootGA):
     def __unpackConfigs(self):
         self.__fn      = {}
         self.__methods = {}
-        self.__extern_fn = {}
+        self.__externs_fn = {}
         for key in self.__genome.keys():
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key]   = method
             extern_fn = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__extern_fn[key] = extern_fn
+            self.__externs_fn[key] = extern_fn
             self.__fn[key]        = self.__unpack_method(method)
 
     def mutateAbstract(self, parent1, parent2, offspring):

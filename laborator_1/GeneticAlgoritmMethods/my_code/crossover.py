@@ -28,6 +28,7 @@ class Crossover(RootGA):
         # adaugare crossover rate
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.CROSSOVER_RATE): # operatia de incrucisare
+            self.__extern_fn = self.__externs_fn[chromozome_name]
             low, high = self.__genome.getGeneRange(chromozome_name)
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                         low, high, 
@@ -76,12 +77,12 @@ class Crossover(RootGA):
     def __unpackConfigs(self):
         self.__fn      = {}
         self.__methods = {}
-        self.__extern_fn = {}
+        self.__externs_fn = {}
         for idx, key in enumerate(self.__genome.keys(), 0):
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
             extern_fn = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__extern_fn[key] = extern_fn
+            self.__externs_fn[key] = extern_fn
             self.__fn[key]      = self.__unpack_method(method)
 
     def crossoverAbstract(self, parent1, parent2, low, high):

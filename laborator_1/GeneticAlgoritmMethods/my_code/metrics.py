@@ -28,7 +28,7 @@ class Metrics(RootGA):
     def help(self):
         info = """Metrics:
     metoda: 'TTP_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
-    metoda: 'TTP_mean_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
+    metoda: 'TTP_ada_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
     metoda: 'TTP_exp';    config: -> "v_min":0.1, "v_max":1, "W":2000, "lam":0.01;
     metoda: 'TSP';        config: None;\n"""
         return info
@@ -42,8 +42,8 @@ class Metrics(RootGA):
             elif (method == "TTP_linear"):
                 fn = self.metricsTTPLiniar
                 self.getScore = self.getScoreTTP
-            elif (method == "TTP_mean_linear"):
-                fn = self.metricsTTPMeanLiniar
+            elif (method == "TTP_ada_linear"):
+                fn = self.metricsTTPAdaLiniar
                 self.getScore = self.getScoreTTP
             elif (method == "TTP_exp"):
                 fn = self.metricsTTPExp
@@ -82,7 +82,7 @@ class Metrics(RootGA):
         return distance
 
     def __getIndividNumberCities(self, individ):
-        return np.unique(individ[:-1], return_index=False, return_inverse=False, return_counts=False, axis=None).shape[0]
+        return np.unique(individ, return_index=False, return_inverse=False, return_counts=False, axis=None).shape[0]
 
     def __getDistances(self, population):
         """Calculaza distanta pentru fiecare individ din populatiei"""
@@ -129,6 +129,9 @@ class Metrics(RootGA):
     def computeIndividWeightKP(self, kp_individ):
         return (self.dataset["item_weight"]*kp_individ).sum()
 
+    def computeIndividNbrObjKP(self, kp_individ):
+        return kp_individ.sum()
+
     def computeProfitKP(self, kp_population):
         """
         Calculeaza profitul pentru intrega populatie
@@ -142,6 +145,14 @@ class Metrics(RootGA):
         Calculeaza profitul pentru intrega populatie
         """
         return np.apply_along_axis(self.computeIndividWeightKP,
+                                        axis=1,
+                                        arr=kp_population)
+
+    def computeNbrObjKP(self, kp_population):
+        """
+        Calculeaza profitul pentru intrega populatie
+        """
+        return np.apply_along_axis(self.computeIndividNbrObjKP,
                                         axis=1,
                                         arr=kp_population)
     #  TTP Liniar ---------------------
@@ -208,7 +219,7 @@ class Metrics(RootGA):
     # TTP Liniar =================================
 
     #  TTP Liniar ---------------------
-    def __computeIndividLiniarMeanTTP(self, individ, *args, v_min=0.1, v_max=1, W=2000, CAPACITY=0, alpha=0.01):
+    def __computeIndividAdaLiniarTTP(self, individ, *args, v_min=0.1, v_max=1, W=2000, alpha=0.01):
         # init 
         Wcur = 0.0
         Tcur = 0.0
@@ -229,34 +240,23 @@ class Metrics(RootGA):
             profit = item_profit[city]*take
             weight = item_weight[city]*take
             # calculate liniar profit and weight
-            Pcur += max(0.0, profit - alpha*Tcur)
+            Pcur += max(0.0, profit**2/(weight+1e-7) - alpha*Tcur)
             Wcur += weight
             # calculeaza viteza de tranzitie
-            v = v_max - (v_max - v_min) * (Wcur / CAPACITY)
+            v = v_max - v_min * ((Wcur / W) - 1.)
             v = max(v_min, v)
             # calculeaza timpul de tranzitie
             Tcur += distance[city, tsp_individ[i+1]] / v
         # intorcerea in orasul de start
         # calculeaza viteza
-        v = v_max - (v_max - v_min) * (Wcur / CAPACITY)
         Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
         return Pcur, Tcur, Wcur
 
-    def metricsTTPMeanLiniar(self, genomics, **kw):
+    def metricsTTPAdaLiniar(self, genomics, **kw):
         # unpack datassets
         distance    = self.dataset["distance"]
         item_profit = self.dataset["item_profit"]
         item_weight = self.dataset["item_weight"]
-        # calcularea greutatilor
-        weights = self.computeWeightKP(genomics.chromozomes("kp"))
-        min_weight = weights.min()
-        W = kw.get("W", 20000)
-        if (min_weight > W):
-            CAPACITY = weights.mean()
-            #CAPACITY = W
-        else:
-            CAPACITY = W
-
         # pack args
         args = [distance, item_profit, item_weight]
         # calculate metrics for every individ
@@ -264,19 +264,26 @@ class Metrics(RootGA):
         weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
-            profit, time, weight = self.__computeIndividLiniarMeanTTP(individ, *args, CAPACITY=CAPACITY, **kw)
+            profit, time, weight = self.__computeIndividAdaLiniarTTP(individ, *args, **kw)
             profits[idx] = profit
             weights[idx] = weight
             times[idx]   = time
 
         # number city
         number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
+        number_obj  = self.computeNbrObjKP(genomics.chromozomes("kp"))
+        number_obj  = number_obj*kw.get("W")/(weights*self.GENOME_LENGTH + 1e-7)
+
+        mask = (kw.get("W") <= weights)
+        number_obj[mask] = 1.
+
         # pack metrick values
         metric_values = {
             "profits"    : profits,
             "times"      : times,
             "weights"    : weights,
-            "number_city": number_city
+            "number_city": number_city,
+            "number_obj" : number_obj
         }
         return metric_values
     # TTP Liniar =================================
@@ -327,7 +334,7 @@ class Metrics(RootGA):
         weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
-            profit, time, weight = self.__computeIndividLiniarTTP(individ, *args, **kw)
+            profit, time, weight = self.__computeIndividExpTTP(individ, *args, **kw)
             profits[idx] = profit
             weights[idx] = weight
             times[idx]   = time

@@ -67,22 +67,12 @@ class Fitness(RootGA):
         #print("number_city {}".format(number_city))
         number_city = self.__cityBinaryTSP(number_city)
         #print("number_city {}".format(number_city.sum()))
-        distances   = self.__distanceF1scoreTSP(distances)
+        distances   = min_norm(distances)
         fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
         return fitness_values
 
-    def __distanceF1scoreTSP(self, distances):
-        mask_not_zero   = (distances!=0)
-        valid_distances = distances[mask_not_zero]
-        if (valid_distances.shape[0] > 0):
-            min_distance = valid_distances.min()
-        else:
-            min_distance = 0.1
-            distances[:] = 0.1
-        return (2*min_distance)/(distances+min_distance)
-
     def __cityBinaryTSP(self, number_city):
-        mask_cities = (number_city>=(self.GENOME_LENGTH-1)).astype(np.float32)
+        mask_cities = (number_city>=self.GENOME_LENGTH).astype(np.float32)
         return mask_cities
     # TSP F1score problem=================================
 
@@ -96,33 +86,11 @@ class Fitness(RootGA):
         distances   = metric_values["distances"]
         number_city = metric_values["number_city"]
         # normalizeaza intervalul 0...1
-        #print("number_city {}".format(number_city))
-        number_city = self.__cityNormTSP(number_city)
-        #print("number_city {}".format(number_city.sum()))
-        distances   = self.__norm(distances)
+        number_city = self.__cityBinaryTSP(number_city)
+        distances   = normalization(distances)
         fitness_values = 2*distances*number_city/(distances+number_city+1e-7)
         #print("fitness {}".format(fitness_values))
         return fitness_values
-
-    def __norm(self, x):
-        x_min = x.min()
-        x_max = x.max()
-        return (x_max-x)/(x_max-x_min)
-
-    def __min_norm(self, x):
-        mask_not_zero = (x!=0)
-        valid_x = x[mask_not_zero]
-        if (valid_x.shape[0] > 0):
-            x_min = valid_x.min()
-        else:
-            x_min = 0.1
-            x[:] = 0.1
-        return (2*x_min)/(x+x_min)
-
-
-    def __cityNormTSP(self, number_city):
-        mask_cities = (number_city>=(self.GENOME_LENGTH-5)).astype(np.float32)
-        return mask_cities*(number_city/self.GENOME_LENGTH)**5
     # TSP Norm problem=================================
 
     # TTP ------------------------------
@@ -145,12 +113,11 @@ class Fitness(RootGA):
         times   = metric_values["times"]
         number_city = metric_values["number_city"]
         # normalization
-        profits = self.__norm(profits)
-        times   = self.__norm(times)
+        #profits = normalization(profits)
         mask_city = self.__cityBinaryTSP(number_city)
-        print("weights {}".format(weights.min(), end=", "))
         # calculate fitness
         fitness = (profits - R*times) * mask_city
+        #summary(profits=profits, weights=weights, times=times, fitness=fitness)
         return fitness
     # TTP =================================
 
@@ -173,12 +140,34 @@ class Fitness(RootGA):
         times       = metric_values["times"]
         weights     = metric_values["weights"]
         number_city = metric_values["number_city"]
+        number_obj  = metric_values["number_obj"]
         # normalization
-        profits = self.__norm(profits)
-        times   = self.__min_norm(times)
+        profits = normalization(profits)
+        times   = min_norm(times)
         mask_city = self.__cityBinaryTSP(number_city)
-        print("profits {}, weights {}, times {}, ".format(profits.min(), weights.min(), times.min(), ))
         # calculate fitness
-        fitness = mask_city * ((profits * times) / (profits + R*times))
+        fitness = mask_city * number_obj * ((profits * times) / (profits + R*times+1e-7))
+        #summary(profits=profits, weights=weights, times=times, fitness=fitness)
         return fitness
     # TTP =================================
+
+def summary(**kw):
+    print("Summary")
+    for name in kw.keys():
+        val = kw[name]
+        print("{}: min {}, max {}, mean {}, std {}".format(name, val.min(), val.max(), np.mean(val), np.std(val)))
+
+def normalization(x):
+    x_min = x.min()
+    x_max = x.max()
+    return (x_max-x)/(x_max-x_min)
+
+def min_norm(x):
+    mask_not_zero = (x!=0)
+    valid_x = x[mask_not_zero]
+    if (valid_x.shape[0] > 0):
+        x_min = valid_x.min()
+    else:
+        x_min = 0.1
+        x[:] = 0.1
+    return (2*x_min)/(x+x_min)

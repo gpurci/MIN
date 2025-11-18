@@ -63,7 +63,7 @@ class SelectParent(RootGA):
         total_fitness = fitness_values.sum()
         if (total_fitness != 0):
             # calcularea numarului de indivizi valizi, pentru selectie
-            size = int(self.SELECT_RATE*self.POPULATION_SIZE)
+            size = self.POPULATION_SIZE - int(self.SELECT_RATE*self.POPULATION_SIZE)
             # selectarea celor mai slabi indivizi
             args_weaks = np.argpartition(fitness_values, size)[:size]
             # scoterea indivizilor slabi din cursa pentru parinte

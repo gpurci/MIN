@@ -1,12 +1,16 @@
+
 # Python
 .ipynb_checkpoints
 .idea
+.cache
 __pycache__/
-out/
 *.pyc
 *.pyo
 *.pyd
+*.py[codz]
+*$py.class
 logs/*.csv
+out/
 !data/*.csv
 *.cmd
 venv/

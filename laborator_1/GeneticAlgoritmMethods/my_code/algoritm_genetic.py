@@ -226,7 +226,7 @@ class GeneticAlgorithm(RootGA):
         """
         self.__score_evolution[:-1] = self.__score_evolution[1:]
         self.__score_evolution[-1]  = evolution_scores["score"]
-        if (evolution_scores["best_fitness"] <= 0):
+        if (evolution_scores["best_fitness"] < 0):
             raise Exception("Best fitness is '0'")
 
     # Fitness.__call__ always requires BOTH population AND metric_values.

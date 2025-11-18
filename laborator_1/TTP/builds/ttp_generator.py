@@ -54,7 +54,13 @@ class TTPGenerator(object):
             cv.circle(image, (st_x, st_y), 4, (0, 0, 255), -1)
             cv.line(image,   (st_x, st_y), (en_x, en_y), (255, 0, 0), 4)
             st_x, st_y = en_x, en_y
-        cv.circle(image, (st_x, st_y), 8, (0, 255, 255), 1)
+        else:# intoarcerea in orasul de start
+            en_x, en_y = self.coords[routes[0]]
+            cv.circle(image, (st_x, st_y), 4, (0, 0, 255), -1)
+            cv.line(image,   (st_x, st_y), (en_x, en_y), (255, 0, 0), 4)
+            st_x, st_y = en_x, en_y
+            # marcheaza orasul de stop
+            cv.circle(image, (st_x, st_y), 8, (0, 255, 255), 1)
         return image
 
     def read_csv(self, filename):
@@ -72,3 +78,24 @@ class TTPGenerator(object):
         if (is_ceil2d):
             map_of_distance = np.round(map_of_distance, 0)
         return map_of_distance
+
+    def computeDistance(self, individ):
+        """Calculul distantei pentru un individ"""
+        #print("individ", individ.shape, end=", ")
+        distances = self.dataset["distance"][individ[:-1], individ[1:]]
+        distance  = distances.sum() + self.dataset["distance"][individ[-1], individ[0]]
+        return distance
+
+    def computeProfit(self, individ):
+        if (individ.max() > 1):
+            tmp = np.zeros(self.dataset["GENOME_LENGTH"], dtype=np.int32)
+            tmp[individ] = 1
+            individ = tmp
+        return (self.dataset["item_profit"]*individ).sum()
+
+    def computeWeight(self, individ):
+        if (individ.max() > 1):
+            tmp = np.zeros(self.dataset["GENOME_LENGTH"], dtype=np.int32)
+            tmp[individ] = 1
+            individ = tmp
+        return (self.dataset["item_weight"]*individ).sum()

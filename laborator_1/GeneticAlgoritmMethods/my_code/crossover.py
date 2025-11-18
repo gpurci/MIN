@@ -18,11 +18,13 @@ class Crossover(RootGA):
 
     def __call__(self, parent1, parent2):
         tmp_genome = []
+        self.__select_parent_chromosome = 0
         for idx, chromozome_name in enumerate(self.__genome.keys(), 0):
-            tmp_genome.append(self.__call_chromozome(parent1, parent2, chromozome_name))
+            chromosome_val = self.__crossover_chromosome(parent1, parent2, chromozome_name)
+            tmp_genome.append(chromosome_val)
         return self.__genome.concat(tmp_genome)
 
-    def __call_chromozome(self, parent1, parent2, chromozome_name):
+    def __crossover_chromosome(self, parent1, parent2, chromozome_name):
         # adaugare crossover rate
         rate = np.random.uniform(low=0, high=1, size=None)
         if (rate <= self.CROSSOVER_RATE): # operatia de incrucisare
@@ -30,8 +32,13 @@ class Crossover(RootGA):
             offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
                                         low, high, 
                                         **self.__chromozoms[chromozome_name])
-        else: # urmasul va fi parintele 1
-            offspring = parent1[chromozome_name].copy()
+        else: # selectie chromosom intreg
+            if (self.__select_parent_chromosome == 0): # mosteneste chromosome parinte 1
+                offspring = parent1[chromozome_name].copy()
+                self.__select_parent_chromosome = 1
+            else: # mosteneste chromosome parinte 2
+                offspring = parent2[chromozome_name].copy()
+                self.__select_parent_chromosome = 0
         return offspring
 
     def __str__(self):
@@ -62,7 +69,8 @@ class Crossover(RootGA):
     metoda: 'diff';     config None;
     metoda: 'split';    config None;
     metoda: 'perm_sim'; config None;
-    metoda: 'mixt';     config -> "p_method":[4/10, 3/10, 3/10], ;\n"""
+    metoda: 'flip_sim'; config None;
+    metoda: 'mixt';     config -> "p_method":[1/4, 1/4, 1/4, 1/4], ;\n"""
         return info
 
     def __setMethods(self):
@@ -89,24 +97,21 @@ class Crossover(RootGA):
         # mosteneste parinte1
         offspring = parent1.copy()
         # modifica doar genele care sunt diferite
-        mask = parent1!=parent2
-        diff_locus = np.argwhere(mask)
-        size = diff_locus.shape[0]
-        if (size >= 4):
-            # locusurile unde genele nu coincid
-            diff_locus = diff_locus.reshape(-1)
+        diff_locus = parent1!=parent2
+        size_diff_locus = diff_locus.sum()
+        if (size_diff_locus >= 4):
             # obtinerea genelor care nu coicid pe locusuri
             diff_genes1 = parent1[diff_locus]
             diff_genes2 = parent2[diff_locus]
             # genele care nu coincid pe pozitii
             union_genes = np.union1d(diff_genes1, diff_genes2) # valori sortate
             # adăugăm gene noi doar dacă lipsesc
-            needed = diff_locus.shape[0] - union_genes.shape[0]
-            if needed > 0:
-                new_genes = np.random.randint(low=low, high=high, size=needed)
+            size_needed = size_diff_locus - union_genes.shape[0]
+            if   (size_needed > 0):
+                new_genes = np.random.randint(low=low, high=high, size=size_needed)
                 union_genes = np.concatenate([union_genes, new_genes])
-            elif needed < 0:
-                union_genes = union_genes[:needed]
+            elif (size_needed < 0):
+                union_genes = union_genes[:size_needed]
             # permutarea genelor ce nu coincid pe pozitie
             union_genes = np.random.permutation(union_genes)
             offspring[diff_locus] = union_genes
@@ -176,12 +181,14 @@ class Crossover(RootGA):
         low     - valoarea minima a genei
         high    - valoarea maxima a genei
         """
-        cond = np.random.choice([0, 1, 2], size=None, p=p_method)
+        cond = np.random.choice([0, 1, 2, 3], size=None, p=p_method)
         if   (cond == 0):
             offspring = self.crossoverSplit(parent1, parent2, low, high)
         elif (cond == 1):
-            offspring = self.crossoverPermSim(parent1, parent2, low, high)
+            offspring = self.crossoverDiff(parent1, parent2, low, high)
         elif (cond == 2):
+            offspring = self.crossoverPermSim(parent1, parent2, low, high)
+        elif (cond == 3):
             offspring = self.crossoverFlipSim(parent1, parent2, low, high)
         return offspring
 

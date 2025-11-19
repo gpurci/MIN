@@ -44,7 +44,7 @@ class SelectParent(RootGA):
                 fn = self.selectParentRise
             elif (method == "mixt"):
                 fn = self.selectParentMixt
-            elif (method == "extern"):
+            elif ((method == "extern") and (extern_fn is not None)):
                 fn = extern_fn
                 
         return fn

@@ -40,7 +40,7 @@ class InitPopulation(RootGA):
                 fn = self.initPopulationsTSPRand
             elif (method == "TTP_rand"):
                 fn = self.initPopulationsTTPRand
-            elif (method == "extern"):
+            elif ((method == "extern") and (extern_fn is not None)):
                 fn = extern_fn
         return fn
 

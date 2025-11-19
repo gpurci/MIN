@@ -49,7 +49,7 @@ class Metrics(RootGA):
             elif (method == "TTP_exp"):
                 fn = self.metricsTTPExp
                 self.getScore = self.getScoreTTP
-            elif (method == "extern"):
+            elif ((method == "extern") and (extern_fn is not None)):
                 fn = extern_fn
                 self.getScore = extern_fn.getScore
 

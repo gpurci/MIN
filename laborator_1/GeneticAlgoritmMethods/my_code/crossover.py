@@ -61,7 +61,7 @@ class Crossover(RootGA):
                 fn = self.crossoverFlipSim
             elif (method == "mixt"):
                 fn = self.crossoverMixt
-            elif (method == "extern"):
+            elif ((method == "extern") and (extern_fn is not None)):
                 fn = extern_fn
 
         return fn

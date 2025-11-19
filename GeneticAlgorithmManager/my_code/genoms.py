@@ -28,7 +28,7 @@ class Genoms(object):
         self.__genoms[key] = value
 
     def __str__(self):
-        info = "Genoms:\n"
+        info = "Genoms: shape '{}'\n".format(self.shape)
         for key in self.__keys:
             info += "\tChromozom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
         return info

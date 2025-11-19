@@ -28,7 +28,7 @@ class InitPopulation(RootGA):
 
     def __call__(self, size):
         # apel direct: obiect(config)(size)
-        return self.__fn(size, **self.__configs)
+        return self.__fn(size, genoms=self.__genoms, **self.__configs)
 
     def __unpackMethod(self, method, extern_fn):
         # selecteaza metoda dupa care se aplica metrica
@@ -54,15 +54,20 @@ class InitPopulation(RootGA):
 
     def __setMethods(self, method):
         self.__method = method
-        extern_fn = self.__configs.pop("extern_fn", None)
-        self.__fn = self.__unpackMethod(method, extern_fn)
+        self.__extern_fn = self.__configs.pop("extern_fn", None)
+        self.__fn = self.__unpackMethod(method, self.__extern_fn)
 
-    def initPopulationAbstract(self, size):
+    def setParameters(self, **kw):
+        super().setParameters(**kw)
+        if (self.__extern_fn is not None):
+            self.__extern_fn.setParameters(**kw)
+
+    def initPopulationAbstract(self, size, genoms=None):
         # default: nu exista implementare
         raise NameError("Lipseste metoda '{}' pentru functia de 'InitPopulation': config '{}'".format(self.__method, self.__configs))
 
     # initPopulationsTSPRand -------------------------------------
-    def initPopulationsTSPRand(self, population_size=-1):
+    def initPopulationsTSPRand(self, population_size=-1, genoms=None):
         """Initializarea populatiei, cu drumuri aleatorii"""
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
@@ -71,14 +76,14 @@ class InitPopulation(RootGA):
         # creaza o populatie aleatorie
         for _ in range(population_size):
             # adauga individ in genome
-            self.__genoms.add(tsp=np.random.permutation(individ))
+            genoms.add(tsp=np.random.permutation(individ))
         # adauga indivizi in noua generatie
-        self.__genoms.save()
-        print("population {}".format(self.__genoms.shape))
+        genoms.save()
+        print("population {}".format(genoms.shape))
     # initPopulationsTSPRand =====================================
 
     # initPopulationsTTPRand -------------------------------------
-    def initPopulationsTTPRand(self, population_size=-1):
+    def initPopulationsTTPRand(self, population_size=-1, genoms=None):
         """Initializarea populatiei, cu drumuri aleatorii"""
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
@@ -88,14 +93,14 @@ class InitPopulation(RootGA):
         for _ in range(population_size):
             # adauga tsp_individ in genome
             kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
-            self.__genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
+            genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
         # adauga indivizi in noua generatie
-        self.__genoms.save()
-        print("population {}".format(self.__genoms.shape))
+        genoms.save()
+        print("population {}".format(genoms.shape))
     # initPopulationsTTPRand =====================================
 
     # initPopulationMatei -------------------------------------
-    def initPopulationTTP(self, size, lambda_time=0.1,
+    def initPopulationTTP(self, size, genoms=None, lambda_time=0.1,
                             vmax=1.0, vmin=0.1, Wmax=25936, seed=None):
         """
         Genereaza `size` indivizi folosind o euristica greedy TTP:
@@ -140,14 +145,14 @@ class InitPopulation(RootGA):
             seen.add(key)
 
             # add to Genoms object
-            self.__genoms.add(tsp=route, kp=kp)
+            genoms.add(tsp=route, kp=kp)
 
             count += 1
 
         # finalize new generation
-        self.__genoms.save()
+        genoms.save()
 
-        print("population initialized:", self.__genoms.shape)
+        print("population initialized:", genoms.shape)
 
     # HELPER — incarcare dataset TTP
     def _loadTTPdataset(self):

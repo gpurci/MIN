@@ -83,8 +83,13 @@ class Crossover(RootGA):
         for idx, key in enumerate(self.__genome.keys(), 0):
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
-            extern_fn           = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__fn[key]      = self.__unpackMethod(method, extern_fn)
+            self.__extern_fn    = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__fn[key]      = self.__unpackMethod(method, self.__extern_fn)
+
+    def setParameters(self, **kw):
+        super().setParameters(**kw)
+        if (self.__extern_fn is not None):
+            self.__extern_fn.setParameters(**kw)
 
     def crossoverAbstract(self, parent1, parent2, low, high):
         error_mesage = ""

@@ -23,17 +23,18 @@ class Metrics(RootGA):
         return info
 
     def __call__(self, genomics):
-        return self.fn(genomics, **self.__configs)
+        return self.__fn(genomics, **self.__configs)
 
     def help(self):
         info = """Metrics:
     metoda: 'TTP_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
     metoda: 'TTP_ada_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
     metoda: 'TTP_exp';    config: -> "v_min":0.1, "v_max":1, "W":2000, "lam":0.01;
-    metoda: 'TSP';        config: None;\n"""
+    metoda: 'TSP';        config: None;
+    metoda: 'extern';     config: 'extern_kw';\n"""
         return info
 
-    def __unpack_method(self, method):
+    def __unpackMethod(self, method, extern_fn):
         fn = self.metricsAbstract
         if (method is not None):
             if   (method == "TSP"):
@@ -48,12 +49,16 @@ class Metrics(RootGA):
             elif (method == "TTP_exp"):
                 fn = self.metricsTTPExp
                 self.getScore = self.getScoreTTP
+            elif (method == "extern"):
+                fn = extern_fn
+                self.getScore = extern_fn.getScore
 
         return fn
 
     def __setMethods(self, method):
         self.__method = method
-        self.fn = self.__unpack_method(method)
+        extern_fn = self.__configs.pop("extern_fn", None)
+        self.__fn = self.__unpackMethod(method, extern_fn)
 
     def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))

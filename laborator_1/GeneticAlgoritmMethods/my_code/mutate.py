@@ -42,7 +42,7 @@ class Mutate(RootGA):
 
         return offspring
 
-    def __unpack_method(self, method, extern_fn):
+    def __unpackMethod(self, method, extern_fn):
         fn = self.mutateAbstract
         if (method is not None):
             if   (method == "swap"):
@@ -122,8 +122,8 @@ class Mutate(RootGA):
         for key in self.__genome.keys():
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
-            extern_fn           = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__fn[key]      = self.__unpack_method(method, extern_fn)
+            extern_fn      = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__fn[key] = self.__unpackMethod(method, extern_fn)
 
     def mutateAbstract(self, parent1, parent2, offspring):
         error_mesage = ""

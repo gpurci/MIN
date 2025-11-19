@@ -48,7 +48,7 @@ class Crossover(RootGA):
             info += "\t{}".format(tmp)
         return info
 
-    def __unpack_method(self, method, extern_fn):
+    def __unpackMethod(self, method, extern_fn):
         fn = self.crossoverAbstract
         if (method is not None):
             if   (method == "diff"):
@@ -84,7 +84,7 @@ class Crossover(RootGA):
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
             extern_fn           = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__fn[key]      = self.__unpack_method(method, extern_fn)
+            self.__fn[key]      = self.__unpackMethod(method, extern_fn)
 
     def crossoverAbstract(self, parent1, parent2, low, high):
         error_mesage = ""

@@ -9,7 +9,7 @@ __pycache__/
 *.pyd
 *.py[codz]
 *$py.class
-logs/*.csv
+logs/
 out/
 !data/*.csv
 *.cmd

@@ -28,9 +28,9 @@ class InitPopulation(RootGA):
 
     def __call__(self, size):
         # apel direct: obiect(config)(size)
-        return self.fn(size, **self.__configs)
+        return self.__fn(size, **self.__configs)
 
-    def __unpack_method(self, method):
+    def __unpackMethod(self, method, extern_fn):
         # selecteaza metoda dupa care se aplica metrica
         fn = self.initPopulationAbstract
         if (method is not None):
@@ -40,18 +40,22 @@ class InitPopulation(RootGA):
                 fn = self.initPopulationsTSPRand
             elif (method == "TTP_rand"):
                 fn = self.initPopulationsTTPRand
+            elif (method == "extern"):
+                fn = extern_fn
         return fn
 
     def help(self):
         info = """InitPopulation:
     metoda: 'TTP_vecin'; config: -> "lambda_time":0.1, "vmax":1.0, "vmin":0.1, "Wmax":25936, "seed":None;
     metoda: 'TTP_rand';  config: None;
-    metoda: 'TSP_rand';  config: None;\n"""
+    metoda: 'TSP_rand';  config: None;
+    metoda: 'extern';    config: 'extern_kw';\n"""
         return info
 
     def __setMethods(self, method):
         self.__method = method
-        self.fn = self.__unpack_method(method)
+        extern_fn = self.__configs.pop("extern_fn", None)
+        self.__fn = self.__unpackMethod(method, extern_fn)
 
     def initPopulationAbstract(self, size):
         # default: nu exista implementare

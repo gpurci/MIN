@@ -17,7 +17,7 @@ class Fitness(RootGA):
         self.__setMethods(method)
 
     def __call__(self, metric_values):
-        return self.fn(metric_values, **self.__configs)
+        return self.__fn(metric_values, **self.__configs)
 
     def __str__(self):
         info = """Fitness: 
@@ -25,7 +25,7 @@ class Fitness(RootGA):
         configs: {}""".format(self.__method, self.__configs)
         return info
 
-    def __unpack_method(self, method):
+    def __unpackMethod(self, method, extern_fn):
         fn = self.fitnessAbstract
         if (method is not None):
             if   (method == "TSP_f1score"):
@@ -36,6 +36,8 @@ class Fitness(RootGA):
                 fn = self.fitnessF1scoreTTP
             elif (method == "TTP"):
                 fn = self.fitnessTTP
+            elif (method == "extern"):
+                fn = extern_fn
 
         return fn
 
@@ -44,12 +46,14 @@ class Fitness(RootGA):
     metoda: 'TSP_f1score'; config: None;
     metoda: 'TSP_norm';    config: None;
     metoda: 'TTP_f1score'; config: -> "R":1, ;
-    metoda: 'TTP';         config: -> "R":1, ;\n"""
+    metoda: 'TTP';         config: -> "R":1, ;
+    metoda: 'extern';      config: 'extern_kw';\n"""
         return info
 
     def __setMethods(self, method):
         self.__method = method
-        self.fn = self.__unpack_method(method)
+        extern_fn = self.__configs.pop("extern_fn", None)
+        self.__fn = self.__unpackMethod(method, extern_fn)
 
     def fitnessAbstract(self, metric_values:dict):
         raise NameError("Lipseste metoda '{}',pentru functia de 'Fitness', configs '{}'".format(self.__method, self.__configs))

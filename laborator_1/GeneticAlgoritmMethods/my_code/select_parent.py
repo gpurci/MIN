@@ -25,9 +25,9 @@ class SelectParent(RootGA):
         return info
 
     def __call__(self):
-        return self.fn(**self.__configs)
+        return self.__fn(**self.__configs)
 
-    def __unpack_method(self, method):
+    def __unpackMethod(self, method, extern_fn):
         fn = self.selectParentAbstract
         if (method is not None):
             if   (method == "choice"):
@@ -44,6 +44,8 @@ class SelectParent(RootGA):
                 fn = self.selectParentRise
             elif (method == "mixt"):
                 fn = self.selectParentMixt
+            elif (method == "extern"):
+                fn = extern_fn
                 
         return fn
 
@@ -55,12 +57,14 @@ class SelectParent(RootGA):
     metoda: 'tour';        config: -> "size_subset":7;
     metoda: 'tour_choice'; config: -> "size_subset":7;
     metoda: 'rise';        config: None;
-    metoda: 'mixt';        config: -> "p_select":[1/4, 1/4, 1/4, 1/4], "size_subset":7;\n"""
+    metoda: 'mixt';        config: -> "p_select":[1/4, 1/4, 1/4, 1/4], "size_subset":7;
+    metoda: 'extern';      config: 'extern_kw';\n"""
         return info
 
     def __setMethods(self, method):
         self.__method = method
-        self.fn = self.__unpack_method(method)
+        extern_fn = self.__configs.pop("extern_fn", None)
+        self.__fn = self.__unpackMethod(method, extern_fn)
 
     def startEpoch(self, fitness_values):
         total_fitness = fitness_values.sum()

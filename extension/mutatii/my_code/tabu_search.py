@@ -51,7 +51,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
         """
         best_score    = self.computeIndividDistance(offspring)
         ret_offspring = offspring.copy()
-        for i in range(0, self.GENOME_LENGTH, 1):
+        for i in range(0, self.GENOME_LENGTH-1, 1):
             for j in range(i+1, self.GENOME_LENGTH, 1):
                 tmp = offspring.copy()
                 tmp[i], tmp[j] = tmp[j], tmp[i]
@@ -72,7 +72,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
 
         best_score = self.computeIndividDistance(offspring)
         ret_offspring = offspring.copy()
-        for locus1 in range(start, stop, 1):
+        for locus1 in range(start, stop-1, 1):
             for locus2 in range(locus1+1, stop, 1):
                 tmp = offspring.copy()
                 tmp[locus1], tmp[locus2] = tmp[locus2], tmp[locus1]
@@ -95,7 +95,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
 
         best_score = city_distances.sum()
         ret_offspring = offspring.copy()
-        for i in range(0, args_distances.shape[0], 1):
+        for i in range(0, args_distances.shape[0]-1, 1):
             for j in range(i+1, args_distances.shape[0], 1):
                 tmp = offspring.copy()
                 locus1 = args_distances[i]

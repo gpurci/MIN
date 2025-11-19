@@ -302,7 +302,7 @@ class GeneticAlgorithm(RootGA):
         cauta cele mai frecvente secvente de genom si aplica un stres modifica acele zone
         evolution_scores - scorul evolutiei
         """
-        check_distance = np.allclose(self.__score_evolution.mean(), evolution_scores["score"], rtol=1e-03, atol=1e-08)
+        check_distance = np.allclose(self.__score_evolution.mean(), evolution_scores["score"], rtol=1e-01, atol=1e-03)
         #print("distance evolution {}, distance {}".format(check_distance, best_distance))
         if (check_distance):
             self.__score_evolution[:] = 0

@@ -57,8 +57,13 @@ class Metrics(RootGA):
 
     def __setMethods(self, method):
         self.__method = method
-        extern_fn = self.__configs.pop("extern_fn", None)
-        self.__fn = self.__unpackMethod(method, extern_fn)
+        self.__extern_fn = self.__configs.pop("extern_fn", None)
+        self.__fn = self.__unpackMethod(method, self.__extern_fn)
+
+    def setParameters(self, **kw):
+        super().setParameters(**kw)
+        if (self.__extern_fn is not None):
+            self.__extern_fn.setParameters(**kw)
 
     def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))

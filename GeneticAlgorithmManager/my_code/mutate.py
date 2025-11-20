@@ -473,6 +473,7 @@ class Mutate(RootGA):
         # insertion
         elif (cond == 12):
             offspring = self.mutateInsertion(parent1, parent2, offspring)
+        
         return offspring
 
 

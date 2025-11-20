@@ -68,7 +68,6 @@ class GeneticAlgorithm(RootGA):
         fitness_values = self.fitness(metric_values)
         # obtinerea pozitiei pentru elite
         args_elite = self.getArgsElite(fitness_values)
-
         # evolutia generatiilor
         for generation in range(self.GENERATIONS):
             # pentru oprire fortata

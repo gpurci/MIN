@@ -355,7 +355,30 @@ class Metrics(RootGA):
             "times"    : times
         }
         return metric_values
-    # TTP Exponential =================================
+
+    def computeSpeedTTP(self, Wcur, v_max, v_min, Wmax):
+        """
+        Standard TTP speed: v = v_max - (v_max - v_min) * (Wcur / Wmax),
+        clamped to [v_min, v_max].
+        """
+        v = v_max - (v_max - v_min) * (Wcur / float(Wmax))
+        if v < v_min:
+            v = v_min
+        elif v > v_max:
+            v = v_max
+        return v
+    
+    def getIndividDistanceTTP(self, tsp_individ, distance=None):
+        """
+        Distance of a TSP tour 
+        """
+        if distance is None:
+            distance = self.dataset["distance"]
+
+        d = distance[tsp_individ[:-1], tsp_individ[1:]].sum()
+        d += distance[tsp_individ[-1], tsp_individ[0]]
+        return d
+
 
     def getScoreTTP(self, genomics, fitness_values):
         # find best individual

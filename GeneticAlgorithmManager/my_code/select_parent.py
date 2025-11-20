@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import numpy as np
-from root_GA import *
+from extern_fn import *
 
-class SelectParent(RootGA):
+class SelectParent(ExtenFn):
     """
     Clasa 'SelectParent', ofera doar metode pentru a selecta unul din parinti in calitate de parinte 1 sau 2
     Functia 'selectParent' nu are parametri.

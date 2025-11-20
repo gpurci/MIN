@@ -182,11 +182,11 @@ class GeneticAlgorithm(RootGA):
         self.fitness = Fitness(extern_fn)
         self.__functions.append(self.fitness)
         # configurate selectie parinti
-        method, method_configs = self.__unpackConfigure("select_parent1", **configs)
-        self.selectParent1 = SelectParent(method, **method_configs)
+        extern_fn = configs.get("select_parent1", None)
+        self.selectParent1 = SelectParent(extern_fn)
         self.__functions.append(self.selectParent1)
-        method, method_configs = self.__unpackConfigure("select_parent2", **configs)
-        self.selectParent2 = SelectParent(method, **method_configs)
+        extern_fn = configs.get("select_parent2", None)
+        self.selectParent2 = SelectParent(extern_fn)
         self.__functions.append(self.selectParent2)
         # configurare incrucisare
         method, method_configs = self.__unpackConfigure("crossover", **configs)

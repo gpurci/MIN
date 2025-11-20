@@ -225,6 +225,7 @@ class Metrics(RootGA):
             "weights"    : weights,
             "number_city": number_city
         }
+
         return metric_values
     # TTP Liniar =================================
 

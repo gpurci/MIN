@@ -48,7 +48,7 @@ class Crossover(RootGA):
     metoda: 'perm_sim'; config None;
     metoda: 'flip_sim'; config None;
     metoda: 'mixt';     config -> "p_method":[1/4, 1/4, 1/4, 1/4], ;\n"""
-        return info
+        print(info)
 
     def crossoverAbstract(self, parent1, parent2):
         error_mesage = "Functia 'Crossover', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)

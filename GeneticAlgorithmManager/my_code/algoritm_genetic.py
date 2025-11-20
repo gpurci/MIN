@@ -166,7 +166,6 @@ class GeneticAlgorithm(RootGA):
         self.__functions = []
         # configureaza genoms
         config = configs.get("genoms", {})
-        chromozomes_name = list(config.keys())
         self.__genoms = Genoms(size=self.GENOME_LENGTH, **config)
         self.__functions.append(self.__genoms)
         # configurare metrici
@@ -189,13 +188,12 @@ class GeneticAlgorithm(RootGA):
         self.selectParent2 = SelectParent(method, **method_configs)
         self.__functions.append(self.selectParent2)
         # configurare incrucisare
-        chromozome_configs = self.__unpackGenomsConfigure("crossover", chromozomes_name, **configs)
-        print("chromozome_configs", chromozome_configs)
-        self.crossover = Crossover(self.__genoms, **chromozome_configs)
+        method, method_configs = self.__unpackConfigure("crossover", **configs)
+        self.crossover = Crossover(self.__genoms, method, **method_configs)
         self.__functions.append(self.crossover)
         # configurare mutatie
-        chromozome_configs = self.__unpackGenomsConfigure("mutate", chromozomes_name, **configs)
-        self.mutate   = Mutate(self.__genoms, **chromozome_configs)
+        method, method_configs = self.__unpackConfigure("mutate", **configs)
+        self.mutate   = Mutate(self.__genoms, method, **method_configs)
         self.__functions.append(self.mutate)
         # configurare callback salvare, istoricul de antrenare
         config        = configs.get("callback", {})

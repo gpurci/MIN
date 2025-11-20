@@ -80,7 +80,7 @@ class Mutate(RootGA):
     metoda: 'inversion_diff'; config: None;
     metoda: 'insertion'; config: None;
     metoda: 'mixt';      config: -> "p_method":[1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13], "subset_size":7;\n"""
-        return info
+        print(info)
 
     def mutateAbstract(self, parent1, parent2, offspring):
         error_mesage = "Functia 'Mutate', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)

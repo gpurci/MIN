@@ -10,11 +10,11 @@ class Crossover(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, genome, **configs):
+    def __init__(self, genome, method, **configs):
         super().__init__()
         self.__genome  = genome
         self.__configs = configs
-        self.__unpackConfigs()
+        self.__unpackConfigs(method)
 
     def __call__(self, parent1, parent2, **kw):
         return self.__man_fn(parent1, parent2, **kw)
@@ -76,20 +76,43 @@ class Crossover(RootGA):
     metoda: 'mixt';       config -> "p_select":[1/2, 1/2], ;\n"""
         return info
 
-    def __unpackConfigs(self):
-        # unpack manager method
-        self.__method = self.__configs.pop("method", None)
-        self.__man_fn = self.__unpackManMethod(self.__method)
+    def __unpackChromosomeConfigs(self, method):
         # unpack cromosome method
-        self.__chromosome_fn = {}
-        for key in self.__genome.keys():
-            extern_fn = self.__configs.get(key, None)
-            fn        = self.__unpackChromosomeMethod(extern_fn)
-            self.__chromosome_fn[key] = fn
-        else:
+        chromosome_fn = {}
+        if (method == "chromosome"):
+            for key in self.__genome.keys():
+                extern_fn = self.__configs.get(key, None)
+                fn        = self.__unpackChromosomeMethod(extern_fn)
+                chromosome_fn[key] = fn
+        return chromosome_fn
+
+    def __unpackGenomeConfigs(self, method):
+        chromosome_fn = {}
+        if (method == "genome"):
             extern_fn = self.__configs.get("genome", None)
             fn        = self.__unpackChromosomeMethod(extern_fn)
-            self.__chromosome_fn[key] = fn
+            self.__chromosome_fn["genome"] = fn
+        return chromosome_fn
+
+    def __unpackMixtConfigs(self, method):
+        chromosome_fn = {}
+        if (method == "mixt"):
+            chromosome_fn = self.__unpackChromosomeConfigs("chromosome")
+            tmp_fn        = self.__unpackChromosomeConfigs("genome")
+            chromosome_fn.update(tmp_fn)
+        return chromosome_fn
+
+    def __unpackConfigs(self, method):
+        # unpack manager method
+        self.__method = method
+        self.__man_fn = self.__unpackManMethod(self.__method)
+        # unpack cromosome method
+        tmp_chr_fn = self.__unpackChromosomeConfigs(self.__method)
+        tmp_gen_fn = self.__unpackGenomeConfigs(self.__method)
+        tmp_mxt_fn = self.__unpackMixtConfigs(self.__method)
+        self.__chromosome_fn = tmp_chr_fn
+        self.__chromosome_fn.update(tmp_gen_fn)
+        self.__chromosome_fn.update(tmp_mxt_fn)
 
     def setParameters(self, **kw):
         super().setParameters(**kw)

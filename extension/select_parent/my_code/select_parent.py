@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from root_GA import *
+from GeneticAlgorithmManager.my_code.root_GA import *
 
 class SelectParent(RootGA):
     """
@@ -59,7 +59,7 @@ class SelectParent(RootGA):
     metoda: 'rise';        config: None;
     metoda: 'mixt';        config: -> "p_select":[1/4, 1/4, 1/4, 1/4], "size_subset":7;
     metoda: 'extern';      config: 'extern_kw';\n"""
-        return info
+        print(info)
 
     def __setMethods(self, method):
         self.__method = method

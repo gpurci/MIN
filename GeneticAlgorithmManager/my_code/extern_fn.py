@@ -36,7 +36,7 @@ class ExtenFn():
 
     def setParameters(self, **kw):
         if (self._extern_fn is not None):
-            if (issubclass(self._extern_fn, RootGA)):
+            if (isinstance(self._extern_fn, RootGA)):
                 self._extern_fn.setParameters(**kw)
             else:
                 raise NameError("Functia '{}', functia externa '{}', nu mosteneste 'RootGA'".format(self.__name, self._extern_fn))

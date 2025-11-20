@@ -138,7 +138,7 @@ class GenomOp(RootGA):
         for key in self._chromosome_fn.keys():
             obj_chromosome = self._chromosome_fn[key]
             if (obj_chromosome is not None):
-                if (issubclass(obj_chromosome, RootGA)):
+                if (isinstance(obj_chromosome, RootGA)):
                     obj_chromosome.setParameters(**kw)
                 else:
                     raise NameError("Functia '{}', functia externa '{}', nu mosteneste 'RootGA'".format(self.__name, obj_chromosome))

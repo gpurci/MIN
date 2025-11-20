@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from root_GA import *
+from GeneticAlgorithmManager.my_code.root_GA import *
 
 class Fitness(RootGA):
     """
@@ -48,7 +48,7 @@ class Fitness(RootGA):
     metoda: 'TTP_f1score'; config: -> "R":1, ;
     metoda: 'TTP';         config: -> "R":1, ;
     metoda: 'extern';      config: 'extern_kw';\n"""
-        return info
+        print(info)
 
     def __setMethods(self, method):
         self.__method = method

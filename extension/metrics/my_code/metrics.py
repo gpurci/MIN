@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from root_GA import *
+from GeneticAlgorithmManager.my_code.root_GA import *
 
 class Metrics(RootGA):
     """
@@ -32,7 +32,7 @@ class Metrics(RootGA):
     metoda: 'TTP_exp';    config: -> "v_min":0.1, "v_max":1, "W":2000, "lam":0.01;
     metoda: 'TSP';        config: None;
     metoda: 'extern';     config: 'extern_kw';\n"""
-        return info
+        print(info)
 
     def __unpackMethod(self, method, extern_fn):
         fn = self.metricsAbstract

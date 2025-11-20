@@ -119,21 +119,6 @@ class GeneticAlgorithm(RootGA):
 
         return self.metrics.getBestIndivid()
 
-    def __unpackGenomsConfigure(self, str_functia, chromozomes_name, **configs):
-        # 
-        ret_conf_chromozomes = {}
-        if (configs is not None):
-            for chromozome_name in chromozomes_name:
-                tmp_config = "{}_{}".format(str_functia, chromozome_name)
-                chromozome_configs = configs.get(tmp_config, None)
-                ret_conf_chromozomes[chromozome_name] = chromozome_configs
-                if (chromozome_configs is None):
-                    warnings.warn("\nLipseste configuratia, pentru chromozomul '{}', functia '{}'\n".format(chromozome_name, str_functia))
-        else:
-            warnings.warn("\nLipseste configs: 'GeneticAlgorithm'\n")
-
-        return ret_conf_chromozomes
-
     def __unpackConfigure(self, str_functia, **configs):
         method, method_configs = None, {}
         if (configs is not None):
@@ -177,7 +162,6 @@ class GeneticAlgorithm(RootGA):
         self.initPopulation = InitPopulation(extern_fn)
         self.__functions.append(self.initPopulation)
         # configurare fitness
-        method, method_configs = self.__unpackConfigure("fitness", **configs)
         extern_fn = configs.get("fitness", None)
         self.fitness = Fitness(extern_fn)
         self.__functions.append(self.fitness)
@@ -217,9 +201,6 @@ class GeneticAlgorithm(RootGA):
         info += "'mutate': "+self.mutate.help()
         info += "'callback': "+self.callback.help()
         print(info)
-
-    def setDataset(self, dataset):
-        self.metrics.setDataset(dataset)
 
     def setParameters(self, **kw):
         super().setParameters(**kw)

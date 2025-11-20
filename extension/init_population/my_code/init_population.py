@@ -1,7 +1,6 @@
 #!/usr/bin/python
 import numpy as np
-from root_GA import *
-from genoms import *
+from GeneticAlgorithmManager.my_code.root_GA import *
 
 class InitPopulation(RootGA):
     """
@@ -47,7 +46,7 @@ class InitPopulation(RootGA):
     metoda: 'TTP_rand';  config: None;
     metoda: 'TSP_rand';  config: None;
     metoda: 'extern';    config: 'extern_kw';\n"""
-        return info
+        print(info)
 
     def __setMethods(self, method):
         self.__method = method

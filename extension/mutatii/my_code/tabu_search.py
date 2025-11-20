@@ -51,7 +51,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
         """
         best_score    = self.computeIndividDistance(offspring)
         ret_offspring = offspring.copy()
-        for i in range(0, self.GENOME_LENGTH-1, 1):
+        for i in range(0, self.GENOME_LENGTH, 1):
             for j in range(i+1, self.GENOME_LENGTH, 1):
                 tmp = offspring.copy()
                 tmp[i], tmp[j] = tmp[j], tmp[i]
@@ -72,7 +72,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
 
         best_score = self.computeIndividDistance(offspring)
         ret_offspring = offspring.copy()
-        for locus1 in range(start, stop-1, 1):
+        for locus1 in range(start, stop, 1):
             for locus2 in range(locus1+1, stop, 1):
                 tmp = offspring.copy()
                 tmp[locus1], tmp[locus2] = tmp[locus2], tmp[locus1]
@@ -91,20 +91,38 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
         city_distances = self.individCityDistance(offspring)
         d_mean = np.mean(city_distances)
         mask   = city_distances > d_mean
-        args_distances = np.argwhere(mask)
+        bad_edges = np.flatnonzero(mask)
+        n_bad = bad_edges.shape[0]
+
+        if n_bad < 2:
+            return offspring
+
+        # LIMIT neighborhood size
+        max_bad = self.__configs.get("max_bad_edges", 40)
+
+        if n_bad > max_bad:
+            bad_edges = np.random.choice(bad_edges, size=max_bad, replace=False)
+            n_bad = max_bad
 
         best_score = city_distances.sum()
         ret_offspring = offspring.copy()
-        for i in range(0, args_distances.shape[0]-1, 1):
-            for j in range(i+1, args_distances.shape[0], 1):
+        first_improvement = self.__configs.get("first_improvement", True) 
+        # explore neighborhood only on selected bad positions
+        for idx_i in range(n_bad):
+            i = bad_edges[idx_i]
+            for idx_j in range(idx_i + 1, n_bad):
+                j = bad_edges[idx_j]
+
                 tmp = offspring.copy()
-                locus1 = args_distances[i]
-                locus2 = args_distances[j]
-                tmp[locus1], tmp[locus2] = tmp[locus2], tmp[locus1]
+                tmp[i], tmp[j] = tmp[j], tmp[i]
+
                 tmp_score = self.computeIndividDistance(tmp)
                 if (best_score > tmp_score):
                     best_score = tmp_score
                     ret_offspring = tmp
+                    # major speed-up if we exit early
+                    if first_improvement: 
+                        return ret_offspring 
         return ret_offspring
 
     def computeIndividDistance(self, individ):

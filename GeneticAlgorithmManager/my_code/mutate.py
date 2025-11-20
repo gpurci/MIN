@@ -122,13 +122,8 @@ class Mutate(RootGA):
         for key in self.__genome.keys():
             method = self.__chromosom_configs[key].pop("method", None)
             self.__methods[key] = method
-            self.__extern_fn    = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__fn[key]      = self.__unpackMethod(method, self.__extern_fn)
-
-    def setParameters(self, **kw):
-        super().setParameters(**kw)
-        if (self.__extern_fn is not None):
-            self.__extern_fn.setParameters(**kw)
+            extern_fn      = self.__chromosom_configs[key].pop("extern_fn", None)
+            self.__fn[key] = self.__unpackMethod(method, extern_fn)
 
     def mutateAbstract(self, parent1, parent2, offspring):
         error_mesage = ""
@@ -473,6 +468,7 @@ class Mutate(RootGA):
         # insertion
         elif (cond == 12):
             offspring = self.mutateInsertion(parent1, parent2, offspring)
+        
         return offspring
 
 

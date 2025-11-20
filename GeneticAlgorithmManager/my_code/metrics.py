@@ -68,6 +68,10 @@ class Metrics(RootGA):
     def setDataset(self, dataset):
         print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))
         self.dataset = dataset
+        if "items" in dataset:
+            self.items = dataset["items"]
+        else:
+            self.items = []
 
     def getDataset(self):
         return self.dataset
@@ -355,7 +359,30 @@ class Metrics(RootGA):
             "times"    : times
         }
         return metric_values
-    # TTP Exponential =================================
+
+    def computeSpeedTTP(self, Wcur, v_max, v_min, Wmax):
+        """
+        Standard TTP speed: v = v_max - (v_max - v_min) * (Wcur / Wmax),
+        clamped to [v_min, v_max].
+        """
+        v = v_max - (v_max - v_min) * (Wcur / float(Wmax))
+        if v < v_min:
+            v = v_min
+        elif v > v_max:
+            v = v_max
+        return v
+    
+    def getIndividDistanceTTP(self, tsp_individ, distance=None):
+        """
+        Distance of a TSP tour 
+        """
+        if distance is None:
+            distance = self.dataset["distance"]
+
+        d = distance[tsp_individ[:-1], tsp_individ[1:]].sum()
+        d += distance[tsp_individ[-1], tsp_individ[0]]
+        return d
+
 
     def getScoreTTP(self, genomics, fitness_values):
         # find best individual

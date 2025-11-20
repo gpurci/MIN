@@ -30,5 +30,5 @@ class SelectParent(ExtenFn):
     def selectParentAbstract(self, **kw):
         raise NameError("Lipseste metoda '{}' pentru functia de 'SelectionParent': config '{}'".format(self.__method, self.__config))
 
-    def startEpoch(self, **kw):
+    def startEpochAbstract(self, **kw):
         raise NameError("Functia 'SelectionParent', lipseste functia 'startEpoch' din extern '{}'".format(self._extern_fn))

@@ -15,9 +15,9 @@ class TabuSearch(RootGA):
 
     def __setMethods(self, method):
         self.__method = method
-        self.__fn = self.__unpack_method(method)
+        self.__fn = self.__unpackMethod(method)
 
-    def __unpack_method(self, method):
+    def __unpackMethod(self, method):
         fn = self.tabuSearchAbstract
         if (method is not None):
             if   (method == "tabu_search"):
@@ -36,7 +36,7 @@ class TabuSearch(RootGA):
 Parent: {}""".format(self.__method, self.__configs, super().__str__())
         return info
 
-    def __call__(self, parent1, parent2, offspring):
+    def __call__(self, size, genoms=None, city=0, window_size=4):
         offspring = self.__fn(parent1, parent2, offspring)
         return offspring
 

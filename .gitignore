@@ -11,6 +11,7 @@ __pycache__/
 *$py.class
 logs/
 out/
+info/
 !data/*.csv
 *.cmd
 venv/

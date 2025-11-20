@@ -12,4 +12,4 @@ class Fitness(ExtenFn):
         super().__init__(extern_fn, "Fitness")
 
     def __call__(self, metric_values):
-        return self.__extern_fn(metric_values)
+        return self._extern_fn(metric_values)

@@ -10,7 +10,7 @@ class ExtenFn():
     """
     def __init__(self, extern_fn=None, name=""):
         super().__init__()
-        self.__extern_fn = self.__unpack(extern_fn)
+        self._extern_fn = self.__unpack(extern_fn)
         self.__name      = name
 
     def __call__(self, *args):
@@ -18,8 +18,8 @@ class ExtenFn():
 
     def __str__(self):
         info = "{}: ".format(self.__name)
-        if (self.__extern_fn is not None):
-            info += "{}".format(str(self.__extern_fn))
+        if (self._extern_fn is not None):
+            info += "{}".format(str(self._extern_fn))
         else:
             info += "{}".format(None)
         return info
@@ -35,13 +35,13 @@ class ExtenFn():
         return info
 
     def setParameters(self, **kw):
-        if (self.__extern_fn is not None):
-            if (issubclass(self.__extern_fn, RootGA)):
-                self.__extern_fn.setParameters(**kw)
+        if (self._extern_fn is not None):
+            if (issubclass(self._extern_fn, RootGA)):
+                self._extern_fn.setParameters(**kw)
             else:
-                raise NameError("Functia '{}', functia externa '{}', nu mosteneste 'RootGA'".format(self.__name, self.__extern_fn))
+                raise NameError("Functia '{}', functia externa '{}', nu mosteneste 'RootGA'".format(self.__name, self._extern_fn))
         else:
-            raise NameError("Functia '{}', lipseste functia externa '{}'".format(self.__name, self.__extern_fn))
+            raise NameError("Functia '{}', lipseste functia externa '{}'".format(self.__name, self._extern_fn))
 
     def abstract(self, *args):
-        raise NameError("Functia '{}', lipseste functia externa '{}'".format(self.__name, self.__extern_fn))
+        raise NameError("Functia '{}', lipseste functia externa '{}'".format(self.__name, self._extern_fn))

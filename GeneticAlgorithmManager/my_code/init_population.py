@@ -13,4 +13,4 @@ class InitPopulation(ExtenFn):
         super().__init__(extern_fn, "InitPopulation")
 
     def __call__(self, size, genoms):
-        return self.__extern_fn(size, genoms)
+        return self._extern_fn(size, genoms)

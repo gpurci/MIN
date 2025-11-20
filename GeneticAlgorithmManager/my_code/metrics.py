@@ -12,7 +12,7 @@ class Metrics(ExtenFn):
         super().__init__(extern_fn, "Metrics")
 
     def __call__(self, genomics):
-        return self.__extern_fn(genomics)
+        return self._extern_fn(genomics)
 
     def __unpack(self, extern_fn):
         fn = self.metricsAbstract
@@ -20,12 +20,12 @@ class Metrics(ExtenFn):
         if (extern_fn is not None):
             fn = extern_fn
             if (hasattr(extern_fn, "getScore")):
-                self.getScore = self.getScore
+                self.getScore = extern_fn.getScore
         return fn
 
     def metricsAbstract(self, *args):
-        raise NameError("Functia 'Metrics', lipseste functia externa '{}'".format(self.__extern_fn))
+        raise NameError("Functia 'Metrics', lipseste functia externa '{}'".format(self._extern_fn))
 
     def getScoreAbstract(self, *args):
-        raise NameError("Functia 'Metrics', lipseste functia 'getScore' din extern '{}'".format(self.__extern_fn))
+        raise NameError("Functia 'Metrics', lipseste functia 'getScore' din extern '{}'".format(self._extern_fn))
 

@@ -41,8 +41,8 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
     'dataset' - dataset \n"""
         print(info)
 
-    def __call__(self, size, genoms=None, **configs):
-        self.__fn(size, genoms=genoms, **configs)
+    def __call__(self, size, genoms=None):
+        self.__fn(size, genoms=genoms, **self.__configs)
 
     def initPopulationAbstract(self, size, genoms=None, **configs):
         raise NameError("Lipseste metoda '{}',pentru functia de 'RecInitPopulation', configs '{}'".format(self.__method, self.__configs))

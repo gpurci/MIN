@@ -28,3 +28,4 @@ class Metrics(ExtenFn):
 
     def getScoreAbstract(self, *args):
         raise NameError("Functia 'Metrics', lipseste functia 'getScore' din extern '{}'".format(self.__extern_fn))
+

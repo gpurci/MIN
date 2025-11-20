@@ -118,7 +118,7 @@ class Mutate(RootGA):
         super().setParameters(**kw)
         for key in self.__chromosome_fn.keys():
             obj_chromosome = self.__chromosome_fn[key]
-            if ((obj_chromosome is not None) and (hasattr(obj_chromosome, "setParameters"))):
+            if ((obj_chromosome is not None) and (issubclass(obj_chromosome, RootGA))):
                 obj_chromosome.setParameters(**kw)
 
     def mutateAbstract(self, *args, **kw):

@@ -14,7 +14,7 @@ class Genoms(object):
         # Define the structure: name (string), age (int), weight (float)
         self.__keys = list(gene_range.keys())
         if (len(self.__keys) == 0):
-            warnings.warn("Lipseste numele chromozomilor '{}'".format(gene_range))
+            warnings.warn("\nLipseste numele chromosomilor: '{}'\n".format(gene_range))
         # init range of genes
         self.__gene_range = gene_range
         # Define the structure: key (string), gene range (int32/float32)

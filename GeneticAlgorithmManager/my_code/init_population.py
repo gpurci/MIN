@@ -3,12 +3,9 @@
 import numpy as np
 from extern_fn import *
 
-class InitPopulation():
+class InitPopulation(ExtenFn):
     """
-    Clasa 'InitPopulation', ofera doar metode pentru a initializa populatia.
-    Functia 'initPopulation' are 1 parametru, numarul populatiei.
-    Metoda '__config_fn', selecteaza functia de initializare.
-    Metoda '__call__', aplica functia de initializare ce a fost selectata in '__config_fn'
+    Clasa 'InitPopulation',
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 

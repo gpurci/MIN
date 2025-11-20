@@ -61,7 +61,7 @@ class GeneticAlgorithm(RootGA):
         self.__init_command()
         # initiaizarea populatiei
         if (self.__genoms.is_genoms()==False):
-            self.initPopulation(self.POPULATION_SIZE)
+            self.initPopulation(self.POPULATION_SIZE, self.__genoms)
         # calculate metrics
         metric_values  = self.metrics(self.__genoms)
         # init fitness value
@@ -128,9 +128,9 @@ class GeneticAlgorithm(RootGA):
                 chromozome_configs = configs.get(tmp_config, None)
                 ret_conf_chromozomes[chromozome_name] = chromozome_configs
                 if (chromozome_configs is None):
-                    warnings.warn("Lipseste configuratia, pentru chromozomul '{}', functia '{}'".format(chromozome_name, str_functia))
+                    warnings.warn("\nLipseste configuratia, pentru chromozomul '{}', functia '{}'\n".format(chromozome_name, str_functia))
         else:
-            warnings.warn("Lipseste 'configs'")
+            warnings.warn("\nLipseste configs: 'GeneticAlgorithm'\n")
 
         return ret_conf_chromozomes
 
@@ -142,9 +142,9 @@ class GeneticAlgorithm(RootGA):
                 method = method_configs.pop("method", None)
             else:
                 method_configs = {}
-                warnings.warn("Lipseste metoda, pentru functia de '{}'".format(str_functia))
+                warnings.warn("Lipseste metoda, pentru functia: '{}'".format(str_functia))
         else:
-            warnings.warn("Lipseste 'configs'")
+            warnings.warn("\nLipseste configs: 'GeneticAlgorithm'\n")
 
         return method, method_configs
 
@@ -169,16 +169,17 @@ class GeneticAlgorithm(RootGA):
         self.__genoms = Genoms(size=self.GENOME_LENGTH, **config)
         self.__functions.append(self.__genoms)
         # configurare metrici
-        method, method_configs = self.__unpackConfigure("metric", **configs)
-        self.metrics = Metrics(method, **method_configs)
+        extern_fn = configs.get("metric", None)
+        self.metrics = Metrics(extern_fn)
         self.__functions.append(self.metrics)
         # configurare initializare populatie
-        method, method_configs = self.__unpackConfigure("init_population", **configs)
-        self.initPopulation = InitPopulation(method, self.metrics, self.__genoms, **method_configs)
+        extern_fn = configs.get("init_population", None)
+        self.initPopulation = InitPopulation(extern_fn)
         self.__functions.append(self.initPopulation)
         # configurare fitness
         method, method_configs = self.__unpackConfigure("fitness", **configs)
-        self.fitness = Fitness(method, **method_configs)
+        extern_fn = configs.get("fitness", None)
+        self.fitness = Fitness(extern_fn)
         self.__functions.append(self.fitness)
         # configurate selectie parinti
         method, method_configs = self.__unpackConfigure("select_parent1", **configs)
@@ -251,7 +252,7 @@ class GeneticAlgorithm(RootGA):
     # => we must compute metrics first, then compute fitness again.
     def setElites(self, elites):
         if (self.__genoms.is_genoms()==False):
-            self.initPopulation(self.POPULATION_SIZE)
+            self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         if (elites.shape[0] > 0):
             # MUST compute metrics first
@@ -263,7 +264,7 @@ class GeneticAlgorithm(RootGA):
 
     def setElitesByFitness(self, fitness_values, elites, fitness_elites=None):
         if (self.__genoms.is_genoms()==False):
-            self.initPopulation(self.POPULATION_SIZE)
+            self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         # here fitness_values already exists (caller passed it)
         if (elites.shape[0] > 0):

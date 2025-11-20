@@ -14,7 +14,7 @@ class ExtenFn():
         self.__name      = name
 
     def __call__(self, *args):
-        raise NameError("Functia '{}', lipseste functia externa '{}'".format(self.__name, self.__extern_fn))
+        raise NameError("Functia '{}', lipseste implementarea: '__call__'".format(self.__name))
 
     def __str__(self):
         info = "{}: ".format(self.__name)

@@ -1,12 +1,11 @@
 #!/usr/bin/python
 
 import numpy as np
-from root_GA import *
+from extern_fn import *
 
-class Metrics():
+class Metrics(ExtenFn):
     """
-    Clasa 'Metrics', ofera doar metode pentru a calcula metrici pentru clase de probleme de optimizare.
-    Functia 'metrics' are 1 parametru, populatia.
+    Clasa 'Metrics', 
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
     def __init__(self, extern_fn=None):

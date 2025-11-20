@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from root_GA import *
+from GeneticAlgorithmManager.my_code.root_GA import *
 
 class Mutate(RootGA):
     """
@@ -10,39 +10,22 @@ class Mutate(RootGA):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, genome, **chromosom_configs):
+    def __init__(self, method, **configs):
         super().__init__()
-        self.__genome = genome
-        self.__chromosom_configs = chromosom_configs
-        self.__unpackConfigs()
-
-    def __str__(self):
-        info = "Mutate:\n"
-        for chrom_name in self.__genome.keys():
-            tmp   = "Chromozome name: '{}', method '{}', configs: '{}'\n".format(chrom_name, self.__methods[chrom_name], self.__chromosom_configs[chrom_name])
-            info += "\t{}".format(tmp)
-        return info
+        self.__method  = method
+        self.__configs = configs
+        self.__fn = self.__unpackMethod(method)
 
     def __call__(self, parent1, parent2, offspring):
-        tmp_genome = []
-        for chromozome_name in self.__genome.keys():
-            chromosome_val = self.__mutate_chromosome(parent1, parent2, offspring, chromozome_name)
-            tmp_genome.append(chromosome_val)
-        return self.__genome.concat(tmp_genome)
+        return self.__fn(parent1, parent2, offspring, **self.__configs)
 
-    def __mutate_chromosome(self, parent1, parent2, offspring, chromozome_name):
-        # calcularea ratei de probabilitate a mutatiei
-        rate = np.random.uniform(low=0, high=1, size=None)
-        if (rate <= self.MUTATION_RATE): # aplicarea operatiei de mutatie
-            offspring = self.__fn[chromozome_name](parent1[chromozome_name], parent2[chromozome_name], 
-                                                    offspring[chromozome_name], 
-                                                    **self.__chromosom_configs[chromozome_name])
-        else:
-            offspring = offspring[chromozome_name]
+    def __str__(self):
+        info  = "Mutate: method '{}'\n".format(self.__method)
+        tmp   = "configs: '{}'\n".format(self.__configs)
+        info += "\t{}".format(tmp)
+        return info
 
-        return offspring
-
-    def __unpackMethod(self, method, extern_fn):
+    def __unpackMethod(self, method):
         fn = self.mutateAbstract
         if (method is not None):
             if   (method == "swap"):
@@ -79,18 +62,6 @@ class Mutate(RootGA):
             elif (method == "mixt"):
                 fn = self.mutateMixt
 
-            elif (method == "binary"):
-                fn = self.mutateBinary
-            elif (method == "binary_sim"):
-                fn = self.mutateBinarySim
-            elif (method == "binary_diff"):
-                fn = self.mutateBinaryDiff
-            elif (method == "mixt_binary"):
-                fn = self.mutateMixtBinary
-
-            elif ((method == "extern") and (extern_fn is not None)):
-                fn = extern_fn
-
         return fn
 
     def help(self):
@@ -108,32 +79,11 @@ class Mutate(RootGA):
     metoda: 'inversion_sim';  config: None;
     metoda: 'inversion_diff'; config: None;
     metoda: 'insertion'; config: None;
-    metoda: 'mixt';      config: -> "p_method":[1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13], "subset_size":7;
-    metoda: 'binary';     config: None;
-    metoda: 'binary_sim'; config: None;
-    metoda: 'binary_diff';config: None;
-    metoda: 'mixt_binary';config: -> "p_method":[4/10, 1/10, 1/10, 3/10, 1/10], "subset_size":7;
-    metoda: 'extern';     config: 'extern_kw';\n"""
+    metoda: 'mixt';      config: -> "p_method":[1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13, 1/13], "subset_size":7;\n"""
         return info
 
-    def __unpackConfigs(self):
-        self.__fn      = {}
-        self.__methods = {}
-        for key in self.__genome.keys():
-            method = self.__chromosom_configs[key].pop("method", None)
-            self.__methods[key] = method
-            self.__extern_fn    = self.__chromosom_configs[key].pop("extern_fn", None)
-            self.__fn[key]      = self.__unpackMethod(method, self.__extern_fn)
-
-    def setParameters(self, **kw):
-        super().setParameters(**kw)
-        if (self.__extern_fn is not None):
-            self.__extern_fn.setParameters(**kw)
-
     def mutateAbstract(self, parent1, parent2, offspring):
-        error_mesage = ""
-        for chrom_name in self.__genome.keys():
-            error_mesage += "Lipseste metoda '{}' pentru chromozomul '{}', functia de 'Mutate': config '{}'\n".format(self.__methods[chrom_name], chrom_name, self.__chromosom_configs[chrom_name])
+        error_mesage = "Functia 'Mutate', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)
         raise NameError(error_mesage)
 
     def mutateSwap(self, parent1, parent2, offspring):
@@ -379,60 +329,6 @@ class Mutate(RootGA):
         locuses= np.arange(locus1, locus2)
         offspring[locuses] = offspring[locuses+1]
         offspring[locus2]  = gene1
-        return offspring
-
-    def mutateBinary(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        locus = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
-        offspring[locus] = 1 - offspring[locus]
-        return offspring
-
-    def mutateBinarySim(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        mask_locus = parent1==parent2
-        sim_locus = np.argwhere(mask_locus)
-        size_locus = mask_locus.sum()
-        if (size_locus >= 4):
-            start, lenght = recSim(mask_locus, 0, 0, 0)
-            if (lenght > 1):
-                locus = np.random.randint(low=start, high=start+lenght, size=None)
-                offspring[locus] = 1 - offspring[locus]
-        return offspring
-
-    def mutateBinaryDiff(self, parent1, parent2, offspring):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        # modifica doar genele care sunt asemanatoare
-        mask_diff_locus = parent1!=parent2
-        sim_locus = np.argwhere(mask_diff_locus)
-        size_locus = mask_diff_locus.sum()
-        if (size_locus >= 4):
-            start, lenght = recSim(mask_diff_locus, 0, 0, 0)
-            if (lenght > 1):
-                locus = np.random.randint(low=start, high=start+lenght, size=None)
-                offspring[locus] = 1 - offspring[locus]
-        return offspring
-
-    def mutateMixtBinary(self, parent1, parent2, offspring, p_method=None, subset_size=7):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
-        """
-        cond = np.random.choice([0, 1, 2, 3, 4], size=None, p=p_method)
         return offspring
 
     def mutateMixt(self, parent1, parent2, offspring, p_method=None, subset_size=7):

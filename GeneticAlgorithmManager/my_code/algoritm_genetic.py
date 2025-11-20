@@ -68,18 +68,6 @@ class GeneticAlgorithm(RootGA):
         fitness_values = self.fitness(metric_values)
         # obtinerea pozitiei pentru elite
         args_elite = self.getArgsElite(fitness_values)
-        # Apply Tabu Search improvement to top K elites
-        if self.__configs.get("apply_tabu_elites", False):
-            k = self.__configs.get("tabu_elite_count", 5)
-            elite_indices = args_elite[-k:] if len(args_elite) > k else args_elite
-            for idx in elite_indices:
-                indiv = self.__genoms[idx]
-                tsp = indiv["tsp"]
-                tabu = self.__configs.get("tabu_search", None)
-                if tabu is not None:
-                    improved_tsp = tabu(None, None, tsp)
-
-                indiv["tsp"] = improved_tsp
         # evolutia generatiilor
         for generation in range(self.GENERATIONS):
             # pentru oprire fortata

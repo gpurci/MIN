@@ -1,13 +1,13 @@
 #!/usr/bin/python
 import numpy as np
 from GeneticAlgorithmManager.my_code.root_GA import *
+from extension.local_search_algorithms.two_opt import TwoOpt
 
 class InitVecinPopulation(RootGA):
     """
     Extension: Greedy neighbor-based TTP initial population (TTP_vecin),
     self-contained version (NO dependency on Metrics).
     """
-
     def __init__(self, method="TTP_vecin", dataset=None, **configs):
         super().__init__()
         self.__configs = configs
@@ -20,7 +20,12 @@ class InitVecinPopulation(RootGA):
         self.distance    = dataset["distance"]
         self.item_profit = dataset["item_profit"]
         self.item_weight = dataset["item_weight"]
+
+        # Inject a TwoOpt operator for route refinement
+        self.two_opt_operator = TwoOpt("two_opt", dataset)
+
         self.__fn = self.initPopulationTTP
+
 
     def __str__(self):
         return f"InitVecinPopulation(method={self.__method}, configs={self.__configs})"
@@ -50,7 +55,7 @@ class InitVecinPopulation(RootGA):
             )
 
             # two-opt without metrics
-            route = self._twoOpt(route)
+            route = self.two_opt_operator.twoOptSimple(route)
 
             tup = tuple(route)
             if tup in seen:

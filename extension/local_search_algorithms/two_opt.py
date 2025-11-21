@@ -26,6 +26,8 @@ class TwoOpt(RootGA):
                 fn = self.twoOptRand
             elif (method == "two_opt_distance"):
                 fn = self.twoOptDistance
+            if   (method == "two_opt"):
+                fn = self.twoOpt
 
         return fn
 
@@ -107,6 +109,26 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
                     best_score = tmp_score
                     ret_offspring = tmp
         return ret_offspring
+    
+    def twoOptSimple(self, route):
+        """
+        A minimal two-opt local search for TTP initialization.
+        This is the same logic that was previously inside InitVecinPopulation._twoOpt.
+        """
+        best = route.copy()
+        best_d = self.computeIndividDistance(best)
+        n = len(best)
+
+        for i in range(1, n - 2):
+            for k in range(i + 1, n - 1):
+                new_r = best.copy()
+                new_r[i:k + 1] = np.flip(new_r[i:k + 1])
+
+                d = self.computeIndividDistance(new_r)
+                if d < best_d:
+                    return new_r
+
+        return best
 
     def computeIndividDistance(self, individ):
         """Calculul distantei pentru un individ"""

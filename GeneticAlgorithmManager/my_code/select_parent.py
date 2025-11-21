@@ -15,9 +15,10 @@ class SelectParent(ExtenFn):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self, extern_fn=None):
-        super().__init__(extern_fn, "Metrics")
+    def __init__(self, extern_fn=None, name="SelectParent"):
+        super().__init__(extern_fn, name)
         self._extern_fn = self.__unpack(extern_fn)
+        self.__name     = name
 
     def __call__(self):
         return self._extern_fn()
@@ -35,7 +36,7 @@ class SelectParent(ExtenFn):
         return fn
 
     def selectParentAbstract(self, **kw):
-        raise NameError("Functia 'SelectParent', lipseste metoda '{}', config: '{}'".format(self.__method, self.__config))
+        raise NameError("Functia '{}', lipseste metoda '{}', config: '{}'".format(self.__name, self.__method, self.__config))
 
     def startEpochAbstract(self, **kw):
-        raise NameError("Functia 'SelectParent', lipseste functia 'startEpoch' din extern '{}'".format(self._extern_fn))
+        raise NameError("Functia '{}', lipseste functia 'startEpoch' din extern '{}'".format(self.__name, self._extern_fn))

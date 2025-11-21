@@ -60,7 +60,7 @@ class InitVecinPopulation(RootGA):
             genoms.add(tsp=route, kp=kp)
             count += 1
 
-        genoms.save()
+        genoms.saveInit()
         print("Greedy TTP population =", genoms.shape)
 
     def computeSpeedTTP(self, Wcur, v_max, v_min, Wmax):

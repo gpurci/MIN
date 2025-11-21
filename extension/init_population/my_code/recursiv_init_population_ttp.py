@@ -69,7 +69,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
                 kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
                 genoms.add(tsp=tsp_individ, kp=kp_individ)
             # adauga indivizi in noua generatie
-            genoms.save()
+            genoms.saveInit()
             print("recTTP", genoms)
         else:
             raise NameError("Din functia externa 'RecInitPopulation', metoda 'recTTP', lipseste 'genoms'")

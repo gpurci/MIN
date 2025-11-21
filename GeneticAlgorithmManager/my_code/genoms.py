@@ -109,6 +109,10 @@ class Genoms(object):
         # adauga genomul in lista de genomi
         self.__new_genoms.append(genome)
 
+    def saveInit(self):
+        self.__save_count = self.__CHECK_FREQ
+        self.save()
+
     def save(self):
         """Salveaza noua generatie de genomuri"""
         del self.__genoms # sterge generatia veche

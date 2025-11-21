@@ -127,3 +127,4 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
                 population.extend(tmp_individs)
         visited_city[args] = False
         return population
+

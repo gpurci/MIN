@@ -7,16 +7,19 @@ class Genoms(object):
     """
     Clasa 'Genoms', ofera metode pentru a structura si procesa populatia.
     """
-    def __init__(self, size=10, **gene_range):
+    def __init__(self, size=10, check_freq=1, **gene_range):
         # if condition returns False, AssertionError is raised:
         #assert (isinstance(gene_range, dict)), "Parametrul 'gene_range': '{}', are un type differit de 'dict'".format(type(gene_range))
 
         # Define the structure: name (string), age (int), weight (float)
+        self.__CHECK_FREQ = check_freq
+        self.__save_count = 0
         self.__keys = list(gene_range.keys())
         if (len(self.__keys) == 0):
             warnings.warn("\n\nLipseste numele chromosomilor: '{}'".format(gene_range))
         # init range of genes
         self.__gene_range = gene_range
+        self.__best_chromosome = None
         # Define the structure: key (string), gene range (int32/float32)
         # init chromosome datatype
         self.setSize(size)
@@ -28,13 +31,22 @@ class Genoms(object):
         self.__genoms[key] = value
 
     def __str__(self):
-        info = "Genoms: shape '{}'\n".format(self.shape)
+        info = "Genoms: shape '{}', check_freq '{}'\n".format(self.shape, self.__CHECK_FREQ)
         for key in self.__keys:
             info += "\tChromosom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
         return info
 
     def population(self):
         return self.__genoms
+
+    def setPopulation(self, population):# TO DO: a secured set, check genom names
+        if (population is not None):
+            del self.__genoms # sterge generatia veche
+            # creaza o noua generatie
+            self.__genoms = population
+            # initializeaza lista de genomuri
+            del self.__new_genoms
+            self.__new_genoms = []
 
     def chromosomes(self, chromosome_name):
         return self.__genoms[chromosome_name]
@@ -64,6 +76,12 @@ class Genoms(object):
             self.__new_genoms = []
             self.save()
 
+    def setBest(self, chromosome):
+        self.__best_chromosome = chromosome
+
+    def getBest(self, chromosome):
+        return self.__best_chromosome
+
     def is_genoms(self):
         return (self.__genoms.shape[0] > 0)
 
@@ -73,9 +91,9 @@ class Genoms(object):
     def getGeneRange(self, key):
         return self.__gene_range[key]
 
-    def concat(self, chromozomes:list):
+    def concat(self, chromosomes:list):
         # salveaza chromozomii in genom
-        return np.array(tuple(chromozomes), dtype=self.__chromosome_dtype)
+        return np.array(tuple(chromosomes), dtype=self.__chromosome_dtype)
 
     def append(self, genome):
         # adauga genomul in lista de genomi
@@ -105,7 +123,21 @@ class Genoms(object):
             tmp_shape.append(self.__genoms[key].shape[1])
         # update shape
         self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
+        self.__check_valid_range()
+
+    def __check_valid_range(self):
+        if (self.__save_count >= self.__CHECK_FREQ):
+            self.__save_count = 0
+            for chromosome_name in self.__keys:
+                chromosomes_vals = self.__genoms[chromosome_name]
+                x_min = chromosomes_vals.min()
+                x_max = chromosomes_vals.max()
+                r_min, r_max = self.__gene_range[chromosome_name]
+                if ((x_min < r_min) or (x_max >= r_max)):
+                    raise NameError("Chromosomul '{}', depaseste range-ul range min: '{}', cromosome min: '{}'; range max: '{}', cromosome max: '{}'".format(chromosome_name, r_min, x_min, r_max, x_max))
+        else:
+            self.__save_count += 1
 
     def help(self):
-        info = """Genoms: "chromosome_name1": (min_range, max_range), "chromosome_name2": (min_range, max_range), ...\n"""
+        info = """Genoms: "check_freq":1, "chromosome_name1": (min_range, max_range), "chromosome_name2": (min_range, max_range), ...\n"""
         return info

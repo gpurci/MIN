@@ -11,10 +11,11 @@ class Metrics(RootGA):
     Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, method, **kw):
+    def __init__(self, method, dataset, **kw):
         super().__init__()
         self.__configs = kw
         self.__setMethods(method)
+        self.dataset = dataset
 
     def __str__(self):
         info = """Metrics: 
@@ -61,20 +62,10 @@ class Metrics(RootGA):
         if (self.__extern_fn is not None):
             self.__extern_fn.setParameters(**kw)
 
-    def setDataset(self, dataset):
-        print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))
-        self.dataset = dataset
-
-    def getDataset(self):
-        return self.dataset
-
     def getArgBest(self, fitness_values):
         """Cautarea rutei optime din populatie"""
         index = np.argmax(fitness_values, axis=None, keepdims=False)
         return index
-
-    def getBestIndivid(self):
-        return self.__best_individ
 
     def metricsAbstract(self, population):
         raise NameError("Lipseste metoda '{}' pentru functia de 'Metrics': config '{}'".format(self.__method, self.__configs))
@@ -122,7 +113,7 @@ class Metrics(RootGA):
         arg_best = self.getArgBest(fitness_values)
         individ  = genomics[arg_best]["tsp"]
         best_fitness = fitness_values[arg_best]
-        self.__best_individ = individ
+        genomics.setBest(individ)
         score = self.__getIndividDistance(individ)
         return {"score": score, "best_fitness": best_fitness}
 
@@ -381,7 +372,7 @@ class Metrics(RootGA):
         arg_best = self.getArgBest(fitness_values)
         individ  = genomics[arg_best]
         best_fitness = fitness_values[arg_best]
-        self.__best_individ = individ
+        genomics.setBest(individ)
         distance = self.__getIndividDistance(individ["tsp"])
         kp_individ = individ["kp"]
         profit = self.computeIndividProfitKP(kp_individ)

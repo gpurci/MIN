@@ -111,7 +111,13 @@ class GeneticAlgorithm(RootGA):
             # evolution
             self.evolutionMonitor(scores)
 
-        return self.metrics.getBestIndivid()
+        return self.__genoms.getBest()
+
+    def population(self):
+        return self.__genoms.population()
+
+    def setPopulation(self, population):
+        return self.__genoms.setPopulation(population)
 
     def __unpackConfigure(self, str_functia, **configs):
         method, method_configs = None, {}

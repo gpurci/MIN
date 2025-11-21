@@ -25,7 +25,7 @@ class Callback(object):
                 Path(path).mkdir(mode=0o777, parents=True, exist_ok=True)
                 Path(self.filename).touch(mode=0o666, exist_ok=True)
         else:
-            warnings.warn("\nCallback: Numele fisierului '{}' este type '{}'\n".format(self.filename, type(self.filename)))
+            warnings.warn("\n\nCallback: Numele fisierului '{}' este type '{}'".format(self.filename, type(self.filename)))
 
 
     def __str__(self):

@@ -2,25 +2,19 @@
 
 import numpy as np
 import yaml
-import sys
 import warnings
 
-def remove_modules(modules_name, *arg):
-    if (modules_name in sys.modules):
-        del sys.modules[modules_name]
-        for key in arg:
-            tmp_modules = "{}.{}".format(modules_name, key)
-            del sys.modules[tmp_modules]
+from sys_function import sys_remove_modules
 
-remove_modules("root_GA")
-remove_modules("genoms")
-remove_modules("callback")
-remove_modules("crossover")
-remove_modules("fitness")
-remove_modules("init_population")
-remove_modules("metrics")
-remove_modules("mutate")
-remove_modules("select_parent")
+sys_remove_modules("root_GA")
+sys_remove_modules("genoms")
+sys_remove_modules("callback")
+sys_remove_modules("crossover")
+sys_remove_modules("fitness")
+sys_remove_modules("init_population")
+sys_remove_modules("metrics")
+sys_remove_modules("mutate")
+sys_remove_modules("select_parent")
 
 from root_GA import *
 from genoms import *
@@ -47,7 +41,7 @@ class GeneticAlgorithm(RootGA):
 
     def __str__(self):
         str_info = "Name: {}\n{}".format(self.__name, super().__str__())
-        str_info += "\nExtern comand filename '{}'".format(self.__extern_commnad_file)
+        str_info += "\nExtern comand filename: '{}'".format(self.__extern_commnad_file)
         str_info += "\nConfigs: {}".format(self.__configs)
         for function in self.__functions:
             str_info += "\n{}".format(str(function))
@@ -127,9 +121,9 @@ class GeneticAlgorithm(RootGA):
                 method = method_configs.pop("method", None)
             else:
                 method_configs = {}
-                warnings.warn("Lipseste metoda, pentru functia: '{}'".format(str_functia))
+                warnings.warn("\n\nLipseste metoda, pentru functia: '{}'".format(str_functia))
         else:
-            warnings.warn("\nLipseste configs: 'GeneticAlgorithm'\n")
+            warnings.warn("\n\nLipseste configs: 'GeneticAlgorithm'")
 
         return method, method_configs
 

@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
 import numpy as np
+from sys_function import sys_remove_modules
+
+sys_remove_modules("extern_fn")
 from extern_fn import *
 
 class SelectParent(ExtenFn):
@@ -14,6 +17,7 @@ class SelectParent(ExtenFn):
 
     def __init__(self, extern_fn=None):
         super().__init__(extern_fn, "Metrics")
+        self._extern_fn = self.__unpack(extern_fn)
 
     def __call__(self):
         return self._extern_fn()
@@ -24,11 +28,14 @@ class SelectParent(ExtenFn):
         if (extern_fn is not None):
             fn = extern_fn
             if (hasattr(extern_fn, "startEpoch")):
+                print("startEpoch")
                 self.startEpoch = extern_fn.startEpoch
+            else:
+                print("not startEpoch")
         return fn
 
     def selectParentAbstract(self, **kw):
-        raise NameError("Lipseste metoda '{}' pentru functia de 'SelectionParent': config '{}'".format(self.__method, self.__config))
+        raise NameError("Functia 'SelectParent', lipseste metoda '{}', config: '{}'".format(self.__method, self.__config))
 
     def startEpochAbstract(self, **kw):
-        raise NameError("Functia 'SelectionParent', lipseste functia 'startEpoch' din extern '{}'".format(self._extern_fn))
+        raise NameError("Functia 'SelectParent', lipseste functia 'startEpoch' din extern '{}'".format(self._extern_fn))

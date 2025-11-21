@@ -111,7 +111,7 @@ class Metrics(RootGA):
         unde: valoarea distantei este invers normalizata, iar valoarea numarului de orase direct normalizata
         population - populatia, vector de indivizi
         """
-        population = genomics.chromozomes("tsp")
+        population = genomics.chromosomes("tsp")
         #print("\nmetricsTSP, genomics: {}, population {}, last {}".format(genomics.shape, population.shape, population[-1].shape))
         #print("\nmetricsTSP, population {}".format(population))
         # calculeaza distanta
@@ -217,7 +217,7 @@ class Metrics(RootGA):
             times[idx]   = time
 
         # number city
-        number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
+        number_city = self.__getNumberCities(genomics.chromosomes("tsp"))
         # pack metrick values
         metric_values = {
             "profits"    : profits,
@@ -280,8 +280,8 @@ class Metrics(RootGA):
             times[idx]   = time
 
         # number city
-        number_city = self.__getNumberCities(genomics.chromozomes("tsp"))
-        number_obj  = self.computeNbrObjKP(genomics.chromozomes("kp"))
+        number_city = self.__getNumberCities(genomics.chromosomes("tsp"))
+        number_obj  = self.computeNbrObjKP(genomics.chromosomes("kp"))
         number_obj  = number_obj*kw.get("W")/(weights*self.GENOME_LENGTH + 1e-7)
 
         mask = (kw.get("W") <= weights)

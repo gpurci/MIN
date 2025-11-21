@@ -2,7 +2,13 @@
 
 import numpy as np
 import warnings
+from sys_function import sys_remove_modules
+
+sys_remove_modules("root_GA")
 from root_GA import *
+
+def inherits_class_name(obj, class_name: str):
+    return any(base.__name__ == class_name for base in obj.__class__.mro())
 
 class GenomOp(RootGA):
     """
@@ -131,14 +137,14 @@ class GenomOp(RootGA):
         self._chromosome_fn.update(tmp_gen_fn)
         self._chromosome_fn.update(tmp_mxt_fn)
         if (len(self._chromosome_fn.keys()) == 0):
-            warnings.warn("\nFunctia '{}', metoda invalida '{}'\n".format(self.__name, self._method))
+            warnings.warn("\n\nFunctia '{}', metoda invalida '{}'".format(self.__name, self._method))
 
     def setParameters(self, **kw):
         super().setParameters(**kw)
         for key in self._chromosome_fn.keys():
             obj_chromosome = self._chromosome_fn[key]
             if (obj_chromosome is not None):
-                if (isinstance(obj_chromosome, RootGA)):
+                if (inherits_class_name(obj_chromosome, "RootGA")):
                     obj_chromosome.setParameters(**kw)
                 else:
                     raise NameError("Functia '{}', functia externa '{}', nu mosteneste 'RootGA'".format(self.__name, obj_chromosome))

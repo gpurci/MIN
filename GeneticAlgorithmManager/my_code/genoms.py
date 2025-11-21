@@ -14,7 +14,7 @@ class Genoms(object):
         # Define the structure: name (string), age (int), weight (float)
         self.__keys = list(gene_range.keys())
         if (len(self.__keys) == 0):
-            warnings.warn("\nLipseste numele chromosomilor: '{}'\n".format(gene_range))
+            warnings.warn("\n\nLipseste numele chromosomilor: '{}'".format(gene_range))
         # init range of genes
         self.__gene_range = gene_range
         # Define the structure: key (string), gene range (int32/float32)
@@ -30,14 +30,14 @@ class Genoms(object):
     def __str__(self):
         info = "Genoms: shape '{}'\n".format(self.shape)
         for key in self.__keys:
-            info += "\tChromozom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
+            info += "\tChromosom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
         return info
 
     def population(self):
         return self.__genoms
 
-    def chromozomes(self, chromozome_name):
-        return self.__genoms[chromozome_name]
+    def chromosomes(self, chromosome_name):
+        return self.__genoms[chromosome_name]
 
     def setSize(self, size):
         # init chromosome datatype

@@ -10,9 +10,10 @@ class MetricsTTP(RootGA):
     Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, method, **kw):
+    def __init__(self, method, dataset, **kw):
         super().__init__()
         self.__configs = kw
+        self.dataset   = dataset
         self.__setMethods(method)
 
     def __str__(self):
@@ -50,23 +51,10 @@ class MetricsTTP(RootGA):
         self.__method = method
         self.__fn = self.__unpackMethod(method)
 
-    def setParameters(self, **kw):
-        super().setParameters(**kw)
-
-    def setDataset(self, dataset):
-        print("Utilizezi metoda: {}, datele de antrenare trebuie sa corespunda metodei de calcul a metricilor!!!".format(self.__method))
-        self.dataset = dataset
-
-    def getDataset(self):
-        return self.dataset
-
     def getArgBest(self, fitness_values):
         """Cautarea rutei optime din populatie"""
         index = np.argmax(fitness_values, axis=None, keepdims=False)
         return index
-
-    def getBestIndivid(self):
-        return self.__best_individ
 
     def metricsAbstract(self, population):
         raise NameError("Lipseste metoda '{}' pentru functia de 'Metrics': config '{}'".format(self.__method, self.__configs))
@@ -87,8 +75,8 @@ class MetricsTTP(RootGA):
     def computeIndividDistance(self, individ):
         """Calculul distantei pentru un individ"""
         #print("individ", individ.shape, end=", ")
-        distances = self.dataset["distance"][individ[:-1], individ[1:]]
-        distance  = distances.sum() + self.dataset["distance"][individ[-1], individ[0]]
+        distance = self.dataset["distance"][individ[:-1], individ[1:]].sum()
+        distance = distance + self.dataset["distance"][individ[-1], individ[0]]
         return distance
     # individ metrics =====================
 
@@ -248,23 +236,11 @@ class MetricsTTP(RootGA):
 
         # number city
         number_city = self.computeNumberCities(genomics.chromosomes("tsp"))
-        #number_obj  = self.computeNbrObjKP(genomics.chromosomes("kp"))
-        tmp_profits = self.computeProfitKP(genomics.chromosomes("kp"))
+        number_obj  = self.computeNbrObjKP(genomics.chromosomes("kp"))
+        number_obj  = number_obj*kw.get("W")/((weights + 1e-7)*self.GENOME_LENGTH)
 
-        W = kw.get("W")
-        if (W < weights.min()):
-            number_obj = np.mean(weights) / weights
-            #number_obj = normalization(number_obj)+0.1
-        else:
-            number_obj = W / (weights + 1e-7)
-            mask = number_obj > 1
-            number_obj[mask] = 1/number_obj[mask]
-
-        if (number_obj.max() < 10):
-            number_obj = number_obj**5
-
-        tmp_profits = tmp_profits / (tmp_profits.max() + 1e-7)
-        number_obj *= tmp_profits
+        mask = (kw.get("W") <= weights)
+        number_obj[mask] = 1.
         # pack metrick values
         metric_values = {
             "profits"    : profits,
@@ -363,7 +339,7 @@ class MetricsTTP(RootGA):
         arg_best = self.getArgBest(fitness_values)
         individ  = genomics[arg_best]
         best_fitness = fitness_values[arg_best]
-        self.__best_individ = individ
+        genomics.setBest(individ)
         distance = self.computeIndividDistance(individ["tsp"])
         kp_individ = individ["kp"]
         profit = self.computeIndividProfitKP(kp_individ)

@@ -169,12 +169,7 @@ def summary(**kw):
 def normalization(x):
     x_min = x.min()
     x_max = x.max()
-    denom = x_max - x_min
-    if (denom == 0):
-        # all values are identical: return a constant vector (e.g. all 1s)
-        x_ret = np.ones_like(x, dtype=np.float32)
-    else:
-        x_ret = (x_max-x)/(x_max-x_min)
+    x_ret = (x_max-x)/(x_max-x_min+1e-7)
     return x_ret
 
 def min_norm(x):

@@ -3,9 +3,9 @@
 import numpy as np
 from GeneticAlgorithmManager.my_code.root_GA import *
 
-class Mutate(RootGA):
+class BinaryMutate(RootGA):
     """
-    Clasa 'Mutate', ofera doar metode pentru a face mutatia genetica a unui individ din populatie.
+    Clasa 'BinaryMutate', ofera doar metode pentru a face mutatia genetica a unui individ din populatie.
     Functia 'mutate' are 3 parametri, parinte1, parinte2, descendent.
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
@@ -20,7 +20,7 @@ class Mutate(RootGA):
         return self.__fn(parent1, parent2, offspring, **self.__configs)
 
     def __str__(self):
-        info  = "Mutate: method '{}'\n".format(self.__method)
+        info  = "BinaryMutate: method '{}'\n".format(self.__method)
         tmp   = "configs: '{}'\n".format(self.__configs)
         info += "\t{}".format(tmp)
         return info
@@ -40,15 +40,15 @@ class Mutate(RootGA):
         return fn
 
     def help(self):
-        info = """Mutate:
+        info = """BinaryMutate:
     metoda: 'binary';     config: None;
     metoda: 'binary_sim'; config: None;
     metoda: 'binary_diff';config: None;
-    metoda: 'mixt_binary';config: -> "p_method":[1/3, 1/3, 1/3], "subset_size":7;\n"""
-        return info
+    metoda: 'mixt_binary';config: -> p_method=[1/3, 1/3, 1/3];\n"""
+        print(info)
 
     def mutateAbstract(self, parent1, parent2, offspring):
-        error_mesage = "Functia 'Mutate', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)
+        error_mesage = "Functia 'BinaryMutate', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)
         raise NameError(error_mesage)
 
     def mutateBinary(self, parent1, parent2, offspring):

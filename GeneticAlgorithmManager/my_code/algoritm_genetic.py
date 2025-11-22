@@ -23,7 +23,7 @@ from crossover import *
 from fitness import *
 from init_population import *
 from metrics import *
-from mutate import *
+from mutate   import *
 from select_parent import *
 
 class GeneticAlgorithm(RootGA):
@@ -56,24 +56,32 @@ class GeneticAlgorithm(RootGA):
         # initiaizarea populatiei
         if (self.__genoms.is_genoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
-        # calculate metrics
+
+        # calculate metrics (GENERATION 0)
         metric_values  = self.metrics(self.__genoms)
+        # cache metrics so MetricsTTP.getScoreTTP can read time, etc.
+        # (safe no-op for other metrics)
+        setattr(self.metrics, "metrics_cache", metric_values)
+
         # init fitness value
         fitness_values = self.fitness(metric_values)
         # obtinerea pozitiei pentru elite
         args_elite = self.getArgsElite(fitness_values)
+
         # evolutia generatiilor
         for generation in range(self.GENERATIONS):
             # pentru oprire fortata
             if (self.__is_stop):
                 break
+
             # start selectie populatie
             self.selectParent1.startEpoch(fitness_values)
             self.selectParent2.startEpoch(fitness_values)
+
             for _ in range(self.POPULATION_SIZE):
                 # selectarea positia parinte 1
                 arg_parent1 = self.selectParent1()
-                # selectarea positia parinte 1
+                # selectarea positia parinte 2
                 arg_parent2 = self.selectParent2()
                 # obtinerea parintilor
                 parent1 = self.__genoms[arg_parent1]
@@ -84,31 +92,53 @@ class GeneticAlgorithm(RootGA):
                 offspring = self.mutate(parent1, parent2, offspring) # in_place operation
                 # adauga urmasii la noua generatie
                 self.__genoms.append(offspring)
+
             # obtinerea indivizilor ce fac parte din elita
             genome_elites  = self.__genoms[args_elite]
             if (self.__update_elite_fitness):
                 fitness_elites = fitness_values[args_elite]
             else:
                 fitness_elites = None
+
             # schimbarea generatiei
             self.__genoms.save()
-            # calculate metrics
+
+            # calculate metrics (NEW GENERATION)
             metric_values  = self.metrics(self.__genoms)
+            setattr(self.metrics, "metrics_cache", metric_values)
+
             # calculare fitness
             fitness_values = self.fitness(metric_values)
+
             # adaugare elita in noua populatie
             self.setElitesByFitness(fitness_values, genome_elites, fitness_elites)
+
             # obtinerea pozitiei pentru elite
             args_elite = self.getArgsElite(fitness_values)
-            # calculare metrici
+
+            # calculare metrici / scores for printing
             scores = self.metrics.getScore(self.__genoms, fitness_values)
+
+            # If metrics cache has "time" but scores doesn't, inject it for printing.
+            # This keeps backwards compatibility with older extensions.
+            if ("time" not in scores):
+                try:
+                    arg_best = self.metrics.getArgBest(fitness_values)
+                    if isinstance(metric_values, dict) and ("time" in metric_values):
+                        scores["time"] = float(metric_values["time"][arg_best])
+                except Exception:
+                    pass
+
             # adaugare stres in populatie atunci cand lipseste progresul
             self.stres(scores)
+
             # afisare metrici
             self.showMetrics(generation, scores)
+
             # salveaza istoricul
             self.callback(generation, scores)
-            # evolution
+
+            # evolution monitoring
             self.evolutionMonitor(scores)
 
         return self.__genoms.getBest()
@@ -226,8 +256,9 @@ class GeneticAlgorithm(RootGA):
         """
         self.__score_evolution[:-1] = self.__score_evolution[1:]
         self.__score_evolution[-1]  = evolution_scores["score"]
-        if (evolution_scores["best_fitness"] < 0):
-            raise Exception("Best fitness is '0'")
+        # In TTP, fitness may be negative early on. Do NOT stop evolution.
+        # if (evolution_scores["best_fitness"] < 0):
+        #     raise Exception("Best fitness is '0'")
 
     # Fitness.__call__ always requires BOTH population AND metric_values.
     # => we must compute metrics first, then compute fitness again.
@@ -238,6 +269,7 @@ class GeneticAlgorithm(RootGA):
         if (elites.shape[0] > 0):
             # MUST compute metrics first
             metric_values  = self.metrics(self.__genoms)
+            setattr(self.metrics, "metrics_cache", metric_values)
             fitness_values = self.fitness(metric_values)
             # set elites
             args = self.getArgsWeaks(fitness_values, elites.shape[0])
@@ -271,16 +303,13 @@ class GeneticAlgorithm(RootGA):
         evolution_scores - scorul evolutiei
         """
         check_distance = np.allclose(self.__score_evolution.mean(), evolution_scores["score"], rtol=1e-01, atol=1e-03)
-        #print("distance evolution {}, distance {}".format(check_distance, best_distance))
         if (check_distance):
             self.__score_evolution[:] = 0
             self.__last_mutation_rate = self.MUTATION_RATE
             print("evolution_scores {}".format(evolution_scores))
             self.setParameters(MUTATION_RATE=1.)
-            #self.mutate.increaseSubsetSize()
             self.externCommand()
         else:
-            #self.mutate.decreaseSubsetSize()
             if (self.__last_mutation_rate is not None):
                 self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
 
@@ -313,8 +342,6 @@ class GeneticAlgorithm(RootGA):
     def __read_command_yaml_file(self):
         if (isinstance(self.__extern_commnad_file, str) and (Path(self.__extern_commnad_file).is_file())):
             with open(self.__extern_commnad_file) as file :
-                # The FullLoader parameter handles the conversion from YAML
-                # scalar values to Python the dictionary format
                 command_dict = yaml.load(file, Loader=yaml.FullLoader)
         else :
             command_dict = {"stop":False}
@@ -322,10 +349,8 @@ class GeneticAlgorithm(RootGA):
 
     def __init_command(self) :
         if (isinstance(self.__extern_commnad_file, str) and (not Path(self.__extern_commnad_file).is_file())):
-            # create a config file
             Path(self.__extern_commnad_file).touch(mode=0o666, exist_ok=True)
         if (isinstance(self.__extern_commnad_file, str) and (Path(self.__extern_commnad_file).is_file())):
-            # save default rating in yaml file
             commands      = "stop : {}".format(False)
             yaml_commands = yaml.safe_load(commands)
 

@@ -37,10 +37,11 @@ class DefaultMetricsTTP(RootGA):
             self.getScore = self.getScoreTTP
         return fn
 
-    def __call__(self, genomics, **call_configs):
-        cfg = self.__configs.copy()
-        cfg.update(call_configs)
-        return self.__fn(genomics, **cfg)
+    def __call__(self, genomics):
+        mv = self.__fn(genomics, **self.__configs)
+        self.metrics_cache = mv
+        return mv
+
 
     def setParameters(self, **kw):
         super().setParameters(**kw)

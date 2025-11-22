@@ -8,9 +8,10 @@ from extern_fn import *
 
 class Metrics(ExtenFn):
     """
-    Clasa 'Metrics', 
-    Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
+    Wrapper for external metric modules.
+    Automatically detects MetricsTTP.getScoreTTP.
     """
+
     def __init__(self, extern_fn=None):
         super().__init__(extern_fn, "Metrics")
         self._extern_fn = self.__unpack(extern_fn)
@@ -21,15 +22,37 @@ class Metrics(ExtenFn):
     def __unpack(self, extern_fn):
         fn = self.metricsAbstract
         self.getScore = self.getScoreAbstract
-        if (extern_fn is not None):
+
+        if extern_fn is not None:
             fn = extern_fn
-            if (hasattr(extern_fn, "getScore")):
+
+            # Prefer special TTP scoring
+            if hasattr(extern_fn, "getScoreTTP"):
+                self.getScore = extern_fn.getScoreTTP
+
+            # Fallback to normal getScore if exists
+            elif hasattr(extern_fn, "getScore"):
                 self.getScore = extern_fn.getScore
+
         return fn
 
+    def __getattr__(self, name):
+        """
+        Forward any unknown attribute to wrapped external metrics class:
+           - metrics_cache
+           - getArgBest
+           - computeIndividDistance
+           - computeNbrObjKP
+           - etc.
+        """
+        return getattr(self._extern_fn, name)
+
     def metricsAbstract(self, *args):
-        raise NameError("Functia 'Metrics', lipseste functia externa '{}'".format(self._extern_fn))
+        raise NameError(
+            f"Functia 'Metrics', lipseste functia externa '{self._extern_fn}'"
+        )
 
     def getScoreAbstract(self, *args):
-        raise NameError("Functia 'Metrics', lipseste functia 'getScore' din extern '{}'".format(self._extern_fn))
-
+        raise NameError(
+            f"Functia 'Metrics', lipseste functia 'getScore' din extern '{self._extern_fn}'"
+        )

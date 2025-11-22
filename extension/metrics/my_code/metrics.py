@@ -166,13 +166,19 @@ class Metrics(RootGA):
         distance, item_profit, item_weight = args
         # vizităm secvenţial
         for i in range(self.GENOME_LENGTH-1):
-            # get city
             city = tsp_individ[i]
-            # take or not take object
-            take = kp_individ[city]
-            # calculate profit and weight
-            profit = item_profit[city]*take
-            weight = item_weight[city]*take
+
+            # city 0 has no item
+            if city == 0:
+                take = 0
+                profit = 0.0
+                weight = 0.0
+            else:
+                idx = city - 1  # item index
+                take = kp_individ[idx]
+                profit = item_profit[idx] * take
+                weight = item_weight[idx] * take
+
             # calculate liniar profit and weight
             Pcur += max(0.0, profit - alpha*Tcur)
             Wcur += weight
@@ -229,13 +235,18 @@ class Metrics(RootGA):
         distance, item_profit, item_weight = args
         # vizităm secvenţial
         for i in range(self.GENOME_LENGTH-1):
-            # get city
             city = tsp_individ[i]
-            # take or not take object
-            take = kp_individ[city]
-            # calculate profit and weight
-            profit = item_profit[city]*take
-            weight = item_weight[city]*take
+
+            if city == 0:
+                take = 0
+                profit = 0.0
+                weight = 0.0
+            else:
+                idx = city - 1
+                take = kp_individ[idx]
+                profit = item_profit[idx] * take
+                weight = item_weight[idx] * take
+
             # calculate liniar profit and weight
             Pcur += max(0.0, profit**2/(weight+1e-7) - alpha*Tcur)
             Wcur += weight
@@ -299,13 +310,18 @@ class Metrics(RootGA):
         distance, item_profit, item_weight = args
         # vizităm secvenţial
         for i in range(self.GENOME_LENGTH-1):
-            # get city
             city = tsp_individ[i]
-            # take or not take object
-            take = kp_individ[city]
-            # calculate profit and weight
-            profit = item_profit[city]*take
-            weight = item_weight[city]*take
+
+            if city == 0:
+                take = 0
+                profit = 0.0
+                weight = 0.0
+            else:
+                idx = city - 1
+                take = kp_individ[idx]
+                profit = item_profit[idx] * take
+                weight = item_weight[idx] * take
+
             # calculate liniar profit and weight
             Pcur += profit * np.exp(-lam * Tcur)
             Wcur += weight

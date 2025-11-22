@@ -1,9 +1,13 @@
 #!/usr/bin/python
 
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import *
 
-class CrossoverBinary(RootGA):
+from sys_function import sys_remove_modules
+
+sys_remove_modules("extension.crossover.my_code.crossover_base")
+from extension.crossover.my_code.crossover_base import *
+
+class CrossoverBinary(CrossoverBase):
     """
     Clasa 'CrossoverBinary', ofera doar metode pentru a face incrucisarea genetica a doi parinti
     Functia 'crossover' are 2 parametri, parinte1, parinte2.
@@ -11,33 +15,15 @@ class CrossoverBinary(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
     def __init__(self, method, **configs):
-        super().__init__()
-        self.__method  = method
-        self.__configs = configs
-        self.__fn = self.__unpackMethod(method)
+        super().__init__(method, name="CrossoverBinary", **configs)
+        self.__fn = self._unpackMethod(method, 
+                                        single_point=self.crossoverSP, 
+                                        two_point=self.crossoverTwoP,
+                                        uniform=self.crossoverUniform,
+                                        mixt=self.crossoverMixt)
 
     def __call__(self, parent1, parent2):
-        return self.__fn(parent1, parent2, **self.__configs)
-
-    def __str__(self):
-        info  = "CrossoverBinary: method '{}'\n".format(self.__method)
-        tmp   = "configs: '{}'\n".format(self.__configs)
-        info += "\t{}".format(tmp)
-        return info
-
-    def __unpackMethod(self, method):
-        fn = self.crossoverAbstract
-        if (method is not None):
-            if   (method == "single_point"):
-                fn = self.crossoverSP
-            elif (method == "two_point"):
-                fn = self.crossoverTwoP
-            elif (method == "uniform"):
-                fn = self.crossoverUniform
-            elif (method == "mixt"):
-                fn = self.crossoverMixt
-
-        return fn
+        return self.__fn(parent1, parent2, **self._configs)
 
     def help(self):
         info = """CrossoverBinary:
@@ -46,10 +32,6 @@ class CrossoverBinary(RootGA):
     metoda: 'uniform';      config None;
     metoda: 'mixt';         config -> "p_select":[1/3, 1/3, 1/3], ;\n"""
         print(info)
-
-    def crossoverAbstract(self, parent1, parent2):
-        error_mesage = "Functia 'CrossoverBinary', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)
-        raise NameError(error_mesage)
 
     def crossoverSP(self, parent1, parent2):
         """Incrucisarea a doi parinti pentru a crea un urmas

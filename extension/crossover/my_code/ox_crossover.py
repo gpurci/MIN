@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import *
+from extension.crossover.my_code.crossover_base import *
 
-class CrossoverOX(RootGA):
+class CrossoverOX(CrossoverBase):
     """
     Clasa 'CrossoverOX', 
     Functia 'crossover' are 2 parametri, parinte1, parinte2.
@@ -11,45 +11,23 @@ class CrossoverOX(RootGA):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
     def __init__(self, method, **configs):
-        super().__init__()
-        self.__method  = method
-        self.__configs = configs
-        self.__fn = self.__unpackMethod(method)
+        super().__init__(method, name="CrossoverOX", **configs)
+        self.__fn = self._unpackMethod(method, 
+                                        in_space=self.crossoverIn, 
+                                        out_space=self.crossoverOut,
+                                        uniform=self.crossoverUniform,
+                                        mixt=self.crossoverMixt)
 
     def __call__(self, parent1, parent2):
-        return self.__fn(parent1, parent2, **self.__configs)
-
-    def __str__(self):
-        info  = "CrossoverOX: method '{}'\n".format(self.__method)
-        tmp   = "configs: '{}'\n".format(self.__configs)
-        info += "\t{}".format(tmp)
-        return info
-
-    def __unpackMethod(self, method):
-        fn = self.crossoverAbstract
-        if (method is not None):
-            if   (method == "in"):
-                fn = self.crossoverIn
-            elif (method == "out"):
-                fn = self.crossoverOut
-            elif (method == "uniform"):
-                fn = self.crossoverUniform
-            elif (method == "mixt"):
-                fn = self.crossoverMixt
-
-        return fn
+        return self.__fn(parent1, parent2, **self._configs)
 
     def help(self):
         info = """CrossoverOX:
-    metoda: 'in';      config None;
-    metoda: 'out';     config None;
-    metoda: 'uniform'; config None;
-    metoda: 'mixt';    config -> "p_select":[1/3, 1/3, 1/3], ;\n"""
+    metoda: 'in_space';  config None;
+    metoda: 'out_space'; config None;
+    metoda: 'uniform';   config None;
+    metoda: 'mixt';      config -> "p_select":[1/3, 1/3, 1/3], ;\n"""
         print(info)
-
-    def crossoverAbstract(self, parent1, parent2):
-        error_mesage = "Functia 'CrossoverOX', lipseste metoda '{}', config: '{}'\n".format(self.__method, self.__configs)
-        raise NameError(error_mesage)
 
     def __crossoverOrderParent2(self, parent1, parent2, locus):
         # mosteneste parinte1

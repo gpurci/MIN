@@ -29,10 +29,7 @@ class SelectParent(ExtenFn):
         if (extern_fn is not None):
             fn = extern_fn
             if (hasattr(extern_fn, "startEpoch")):
-                print("startEpoch")
                 self.startEpoch = extern_fn.startEpoch
-            else:
-                print("not startEpoch")
         return fn
 
     def selectParentAbstract(self, **kw):

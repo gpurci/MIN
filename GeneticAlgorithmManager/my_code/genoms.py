@@ -79,7 +79,7 @@ class Genoms(object):
     def setBest(self, chromosome):
         self.__best_chromosome = chromosome
 
-    def getBest(self, chromosome):
+    def getBest(self):
         return self.__best_chromosome
 
     def is_genoms(self):

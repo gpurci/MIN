@@ -11,5 +11,5 @@ class Stres(ExtenFn):
     def __init__(self, extern_fn=None):
         super().__init__(extern_fn, "Stres")
 
-    def __call__(self, metric_values):
-        return self._extern_fn(metric_values)
+    def __call__(self, genoms, scores):
+        return self._extern_fn(genoms, scores)

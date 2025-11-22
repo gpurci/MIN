@@ -16,8 +16,8 @@ class StresTTP(StresBase):
                                     )
         self.__score_evolution = np.zeros(subset_size, dtype=np.float32)
 
-    def __call__(self, scores):
-        return self.__fn(scores, **self._configs)
+    def __call__(self, genoms, scores):
+        return self.__fn(genoms, scores, **self._configs)
 
     def help(self):
         info = """StresTTP:
@@ -25,7 +25,7 @@ class StresTTP(StresBase):
     subset_size - esantionul de supraveghere\n"""
         print(info)
 
-    def stres(self, scores):
+    def stres(self, genoms, scores):
         """Aplica stres asupra populatiei.
         Functia de stres, se aplica atunci cand ajungem intr-un minim local,
         cauta cele mai frecvente secvente de genom si aplica un stres modifica acele zone
@@ -33,6 +33,9 @@ class StresTTP(StresBase):
         """
         check_distance = np.allclose(self.__score_evolution.mean(), scores["score"], rtol=1e-01, atol=1e-03)
         #print("distance evolution {}, distance {}".format(check_distance, best_distance))
+
+        # genoms.getElitePos() = returneaza pozitiile elite
+
         if (check_distance):
             self.__score_evolution[:] = 0
             print("scores {}".format(scores))

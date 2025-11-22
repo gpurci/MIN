@@ -106,7 +106,7 @@ class GeneticAlgorithm(RootGA):
             # calculare metrici
             scores = self.metrics.getScore(self.__genoms, fitness_values)
             # adaugare stres in populatie atunci cand lipseste progresul
-            self.stres(scores)
+            self.stres(self.__genoms, scores)
             # afisare metrici
             self.showMetrics(generation, scores)
             # salveaza istoricul
@@ -192,7 +192,6 @@ class GeneticAlgorithm(RootGA):
         # configurare manager salvare, istoricul de antrenare
         self.__configs = configs.get("manager", None)
 
-
     def help(self):
         info  = "'nume': numele obiectului\n"
         info += "'extern_commnad_file': numele fisierului in care vor fi adaugate comenzile externe, (oprire fortata = stop=True)\n"
@@ -225,7 +224,6 @@ class GeneticAlgorithm(RootGA):
         if (POPULATION_SIZE is not None):
             self.__genoms.setPopulationSize(POPULATION_SIZE)
 
-
     def evolutionMonitor(self, evolution_scores):
         """
         Monitorizarea evolutiei de invatare: datele sunt pastrate intr-un vector
@@ -252,6 +250,7 @@ class GeneticAlgorithm(RootGA):
             # set elites
             args = self.getArgsWeaks(fitness_values, elites.shape[0])
             self.__genoms[args] = elites
+            self.__genoms.setElitePos(args)
 
     def setElitesByFitness(self, fitness_values, elites, fitness_elites=None):
         if (self.__genoms.is_genoms()==False):
@@ -260,7 +259,8 @@ class GeneticAlgorithm(RootGA):
         # here fitness_values already exists (caller passed it)
         if (elites.shape[0] > 0):
             args = self.getArgsWeaks(fitness_values, elites.shape[0])
-            self.__genoms[args]  = elites
+            self.__genoms[args] = elites
+            self.__genoms.setElitePos(args)
             if (fitness_elites is not None):
                 fitness_values[args] = fitness_elites
 

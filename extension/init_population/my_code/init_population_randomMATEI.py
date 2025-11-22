@@ -59,7 +59,7 @@ class InitRandomPopulation(RootGA):
         for _ in range(population_size):
             genoms.add(tsp=np.random.permutation(individ))
 
-        genoms.save()
+        genoms.saveInit()
         print("Random TSP population =", genoms.shape)
 
     # RANDOM TTP ---------------------------------------------------
@@ -73,5 +73,5 @@ class InitRandomPopulation(RootGA):
             kp = np.random.randint(0, 2, size=self.GENOME_LENGTH)
             genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp)
 
-        genoms.save()
+        genoms.saveInit()
         print("Random TTP population =", genoms.shape)

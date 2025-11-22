@@ -47,7 +47,7 @@ class Crossover(RootGA):
     metoda: 'split';    config None;
     metoda: 'perm_sim'; config None;
     metoda: 'flip_sim'; config None;
-    metoda: 'mixt';     config -> "p_method":[1/4, 1/4, 1/4, 1/4], ;\n"""
+    metoda: 'mixt';     config -> "p_select":[1/4, 1/4, 1/4, 1/4], ;\n"""
         print(info)
 
     def crossoverAbstract(self, parent1, parent2):
@@ -133,12 +133,12 @@ class Crossover(RootGA):
                 offspring[locuses] = np.flip(offspring[locuses])
         return offspring
 
-    def crossoverMixt(self, parent1, parent2, p_method=None):
+    def crossoverMixt(self, parent1, parent2, p_select=None):
         """Incrucisarea a doi parinti pentru a crea un urmas
         parent1 - individ
         parent2 - individ
         """
-        cond = np.random.choice([0, 1, 2, 3], size=None, p=p_method)
+        cond = np.random.choice([0, 1, 2, 3], size=None, p=p_select)
         if   (cond == 0):
             offspring = self.crossoverSplit(parent1, parent2)
         elif (cond == 1):

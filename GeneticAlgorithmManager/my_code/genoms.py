@@ -20,6 +20,7 @@ class Genoms(object):
         # init range of genes
         self.__gene_range = gene_range
         self.__best_chromosome = None
+        self.__elites_pos = None
         # Define the structure: key (string), gene range (int32/float32)
         # init chromosome datatype
         self.setSize(size)
@@ -35,6 +36,12 @@ class Genoms(object):
         for key in self.__keys:
             info += "\tChromosom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
         return info
+
+    def setElitePos(self, elites_pos):
+        self.__elites_pos = elites_pos
+
+    def getElitePos(self):
+        return self.__elites_pos
 
     def population(self):
         return self.__genoms
@@ -79,7 +86,7 @@ class Genoms(object):
     def setBest(self, chromosome):
         self.__best_chromosome = chromosome
 
-    def getBest(self, chromosome):
+    def getBest(self):
         return self.__best_chromosome
 
     def is_genoms(self):
@@ -108,6 +115,10 @@ class Genoms(object):
         genome = np.array(tuple(tmp), dtype=self.__chromosome_dtype)
         # adauga genomul in lista de genomi
         self.__new_genoms.append(genome)
+
+    def saveInit(self):
+        self.__save_count = self.__CHECK_FREQ
+        self.save()
 
     def save(self):
         """Salveaza noua generatie de genomuri"""

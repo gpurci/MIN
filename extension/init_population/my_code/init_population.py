@@ -74,7 +74,7 @@ class InitPopulation(RootGA):
             # adauga individ in genome
             genoms.add(tsp=np.random.permutation(individ))
         # adauga indivizi in noua generatie
-        genoms.save()
+        genoms.saveInit()
         print("population {}".format(genoms.shape))
     # initPopulationsTSPRand =====================================
 
@@ -91,7 +91,7 @@ class InitPopulation(RootGA):
             kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
             genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
         # adauga indivizi in noua generatie
-        genoms.save()
+        genoms.saveInit()
         print("population {}".format(genoms.shape))
     # initPopulationsTTPRand =====================================
 
@@ -146,7 +146,7 @@ class InitPopulation(RootGA):
             count += 1
 
         # finalize new generation
-        genoms.save()
+        genoms.saveInit()
 
         print("population initialized:", genoms.shape)
 

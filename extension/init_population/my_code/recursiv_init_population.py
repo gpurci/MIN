@@ -1,38 +1,22 @@
 #!/usr/bin/python
 
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import *
+from extension.init_population.my_code.init_population_base import *
 
-class RecInitPopulation(RootGA):
+class RecInitPopulation(InitPopulationBase):
     """
     Clasa 'RecInitPopulation', 
     """
     def __init__(self, method, dataset, **configs):
-        super().__init__()
+        super().__init__(method, name="RecInitPopulation", **configs)
+        self.__fn = self._unpackMethod(method, 
+                                        rec_tsp=self.recTsp, 
+                                        rec_ttp=self.recTTP,
+                                    )
         self.__dataset = dataset
-        self.__configs = configs
-        self.__setMethods(method)
 
-    def __setMethods(self, method):
-        self.__method = method
-        self.__fn = self.__unpack_method(method)
-
-    def __unpack_method(self, method):
-        fn = self.initPopulationAbstract
-        if (method is not None):
-            if   (method == "rec_tsp"):
-                fn = self.recTsp
-            elif (method == "rec_ttp"):
-                fn = self.recTTP
-
-        return fn
-
-    def __str__(self):
-        info = """RecInitPopulation: 
-    method:  {}
-    configs: {}
-Parent: {}""".format(self.__method, self.__configs, super().__str__())
-        return info
+    def __call__(self, size, genoms=None):
+        self.__fn(size, genoms=genoms, **self._configs)
 
     def help(self):
         info = """RecInitPopulation:
@@ -41,17 +25,8 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
     'dataset' - dataset \n"""
         print(info)
 
-    def __call__(self, size, genoms=None):
-        self.__fn(size, genoms=genoms, **self.__configs)
-
-    def initPopulationAbstract(self, size, genoms=None, **configs):
-        raise NameError("Lipseste metoda '{}',pentru functia de 'RecInitPopulation', configs '{}'".format(self.__method, self.__configs))
-
     def recTsp(self, size, genoms=None, city=0, window_size=4):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
+        """
         """
         visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited_city[city] = True
@@ -66,10 +41,7 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
                 genoms.add(tsp=individ)
 
     def recTTP(self, size, genoms=None, city=0, window_size=4):
-        """Mutatia genetica a indivizilor, operatie in_place
-            parent1 - individul parinte 1
-            parent2 - individul parinte 2
-            offspring - individul copil/descendent
+        """
         """
         visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited_city[city] = True

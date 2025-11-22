@@ -1,63 +1,32 @@
 #!/usr/bin/python
 
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import *
+from extension.metrics.my_code.metrics_base import *
 
-class MetricsTTP(RootGA):
+class MetricsTTP(MetricsBase):
     """
     Clasa 'Metrics', ofera doar metode pentru a calcula metrici pentru clase de probleme de optimizare.
     Functia 'metrics' are 1 parametru, populatia.
-    Metoda '__call__', aplica metrica ce a fost selectata in '__config_fn' asupra populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, method, dataset, **kw):
-        super().__init__()
-        self.__configs = kw
-        self.dataset   = dataset
-        self.__setMethods(method)
-
-    def __str__(self):
-        info = """Metrics: 
-        method:  {}
-        configs: {}""".format(self.__method, self.__configs)
-        return info
+    def __init__(self, method, dataset, **configs):
+        super().__init__(method, name="MetricsTTP", **configs)
+        self.__fn, self.getScore = self._unpackMethod(method, 
+                                        TTP_linear=(self.metricsTTPLiniar, self.getScoreTTP), 
+                                        TTP_ada_linear=(self.metricsTTPAdaLiniar, self.getScoreTTP),
+                                        TTP_exp=(self.metricsTTPExp, self.getScoreTTP),
+                                    )
+        self.dataset = dataset
 
     def __call__(self, genomics):
-        return self.__fn(genomics, **self.__configs)
+        return self.__fn(genomics, **self._configs)
 
     def help(self):
-        info = """Metrics:
+        info = """MetricsTTP:
     metoda: 'TTP_linear';     config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
     metoda: 'TTP_ada_linear'; config: -> "v_min":0.1, "v_max":1, "W":2000, "alpha":0.01;
     metoda: 'TTP_exp';        config: -> "v_min":0.1, "v_max":1, "W":2000, "lam":0.01;\n"""
         print(info)
-
-    def __unpackMethod(self, method):
-        fn = self.metricsAbstract
-        if (method is not None):
-            if   (method == "TTP_linear"):
-                fn = self.metricsTTPLiniar
-                self.getScore = self.getScoreTTP
-            elif (method == "TTP_ada_linear"):
-                fn = self.metricsTTPAdaLiniar
-                self.getScore = self.getScoreTTP
-            elif (method == "TTP_exp"):
-                fn = self.metricsTTPExp
-                self.getScore = self.getScoreTTP
-
-        return fn
-
-    def __setMethods(self, method):
-        self.__method = method
-        self.__fn = self.__unpackMethod(method)
-
-    def getArgBest(self, fitness_values):
-        """Cautarea rutei optime din populatie"""
-        index = np.argmax(fitness_values, axis=None, keepdims=False)
-        return index
-
-    def metricsAbstract(self, population):
-        raise NameError("Lipseste metoda '{}' pentru functia de 'Metrics': config '{}'".format(self.__method, self.__configs))
 
     # individ metrics ---------------------
     def computeIndividProfitKP(self, kp_individ):
@@ -236,11 +205,23 @@ class MetricsTTP(RootGA):
 
         # number city
         number_city = self.computeNumberCities(genomics.chromosomes("tsp"))
-        number_obj  = self.computeNbrObjKP(genomics.chromosomes("kp"))
-        number_obj  = number_obj*kw.get("W")/((weights + 1e-7)*self.GENOME_LENGTH)
+        #number_obj  = self.computeNbrObjKP(genomics.chromosomes("kp"))
+        tmp_profits = self.computeProfitKP(genomics.chromosomes("kp"))
 
-        mask = (kw.get("W") <= weights)
-        number_obj[mask] = 1.
+        W = kw.get("W")
+        if (W < weights.min()):
+            number_obj = np.mean(weights) / weights
+            #number_obj = normalization(number_obj)+0.1
+        else:
+            number_obj = W / (weights + 1e-7)
+            mask = number_obj > 1
+            number_obj[mask] = 1/number_obj[mask]
+
+        if (number_obj.max() < 10):
+            number_obj = number_obj**5
+
+        tmp_profits = tmp_profits / (tmp_profits.max() + 1e-7)
+        number_obj *= tmp_profits
         # pack metrick values
         metric_values = {
             "profits"    : profits,

@@ -1,10 +1,6 @@
 #!/usr/bin/python
 
 import numpy as np
-
-from sys_function import sys_remove_modules
-
-sys_remove_modules("extension.crossover.my_code.crossover_base")
 from extension.crossover.my_code.crossover_base import *
 
 class CrossoverBinary(CrossoverBase):

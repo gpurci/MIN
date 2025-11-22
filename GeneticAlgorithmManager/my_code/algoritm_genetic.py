@@ -15,6 +15,7 @@ sys_remove_modules("init_population")
 sys_remove_modules("metrics")
 sys_remove_modules("mutate")
 sys_remove_modules("select_parent")
+sys_remove_modules("stres")
 
 from root_GA import *
 from genoms import *
@@ -25,6 +26,7 @@ from init_population import *
 from metrics import *
 from mutate import *
 from select_parent import *
+from stres import *
 
 class GeneticAlgorithm(RootGA):
     """
@@ -33,7 +35,8 @@ class GeneticAlgorithm(RootGA):
     def __init__(self, name="", extern_commnad_file="", **configs):
         super().__init__()
         self.__name = name
-        self.__last_mutation_rate  = None
+        self.__FREQ_CHECK_EXTERN = 1
+        self.__freq_check_extern = 0
         self.__extern_commnad_file = extern_commnad_file
         self.__is_stop = False
         self.unpackConfig(**configs)
@@ -136,13 +139,11 @@ class GeneticAlgorithm(RootGA):
     def initByConfig(self):
         if (self.__configs is not None):
             #
-            subset_size = self.__configs.get("subset_size", 5)
-            self.__score_evolution = np.zeros(subset_size, dtype=np.float32)
+            self.__FREQ_CHECK_EXTERN = self.__configs.get("freq_check_extern", 5)
             #
             self.__update_elite_fitness = self.__configs.get("update_elite_fitness", True)
         else:
-            subset_size = 5
-            self.__score_evolution = np.zeros(subset_size, dtype=np.float32)
+            self.__freq_check_extern = 5
             #
             self.__update_elite_fitness = True
 
@@ -161,6 +162,10 @@ class GeneticAlgorithm(RootGA):
         extern_fn = configs.get("init_population", None)
         self.initPopulation = InitPopulation(extern_fn)
         self.__functions.append(self.initPopulation)
+        # configurare stres
+        extern_fn  = configs.get("stres", None)
+        self.stres = Stres(extern_fn)
+        self.__functions.append(self.stres)
         # configurare fitness
         extern_fn = configs.get("fitness", None)
         self.fitness = Fitness(extern_fn)
@@ -191,7 +196,7 @@ class GeneticAlgorithm(RootGA):
     def help(self):
         info  = "'nume': numele obiectului\n"
         info += "'extern_commnad_file': numele fisierului in care vor fi adaugate comenzile externe, (oprire fortata = stop=True)\n"
-        info += "'manager': {\"subset_size\":5, \"update_elite_fitness\": True}\n"
+        info += "'manager': {\"freq_check_extern\":5, \"update_elite_fitness\": True}\n"
         info += "'genoms': "+self.__genoms.help()
         info += "'metric': "+self.metrics.help()
         info += "'init_population': "+self.initPopulation.help()
@@ -199,6 +204,7 @@ class GeneticAlgorithm(RootGA):
         info += "'select_parent': {'select_parent1': 'select_parent2'}: "+self.selectParent1.help()
         info += "'crossover': "+self.crossover.help()
         info += "'mutate': "+self.mutate.help()
+        info += "'stres': "+self.stres.help()
         info += "'callback': "+self.callback.help()
         print(info)
 
@@ -211,6 +217,7 @@ class GeneticAlgorithm(RootGA):
         self.selectParent2.setParameters(**kw)
         self.crossover.setParameters(**kw)
         self.mutate.setParameters(**kw)
+        self.stres.setParameters(**kw)
         GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
         POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
         if (GENOME_LENGTH is not None):
@@ -224,10 +231,13 @@ class GeneticAlgorithm(RootGA):
         Monitorizarea evolutiei de invatare: datele sunt pastrate intr-un vector
         evolution_scores - scorul evolutiei
         """
-        self.__score_evolution[:-1] = self.__score_evolution[1:]
-        self.__score_evolution[-1]  = evolution_scores["score"]
+        if (self.__freq_check_extern < self.__FREQ_CHECK_EXTERN):
+            self.__freq_check_extern = 0
+            self.externCommand()
+        else:
+            self.__freq_check_extern += 1
         if (evolution_scores["best_fitness"] < 0):
-            raise Exception("Best fitness is '0'")
+            raise Exception("Best fitness is less than '0'")
 
     # Fitness.__call__ always requires BOTH population AND metric_values.
     # => we must compute metrics first, then compute fitness again.
@@ -263,26 +273,6 @@ class GeneticAlgorithm(RootGA):
                 val = round(val, 3)
             metric_info +="{}: {}, ".format(key, val)
         print(metric_info)
-
-    def stres(self, evolution_scores):
-        """Aplica stres asupra populatiei.
-        Functia de stres, se aplica atunci cand ajungem intr-un minim local,
-        cauta cele mai frecvente secvente de genom si aplica un stres modifica acele zone
-        evolution_scores - scorul evolutiei
-        """
-        check_distance = np.allclose(self.__score_evolution.mean(), evolution_scores["score"], rtol=1e-01, atol=1e-03)
-        #print("distance evolution {}, distance {}".format(check_distance, best_distance))
-        if (check_distance):
-            self.__score_evolution[:] = 0
-            self.__last_mutation_rate = self.MUTATION_RATE
-            print("evolution_scores {}".format(evolution_scores))
-            self.setParameters(MUTATION_RATE=1.)
-            #self.mutate.increaseSubsetSize()
-            self.externCommand()
-        else:
-            #self.mutate.decreaseSubsetSize()
-            if (self.__last_mutation_rate is not None):
-                self.setParameters(MUTATION_RATE=self.__last_mutation_rate)
 
     def getArgsWeaks(self, fitness_values, size):
         """Returneaza pozitiile 'size' cu cele mai mici valori, ale fitnesului

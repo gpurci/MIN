@@ -76,7 +76,7 @@ class GeneticAlgorithm(RootGA):
             for _ in range(self.POPULATION_SIZE):
                 # selectarea positia parinte 1
                 arg_parent1 = self.selectParent1()
-                # selectarea positia parinte 1
+                # selectarea positia parinte 2
                 arg_parent2 = self.selectParent2()
                 # obtinerea parintilor
                 parent1 = self.__genoms[arg_parent1]

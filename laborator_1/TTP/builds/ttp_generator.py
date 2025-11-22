@@ -23,13 +23,13 @@ class TTPGenerator(object):
         # citeste greutatile si profitul
         df_items = self.read_csv(items_file)
         # initializare
-        prof = np.zeros(self.coords.shape[0], dtype=float)
-        wgt  = np.zeros(self.coords.shape[0], dtype=float)
+        prof = np.zeros(self.coords.shape[0], dtype=int)
+        wgt  = np.zeros(self.coords.shape[0], dtype=int)
         # atribuire profit si greutate, pozitiilor din care fac parte
         for _, row in df_items.iterrows():
             city = int(row["ASSIGNED_NODE_NUMBER"]) - 1
-            prof[city] = float(row["PROFIT"])
-            wgt [city] = float(row["WEIGHT"])
+            prof[city] = int(row["PROFIT"])
+            wgt [city] = int(row["WEIGHT"])
         # update dataset
         self.dataset = {
         "GENOME_LENGTH":distance.shape[0],

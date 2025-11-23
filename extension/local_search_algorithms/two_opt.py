@@ -19,17 +19,19 @@ class TwoOpt(RootGA):
 
     def __unpack_method(self, method):
         fn = self.twoOptAbstract
-        if (method is not None):
+
+        if method is not None:
             if   (method == "two_opt"):
                 fn = self.twoOpt
             elif (method == "two_opt_rand"):
                 fn = self.twoOptRand
             elif (method == "two_opt_distance"):
                 fn = self.twoOptDistance
-            if   (method == "two_opt"):
-                fn = self.twoOpt
+            elif (method == "two_opt_LS"):
+                fn = self.twoOptLS
 
         return fn
+
 
     def __str__(self):
         info = """TwoOpt: 
@@ -37,10 +39,36 @@ class TwoOpt(RootGA):
     configs: {}
 Parent: {}""".format(self.__method, self.__configs, super().__str__())
         return info
+    
+    def __call__(self, *args):
+        """
+        SAFE universal signature:
 
-    def __call__(self, parent1, parent2, offspring):
-        offspring = self.__fn(parent1, parent2, offspring)
-        return offspring
+        Accepted calls:
+        - op(route)                      → LS mode
+        - op(p1, p2, route)             → GA mode
+        - op(None, None, route)         → elite LS via TTP-VND
+        """
+
+        # ------- CASE 1: Local-search TwoOptLS(route) -------
+        if self.__method == "two_opt_LS":
+            if len(args) == 1:
+                # correct LS-style call: op(route)
+                (route,) = args
+                return self.twoOptLS(route)
+            elif len(args) == 3:
+                # GA-style call but LS method → treat as LS
+                _, _, route = args
+                return self.twoOptLS(route)
+            else:
+                raise ValueError(f"TwoOptLS expected 1 or 3 args, got {len(args)}")
+
+        # ------- CASE 2: All other methods use GA interface -------
+        if len(args) != 3:
+            raise ValueError(f"{self.__method} expects THREE arguments (p1,p2,offspring). Got {len(args)}.")
+
+        parent1, parent2, offspring = args
+        return self.__fn(parent1, parent2, offspring)
 
     def twoOptAbstract(self, parent1, parent2, offspring):
         raise NameError("Lipseste metoda '{}',pentru functia de 'TwoOpt', configs '{}'".format(self.__method, self.__configs))
@@ -110,23 +138,30 @@ Parent: {}""".format(self.__method, self.__configs, super().__str__())
                     ret_offspring = tmp
         return ret_offspring
     
-    def twoOptSimple(self, route):
+    def twoOptLS(self, route):
         """
-        A minimal two-opt local search for TTP initialization.
-        This is the same logic that was previously inside InitVecinPopulation._twoOpt.
+        Local-search TwoOpt for elite improvement.
+        Does NOT require parent1/parent2/offspring.
+        Signature:
+            improved_route = twoOptLS(route)
         """
         best = route.copy()
         best_d = self.computeIndividDistance(best)
         n = len(best)
 
-        for i in range(1, n - 2):
-            for k in range(i + 1, n - 1):
-                new_r = best.copy()
-                new_r[i:k + 1] = np.flip(new_r[i:k + 1])
+        # optional iteration count from configs
+        iters = self.__configs.get("iters", 50)
 
-                d = self.computeIndividDistance(new_r)
-                if d < best_d:
-                    return new_r
+        for _ in range(iters):
+            i = np.random.randint(1, n - 2)
+            k = np.random.randint(i + 1, n - 1)
+
+            new_r = best.copy()
+            new_r[i:k+1] = new_r[i:k+1][::-1]
+
+            d = self.computeIndividDistance(new_r)
+            if d < best_d:
+                best, best_d = new_r, d
 
         return best
 

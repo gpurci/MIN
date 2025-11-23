@@ -13,6 +13,7 @@ class StresTTP(StresBase):
         super().__init__(method, name="StresTTP", **configs)
         self.__fn = self._unpackMethod(method, 
                                         elite_tabu_search=self.stresTabuSearch, 
+                                        elite_tabu_search_by_distance=self.stresTabuSearchDistance, 
                                     )
         self.__score_evolution = np.zeros(subset_size, dtype=np.float32)
         self.dataset    = dataset
@@ -29,6 +30,7 @@ class StresTTP(StresBase):
     def help(self):
         info = """StresTTP:
     metoda: 'elite_tabu_search'; config: -> None ;
+    metoda: 'elite_tabu_search_by_distance'; config: -> None ;
     dataset    - setul de date de antrenare,
     freq_stres - frecventa cu care se va aplica stres,
     subset_size - esantionul de supraveghere\n"""
@@ -46,7 +48,7 @@ class StresTTP(StresBase):
             # unpack elites
             individ = genoms[elite_pos]
             #print("route", route)
-            # compute distance
+            # compute score
             best_score   = self.__computeIndividScore(individ, *args)
             best_individ = individ.copy()
             # apply tabu search
@@ -81,22 +83,21 @@ class StresTTP(StresBase):
             # creare mask de depasire media pe distanta
             mask    = city_d > city_d.mean()
             args    = np.argwhere(mask).reshape(-1)
-
-            # compute distance
-            best_distance = city_d.sum()
-            best_route    = route.copy()
+            # compute score
+            best_score   = self.__computeIndividScore(individ, *args)
+            best_individ = individ.copy()
             # apply tabu search
             for i in range(len(args) - 1):
                 for j in range(i + 1, len(args)):
                     locus1, locus2 = args[i], args[j]
-                    tmp = route.copy()
-                    tmp[locus1], tmp[locus2] = tmp[locus2], tmp[locus1]
-                    distance = self.computeIndividDistance(tmp)
-                    if (distance < best_distance):
-                        best_distance = distance
-                        best_route    = tmp
+                    tmp   = individ.copy()
+                    tmp["tsp"][locus1], tmp["tsp"][locus2] = tmp["tsp"][locus2], tmp["tsp"][locus1]
+                    score = self.__computeIndividScore(tmp, *args)
+                    if (score > best_score):
+                        best_score   = score
+                        best_individ = tmp
             # set best route
-            genoms[elite_pos]["tsp"] = best_route
+            genoms[elite_pos] = best_individ
 
 
     # ------------------ Utils ------------------

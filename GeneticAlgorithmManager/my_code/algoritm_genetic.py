@@ -57,7 +57,7 @@ class GeneticAlgorithm(RootGA):
         """
         self.__init_command()
         # initiaizarea populatiei
-        if (self.__genoms.is_genoms()==False):
+        if (self.__genoms.isGenoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
         # calculate metrics
         metric_values  = self.metrics(self.__genoms)
@@ -76,7 +76,7 @@ class GeneticAlgorithm(RootGA):
             for _ in range(self.POPULATION_SIZE):
                 # selectarea positia parinte 1
                 arg_parent1 = self.selectParent1()
-                # selectarea positia parinte 1
+                # selectarea positia parinte 2
                 arg_parent2 = self.selectParent2()
                 # obtinerea parintilor
                 parent1 = self.__genoms[arg_parent1]
@@ -125,7 +125,7 @@ class GeneticAlgorithm(RootGA):
         return self.__genoms.population()
 
     def setPopulation(self, population):
-        return self.__genoms.setPopulation(population)
+        self.__genoms.setPopulation(population)
 
     def __unpackConfigure(self, str_functia, **configs):
         method, method_configs = None, {}
@@ -157,7 +157,7 @@ class GeneticAlgorithm(RootGA):
         self.__functions = []
         # configureaza genoms
         config = configs.get("genoms", {})
-        self.__genoms = Genoms(size=self.GENOME_LENGTH, **config)
+        self.__genoms = Genoms(genome_lenght=self.GENOME_LENGTH, **config)
         self.__functions.append(self.__genoms)
         # configurare metrici
         extern_fn = configs.get("metric", None)
@@ -213,6 +213,23 @@ class GeneticAlgorithm(RootGA):
         print(info)
 
     def setParameters(self, **kw):
+        print("setParameters: {}".format(kw))
+        # 
+        GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
+        POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
+        if (GENOME_LENGTH is not None):
+            self.__genoms.setGenomeLenght(GENOME_LENGTH)
+        if (POPULATION_SIZE is not None):
+            if (self.POPULATION_SIZE > POPULATION_SIZE):
+                # calculate metrics
+                metric_values  = self.metrics(self.__genoms)
+                # init fitness value
+                fitness_values = self.fitness(metric_values)
+                args = self.getArgsBest(fitness_values, POPULATION_SIZE)
+                population = self.__genoms[args]
+                self.__genoms.setPopulation(population)
+                print("update population {}".format(self.__genoms.shape))
+        # 
         super().setParameters(**kw)
         self.metrics.setParameters(**kw)
         self.initPopulation.setParameters(**kw)
@@ -222,12 +239,6 @@ class GeneticAlgorithm(RootGA):
         self.crossover.setParameters(**kw)
         self.mutate.setParameters(**kw)
         self.stres.setParameters(**kw)
-        GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
-        POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
-        if (GENOME_LENGTH is not None):
-            self.__genoms.setSize(GENOME_LENGTH)
-        if (POPULATION_SIZE is not None):
-            self.__genoms.setPopulationSize(POPULATION_SIZE)
 
     def evolutionMonitor(self, evolution_scores):
         """
@@ -245,7 +256,7 @@ class GeneticAlgorithm(RootGA):
     # Fitness.__call__ always requires BOTH population AND metric_values.
     # => we must compute metrics first, then compute fitness again.
     def setElites(self, elites):
-        if (self.__genoms.is_genoms()==False):
+        if (self.__genoms.isGenoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         if (elites.shape[0] > 0):
@@ -258,7 +269,7 @@ class GeneticAlgorithm(RootGA):
             self.__genoms.setElitePos(args)
 
     def setElitesByFitness(self, fitness_values, elites, fitness_elites=None):
-        if (self.__genoms.is_genoms()==False):
+        if (self.__genoms.isGenoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         # here fitness_values already exists (caller passed it)
@@ -290,12 +301,23 @@ class GeneticAlgorithm(RootGA):
             args = np.array([], dtype=np.int32)
         return args
 
+    def getArgsBest(self, fitness_values, size):
+        """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
+        fitness_values - valorile fitness a populatiei
+        """
+        if (size > 0):
+            args = np.argpartition(fitness_values, -size)
+            args = args[-size:]
+        else:
+            args = np.array([], dtype=np.int32)
+        return args
+
     def getArgsElite(self, fitness_values):
         """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
         fitness_values - valorile fitness a populatiei
         """
         if (self.ELITE_SIZE > 0):
-            args = np.argpartition(fitness_values,-self.ELITE_SIZE)
+            args = np.argpartition(fitness_values, -self.ELITE_SIZE)
             args = args[-self.ELITE_SIZE:]
         else:
             args = np.array([], dtype=np.int32)

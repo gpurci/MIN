@@ -21,10 +21,12 @@ class Genoms(object):
         self.__gene_range = gene_range
         self.__best_chromosome = None
         self.__elites_pos = None
+        self.__genoms     = None
+        self.__new_genoms = None
         # Define the structure: key (string), gene range (int32/float32)
-        # init chromosome datatype
         # set population shape
         self.shape = None
+        # init chromosome datatype
         self.setGenomeLenght(genome_lenght)
 
     def __getitem__(self, key):
@@ -51,8 +53,6 @@ class Genoms(object):
     def setPopulation(self, population=None):# TO DO: a secured set, check genom names
         if (population is not None):
             self.__update_genoms(population)
-            self.__update_shape()
-            self.__save_count = self.__CHECK_FREQ
             self.__check_valid_range()
 
     def chromosomes(self, chromosome_name):
@@ -74,19 +74,11 @@ class Genoms(object):
         if ((self.shape is None) or (self.shape[-1][0] != size)):
             # init chromosome datatype
             self.__update_chromosome_dtype(size)
-            # initializare genoms
-            # new genoms este lista de genomuri care nu fac parte din noua generatie
-            self.__new_genoms = []
-            # genoms este un vector de genomuri formate, care face parte din noua generatie
-            self.__genoms = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
-            # set population shape
-            self.__update_shape()
+            self.__update_genoms(np.array([], dtype=self.__chromosome_dtype))
 
     def setPopulationSize(self, size):
         if (self.shape[0] != size):
-            del self.__new_genoms
-            self.__new_genoms = []
-            self.save()
+            pass # nu sterge populatia
 
     def setBest(self, chromosome):
         self.__best_chromosome = chromosome
@@ -122,28 +114,33 @@ class Genoms(object):
         self.__new_genoms.append(genome)
 
     def saveInit(self):
-        self.__save_count = self.__CHECK_FREQ
-        self.save()
+        """Salveaza noua generatie de genomuri"""
+        self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
+        self.__check_valid_range()
 
     def save(self):
         """Salveaza noua generatie de genomuri"""
         self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
-        # update shape
-        self.__update_shape()
-        self.__check_valid_range()
+        self.__freq_check_valid_range()
 
-    def __check_valid_range(self):
+    def __freq_check_valid_range(self):
         if (self.__save_count >= self.__CHECK_FREQ):
             self.__save_count = 0
-            for chromosome_name in self.__keys:
-                chromosomes_vals = self.__genoms[chromosome_name]
-                x_min = chromosomes_vals.min()
-                x_max = chromosomes_vals.max()
-                r_min, r_max = self.__gene_range[chromosome_name]
-                if ((x_min < r_min) or (x_max >= r_max)):
-                    raise NameError("Chromosomul '{}', depaseste range-ul range min: '{}', cromosome min: '{}'; range max: '{}', cromosome max: '{}'".format(chromosome_name, r_min, x_min, r_max, x_max))
+            self.__check_valid_range()
         else:
             self.__save_count += 1
+
+    def __check_valid_range(self):
+        for chromosome_name in self.__keys:
+            chromosomes_vals = self.__genoms[chromosome_name]
+            x_min = chromosomes_vals.min()
+            x_max = chromosomes_vals.max()
+            r_min, r_max = self.__gene_range[chromosome_name]
+            if ((x_min < r_min) or (x_max >= r_max)):
+                err_msg = """Chromosomul '{}', depaseste range-ul: 
+    range min: '{}', cromosome min: '{}'; 
+    range max: '{}', cromosome max: '{}'""".format(chromosome_name, r_min, x_min, r_max, x_max)
+                raise NameError(err_msg)
 
     def __update_genoms(self, population_genoms):
         del self.__genoms # sterge generatia veche
@@ -152,6 +149,8 @@ class Genoms(object):
         # initializeaza lista de genomuri
         del self.__new_genoms
         self.__new_genoms = []
+        # update shape
+        self.__update_shape()
 
     def __update_shape(self):
         # update shape

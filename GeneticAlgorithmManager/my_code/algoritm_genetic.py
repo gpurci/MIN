@@ -120,7 +120,7 @@ class GeneticAlgorithm(RootGA):
         return self.__genoms.population()
 
     def setPopulation(self, population):
-        return self.__genoms.setPopulation(population)
+        self.__genoms.setPopulation(population)
 
     def __unpackConfigure(self, str_functia, **configs):
         method, method_configs = None, {}
@@ -208,6 +208,23 @@ class GeneticAlgorithm(RootGA):
         print(info)
 
     def setParameters(self, **kw):
+        print("setParameters: {}".format(kw))
+        # 
+        GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
+        POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
+        if (GENOME_LENGTH is not None):
+            self.__genoms.setGenomeLenght(GENOME_LENGTH)
+        if (POPULATION_SIZE is not None):
+            if (self.POPULATION_SIZE > POPULATION_SIZE):
+                # calculate metrics
+                metric_values  = self.metrics(self.__genoms)
+                # init fitness value
+                fitness_values = self.fitness(metric_values)
+                args = self.getArgsBest(fitness_values, POPULATION_SIZE)
+                population = self.__genoms[args]
+                self.__genoms.setPopulation(population)
+                print("update population {}".format(self.__genoms.shape))
+        # 
         super().setParameters(**kw)
         self.metrics.setParameters(**kw)
         self.initPopulation.setParameters(**kw)
@@ -217,12 +234,6 @@ class GeneticAlgorithm(RootGA):
         self.crossover.setParameters(**kw)
         self.mutate.setParameters(**kw)
         self.stres.setParameters(**kw)
-        GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
-        POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
-        if (GENOME_LENGTH is not None):
-            self.__genoms.setGenomeLenght(GENOME_LENGTH)
-        if (POPULATION_SIZE is not None):
-            self.__genoms.setPopulationSize(POPULATION_SIZE)
 
     def evolutionMonitor(self, evolution_scores):
         """
@@ -285,12 +296,23 @@ class GeneticAlgorithm(RootGA):
             args = np.array([], dtype=np.int32)
         return args
 
+    def getArgsBest(self, fitness_values, size):
+        """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
+        fitness_values - valorile fitness a populatiei
+        """
+        if (size > 0):
+            args = np.argpartition(fitness_values, -size)
+            args = args[-size:]
+        else:
+            args = np.array([], dtype=np.int32)
+        return args
+
     def getArgsElite(self, fitness_values):
         """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
         fitness_values - valorile fitness a populatiei
         """
         if (self.ELITE_SIZE > 0):
-            args = np.argpartition(fitness_values,-self.ELITE_SIZE)
+            args = np.argpartition(fitness_values, -self.ELITE_SIZE)
             args = args[-self.ELITE_SIZE:]
         else:
             args = np.array([], dtype=np.int32)

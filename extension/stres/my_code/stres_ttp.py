@@ -48,6 +48,10 @@ class StresTTP(StresBase):
             # unpack elites
             individ = genoms[elite_pos]
             #print("route", route)
+            # calculeaza distanta maxima pentru normalizare
+            #city_d       = self.individCityDistance(individ["tsp"])
+            #min_distance = city_d[city_d > 0].min()
+            #min_distance = min_distance if min_distance > 0 else 1
             # compute score
             best_score   = self.__computeIndividScore(individ, *args)
             best_individ = individ.copy()

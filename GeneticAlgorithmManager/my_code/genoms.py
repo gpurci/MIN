@@ -50,35 +50,37 @@ class Genoms(object):
 
     def setPopulation(self, population=None):# TO DO: a secured set, check genom names
         if (population is not None):
-            del self.__genoms # sterge generatia veche
-            # creaza o noua generatie
-            self.__genoms = population
-            # initializeaza lista de genomuri
-            del self.__new_genoms
-            self.__new_genoms = []
+            self.__update_genoms(population)
+            self.__update_shape()
+            self.__save_count = self.__CHECK_FREQ
+            self.__check_valid_range()
 
     def chromosomes(self, chromosome_name):
         return self.__genoms[chromosome_name]
 
+    def __update_chromosome_dtype(self, size):
+        # init chromosome datatype
+        tmp_types = []
+        for key in self.__keys:
+            rmin, rmax = self.__gene_range[key]
+            if (isinstance(rmin, float) or isinstance(rmax, float)):
+                tmp_type = (key, ("f4", size))
+            else:
+                tmp_type = (key, ("i4", size))
+            tmp_types.append(tmp_type)
+        self.__chromosome_dtype = np.dtype(tmp_types)
+
     def setGenomeLenght(self, size):
         if ((self.shape is None) or (self.shape[-1][0] != size)):
             # init chromosome datatype
-            tmp_types = []
-            for key in self.__keys:
-                rmin, rmax = self.__gene_range[key]
-                if (isinstance(rmin, float) or isinstance(rmax, float)):
-                    tmp_type = (key, ("f4", size))
-                else:
-                    tmp_type = (key, ("i4", size))
-                tmp_types.append(tmp_type)
-            self.__chromosome_dtype = np.dtype(tmp_types)
+            self.__update_chromosome_dtype(size)
             # initializare genoms
             # new genoms este lista de genomuri care nu fac parte din noua generatie
             self.__new_genoms = []
             # genoms este un vector de genomuri formate, care face parte din noua generatie
             self.__genoms = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
             # set population shape
-            self.shape    = (0, len(self.__keys), (size, size))
+            self.__update_shape()
 
     def setPopulationSize(self, size):
         if (self.shape[0] != size):
@@ -125,18 +127,9 @@ class Genoms(object):
 
     def save(self):
         """Salveaza noua generatie de genomuri"""
-        del self.__genoms # sterge generatia veche
-        # creaza o noua generatie
-        self.__genoms = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
-        # initializeaza lista de genomuri
-        del self.__new_genoms
-        self.__new_genoms = []
+        self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
         # update shape
-        tmp_shape = []
-        for key in self.__keys:
-            tmp_shape.append(self.__genoms[key].shape[1])
-        # update shape
-        self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
+        self.__update_shape()
         self.__check_valid_range()
 
     def __check_valid_range(self):
@@ -151,6 +144,22 @@ class Genoms(object):
                     raise NameError("Chromosomul '{}', depaseste range-ul range min: '{}', cromosome min: '{}'; range max: '{}', cromosome max: '{}'".format(chromosome_name, r_min, x_min, r_max, x_max))
         else:
             self.__save_count += 1
+
+    def __update_genoms(self, population_genoms):
+        del self.__genoms # sterge generatia veche
+        # creaza o noua generatie
+        self.__genoms = population_genoms
+        # initializeaza lista de genomuri
+        del self.__new_genoms
+        self.__new_genoms = []
+
+    def __update_shape(self):
+        # update shape
+        tmp_shape = []
+        for key in self.__keys:
+            tmp_shape.append(self.__genoms[key].shape[1])
+        # update shape
+        self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
 
     def help(self):
         info = """Genoms: "check_freq":1, "chromosome_name1": (min_range, max_range), "chromosome_name2": (min_range, max_range), ...\n"""

@@ -7,7 +7,7 @@ class Genoms(object):
     """
     Clasa 'Genoms', ofera metode pentru a structura si procesa populatia.
     """
-    def __init__(self, size=10, check_freq=1, **gene_range):
+    def __init__(self, genome_lenght=10, check_freq=1, **gene_range):
         # if condition returns False, AssertionError is raised:
         #assert (isinstance(gene_range, dict)), "Parametrul 'gene_range': '{}', are un type differit de 'dict'".format(type(gene_range))
 
@@ -23,7 +23,9 @@ class Genoms(object):
         self.__elites_pos = None
         # Define the structure: key (string), gene range (int32/float32)
         # init chromosome datatype
-        self.setSize(size)
+        # set population shape
+        self.shape = None
+        self.setGenomeLenght(genome_lenght)
 
     def __getitem__(self, key):
         return self.__genoms[key]
@@ -34,7 +36,7 @@ class Genoms(object):
     def __str__(self):
         info = "Genoms: shape '{}', check_freq '{}'\n".format(self.shape, self.__CHECK_FREQ)
         for key in self.__keys:
-            info += "\tChromosom name: '{}': range from ({} to {})".format(key, *self.__gene_range[key])
+            info += "\tChromosom name: '{}': range from ({} to {})\n".format(key, *self.__gene_range[key])
         return info
 
     def setElitePos(self, elites_pos):
@@ -46,7 +48,7 @@ class Genoms(object):
     def population(self):
         return self.__genoms
 
-    def setPopulation(self, population):# TO DO: a secured set, check genom names
+    def setPopulation(self, population=None):# TO DO: a secured set, check genom names
         if (population is not None):
             del self.__genoms # sterge generatia veche
             # creaza o noua generatie
@@ -58,24 +60,25 @@ class Genoms(object):
     def chromosomes(self, chromosome_name):
         return self.__genoms[chromosome_name]
 
-    def setSize(self, size):
-        # init chromosome datatype
-        tmp_types = []
-        for key in self.__keys:
-            rmin, rmax = self.__gene_range[key]
-            if (isinstance(rmin, float) or isinstance(rmax, float)):
-                tmp_type = (key, ("f4", size))
-            else:
-                tmp_type = (key, ("i4", size))
-            tmp_types.append(tmp_type)
-        self.__chromosome_dtype = np.dtype(tmp_types)
-        # initializare genoms
-        # new genoms este lista de genomuri care nu fac parte din noua generatie
-        self.__new_genoms = []
-        # genoms este un vector de genomuri formate, care face parte din noua generatie
-        self.__genoms = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
-        # set population shape
-        self.shape    = (1, len(self.__keys), (size, size))
+    def setGenomeLenght(self, size):
+        if ((self.shape is None) or (self.shape[-1][0] != size)):
+            # init chromosome datatype
+            tmp_types = []
+            for key in self.__keys:
+                rmin, rmax = self.__gene_range[key]
+                if (isinstance(rmin, float) or isinstance(rmax, float)):
+                    tmp_type = (key, ("f4", size))
+                else:
+                    tmp_type = (key, ("i4", size))
+                tmp_types.append(tmp_type)
+            self.__chromosome_dtype = np.dtype(tmp_types)
+            # initializare genoms
+            # new genoms este lista de genomuri care nu fac parte din noua generatie
+            self.__new_genoms = []
+            # genoms este un vector de genomuri formate, care face parte din noua generatie
+            self.__genoms = np.array(self.__new_genoms, dtype=self.__chromosome_dtype)
+            # set population shape
+            self.shape    = (0, len(self.__keys), (size, size))
 
     def setPopulationSize(self, size):
         if (self.shape[0] != size):
@@ -89,8 +92,8 @@ class Genoms(object):
     def getBest(self):
         return self.__best_chromosome
 
-    def is_genoms(self):
-        return (self.__genoms.shape[0] > 0)
+    def isGenoms(self):
+        return (self.shape[0] > 0)
 
     def keys(self):
         return self.__keys

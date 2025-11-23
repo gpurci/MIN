@@ -57,7 +57,7 @@ class GeneticAlgorithm(RootGA):
         """
         self.__init_command()
         # initiaizarea populatiei
-        if (self.__genoms.is_genoms()==False):
+        if (self.__genoms.isGenoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
         # calculate metrics
         metric_values  = self.metrics(self.__genoms)
@@ -152,7 +152,7 @@ class GeneticAlgorithm(RootGA):
         self.__functions = []
         # configureaza genoms
         config = configs.get("genoms", {})
-        self.__genoms = Genoms(size=self.GENOME_LENGTH, **config)
+        self.__genoms = Genoms(genome_lenght=self.GENOME_LENGTH, **config)
         self.__functions.append(self.__genoms)
         # configurare metrici
         extern_fn = configs.get("metric", None)
@@ -220,7 +220,7 @@ class GeneticAlgorithm(RootGA):
         GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
         POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
         if (GENOME_LENGTH is not None):
-            self.__genoms.setSize(GENOME_LENGTH)
+            self.__genoms.setGenomeLenght(GENOME_LENGTH)
         if (POPULATION_SIZE is not None):
             self.__genoms.setPopulationSize(POPULATION_SIZE)
 
@@ -240,7 +240,7 @@ class GeneticAlgorithm(RootGA):
     # Fitness.__call__ always requires BOTH population AND metric_values.
     # => we must compute metrics first, then compute fitness again.
     def setElites(self, elites):
-        if (self.__genoms.is_genoms()==False):
+        if (self.__genoms.isGenoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         if (elites.shape[0] > 0):
@@ -253,7 +253,7 @@ class GeneticAlgorithm(RootGA):
             self.__genoms.setElitePos(args)
 
     def setElitesByFitness(self, fitness_values, elites, fitness_elites=None):
-        if (self.__genoms.is_genoms()==False):
+        if (self.__genoms.isGenoms()==False):
             self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         # here fitness_values already exists (caller passed it)

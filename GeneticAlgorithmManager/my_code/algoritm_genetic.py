@@ -83,11 +83,6 @@ class GeneticAlgorithm(RootGA):
                 parent2 = self.__genoms[arg_parent2]
                 # incrucisarea parintilor
                 offspring = self.crossover(parent1, parent2)
-                try:
-                    self.mutate._Mutate__chromozoms["tsp"]["kp_bits"] = offspring["kp"]
-                    self.mutate._Mutate__chromozoms["tsp"]["dataset"] = self.dataset
-                except:
-                    pass
                 # mutatii
                 offspring = self.mutate(parent1, parent2, offspring) # in_place operation
                 # adauga urmasii la noua generatie

@@ -73,7 +73,7 @@ class GeneticAlgorithm(RootGA):
             # start selectie populatie
             self.selectParent1.startEpoch(fitness_values)
             self.selectParent2.startEpoch(fitness_values)
-            for _ in range(self.POPULATION_SIZE):
+            for _ in range(self.POPULATION_SIZE-self.ELITE_SIZE):
                 # selectarea positia parinte 1
                 arg_parent1 = self.selectParent1()
                 # selectarea positia parinte 2
@@ -87,20 +87,21 @@ class GeneticAlgorithm(RootGA):
                 offspring = self.mutate(parent1, parent2, offspring) # in_place operation
                 # adauga urmasii la noua generatie
                 self.__genoms.append(offspring)
-            # obtinerea indivizilor ce fac parte din elita
-            genome_elites  = self.__genoms[args_elite]
-            if (self.__update_elite_fitness):
-                fitness_elites = fitness_values[args_elite]
             else:
-                fitness_elites = None
+                for arg_elite in args_elite:
+                    elite_individ = self.__genoms[arg_elite]
+                    # adauga elita la noua generatie
+                    self.__genoms.append(elite_individ)
+                else:
+                    args = np.arange(self.POPULATION_SIZE-self.ELITE_SIZE, self.POPULATION_SIZE, dtype=np.int32)
+                    self.__genoms.setElitePos(args)
+
             # schimbarea generatiei
             self.__genoms.save()
             # calculate metrics
             metric_values  = self.metrics(self.__genoms)
             # calculare fitness
             fitness_values = self.fitness(metric_values)
-            # adaugare elita in noua populatie
-            self.setElitesByFitness(fitness_values, genome_elites, fitness_elites)
             # obtinerea pozitiei pentru elite
             args_elite = self.getArgsElite(fitness_values)
             # calculare metrici
@@ -143,7 +144,7 @@ class GeneticAlgorithm(RootGA):
             #
             self.__update_elite_fitness = self.__configs.get("update_elite_fitness", True)
         else:
-            self.__freq_check_extern = 5
+            self.__FREQ_CHECK_EXTERN = 5
             #
             self.__update_elite_fitness = True
 

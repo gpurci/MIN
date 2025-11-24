@@ -37,7 +37,7 @@ class CrossoverBinary(CrossoverBase):
         # mosteneste parinte1
         offspring = parent1.copy()
         # selectarea diapazonului de mostenire
-        sp = np.random.randint(low=self.GENOME_LENGTH//4, high=3*self.GENOME_LENGTH//4, size=None)
+        sp = np.random.randint(low=1, high=self.GENOME_LENGTH-1, size=None)
         # copierea rutei din cel de al doilea parinte
         offspring[sp:] = parent2[sp:]
         return offspring

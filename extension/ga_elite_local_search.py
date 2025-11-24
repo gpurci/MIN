@@ -5,7 +5,7 @@ from GeneticAlgorithmManager.my_code.genoms import Genoms
 class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
 
     def __init__(self, *args, elite_search=None, elite_chrom="tsp",
-                 verbose_elite=False, **configs):
+                 verbose_elite=True, **configs):
 
         self.elite_search  = elite_search
         self.elite_chrom   = elite_chrom
@@ -24,25 +24,43 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
             self.elite_search.setParameters(**kw)
 
         # how often to run elite local search
-        self.elite_freq = kw.get("ELITE_FREQ", 10)
+        self.elite_freq = kw.get("ELITE_FREQ", 20)
 
     # ---------------------------
     # Improve elites using LS
     # ---------------------------
     def _improve_elites(self, elites):
+
         if self.elite_search is None:
             return elites
 
         elites2 = elites.copy()
+        n_elites = elites.shape[0]
 
-        for i in range(elites2.shape[0]):
+        # ---------------------------------------------------------
+        # FULL GENOME LOCAL SEARCH (TTP-aware VND)
+        # ---------------------------------------------------------
+        if self.elite_chrom == "":  
+            for i in range(n_elites):
+                elites2[i] = self.elite_search(None, None, elites2[i])
+
+            if self.verbose_elite:
+                print(f"[EliteSearch] ✓ Improved {n_elites}/{n_elites} elites")
+
+            return elites2
+
+        # ---------------------------------------------------------
+        # CLASSIC SINGLE-CHROMOSOME LOCAL SEARCH (TSP-only)
+        # ---------------------------------------------------------
+        for i in range(n_elites):
             route = elites2[i][self.elite_chrom].copy()
-            elites2[i][self.elite_chrom] = self.elite_search(route)
+            elites2[i][self.elite_chrom] = self.elite_search(None, None, route)
 
         if self.verbose_elite:
-            print(f"[EliteSearch] ✓ Improved {elites2.shape[0]}/{elites2.shape[0]} elites")
+            print(f"[EliteSearch] ✓ Improved {n_elites}/{n_elites} elites")
 
         return elites2
+
 
     # ---------------------------------
     # Compute fitness of modified elites

@@ -28,16 +28,13 @@ So it plugs into your elite-search wrapper directly.
 from dataclasses import dataclass
 from typing import Dict, Any, List, Union
 
-# ---- import your operators here ----
-from two_opt import TwoOpt
-from or_opt import OrOpt
-from three_opt import ThreeOpt
-from tabu_hybrid_search import TabuHybridSearch
-# legacy / simple tabu if you keep it:
-# from extension.local_search.tabu_simple import TabuSearch
-
-from kp_greedy import TTPKPLocalSearch
-from vnd import VND
+from extension.local_search_algorithms.two_opt import TwoOpt
+from extension.local_search_algorithms.or_opt import OrOpt
+from extension.local_search_algorithms.three_opt import ThreeOpt
+from extension.local_search_algorithms.kp_greedy import KPGreedyImprove
+from extension.local_search_algorithms.vnd import VND
+from extension.local_search_algorithms.tabu_hybrid_search import TabuHybridSearch
+from extension.local_search_algorithms.ttp_vnd import TTPVNDLocalSearch
 
 
 # ---------------------------------------------------------------------
@@ -64,28 +61,21 @@ class ChainLocalSearch:
 # Map name -> (class, default_method)
 # ---------------------------------------------------------------------
 _REGISTRY = {
-    # ----- TSP route local searches -----
     "two_opt":              (TwoOpt, "two_opt"),
     "two_opt_rand":         (TwoOpt, "two_opt_rand"),
     "two_opt_distance":     (TwoOpt, "two_opt_distance"),
-
+    "two_opt_LS":           (TwoOpt, "two_opt_LS"),
     "or_opt":               (OrOpt, "or_opt"),
-
     "three_opt_restrict":   (ThreeOpt, "three_opt_restrict"),
-
     "hybrid_2opt":          (TabuHybridSearch, "hybrid_2opt"),
 
-    # "tabu_search":          (TabuSearch, "tabu_search"),
-    # "tabu_search_rand":     (TabuSearch, "tabu_search_rand"),
-    # "tabu_search_distance": (TabuSearch, "tabu_search_distance"),
+    # KP / TTP-aware
+    "kp_greedy":            (KPGreedyImprove, None),
 
-    # ----- KP / TTP-aware local searches -----
-    "kp_greedy":            (TTPKPLocalSearch, None),   # genome-level kp improver
-
-    # ----- Composite -----
-    "vnd_default":          (VND, None),                # VND already builds its ops
+    # Composite
+    "vnd_LS":               (VND, None),
+    "vnd_ttp":              (TTPVNDLocalSearch, None),
 }
-
 
 # ---------------------------------------------------------------------
 # Factory
@@ -134,9 +124,18 @@ def LocalSearchFactory(
         cfg = dict(configs)
         cfg.update(per_op_configs.get(key, {}))
 
-        # Some ops take (method, dataset, **cfg), some take (dataset, **cfg)
+        # ----- SPECIAL CASE: TTP-level VND -----
+        if cls is TTPVNDLocalSearch:
+            return cls(dataset=dataset, **cfg)
+
+        # ----- Standard Operators (route-only) -----
         if method is None:
-            return cls(dataset=dataset, **cfg) if "dataset" in cls.__init__.__code__.co_varnames else cls(dataset, **cfg)
+            # e.g. KPGreedyImprove, VND
+            if "dataset" in cls.__init__.__code__.co_varnames:
+                return cls(dataset=dataset, **cfg)
+            return cls(dataset, **cfg)
+
+        # ----- Operators that use GA-style method parameter -----
         return cls(method, dataset, **cfg)
 
     # otherwise build chain

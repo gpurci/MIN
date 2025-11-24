@@ -105,13 +105,46 @@ class Genoms(object):
 
     def add(self, **kw):
         tmp = []
+
         # adauga chromozomii in ordinea care au fost initializati
         for key in self.__keys:
-            tmp.append(kw[key])
+            # dtype for this field, including shape
+            field_dtype = self.__chromosome_dtype.fields[key][0]
+            # field_dtype.subdtype = (base_dtype, (size,)) for our use-case
+            if field_dtype.subdtype is not None:
+                base_dtype, shape = field_dtype.subdtype
+                size = shape[0]
+            else:
+                # scalar field (not our case, but safe fallback)
+                base_dtype = field_dtype
+                size = None
+
+            arr = np.asarray(kw[key], dtype=base_dtype)
+
+            # If dtype expects a fixed length (like (8,) or (280,)),
+            if size is not None:
+                if arr.shape[0] != size:
+                    warnings.warn(
+                        f"[Genoms.add] Chromosome '{key}' length {arr.shape[0]} "
+                        f"does not match expected {size}. "
+                        f"Adjusting (truncate/pad) to fit."
+                    )
+
+                    if arr.shape[0] > size:
+                        # too long → truncate
+                        arr = arr[:size]
+                    else:
+                        # too short → pad with zeros
+                        pad = np.zeros(size - arr.shape[0], dtype=arr.dtype)
+                        arr = np.concatenate([arr, pad])
+
+            tmp.append(arr)
+
         # salveaza chromozomii in genom
         genome = np.array(tuple(tmp), dtype=self.__chromosome_dtype)
         # adauga genomul in lista de genomi
         self.__new_genoms.append(genome)
+
 
     def saveInit(self):
         """Salveaza noua generatie de genomuri"""

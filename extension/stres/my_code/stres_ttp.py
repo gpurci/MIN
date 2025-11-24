@@ -45,28 +45,7 @@ class StresTTP(StresBase):
         args = [distance, item_profit, item_weight]
 
         for elite_pos in genoms.getElitePos():
-            # unpack elites
-            individ = genoms[elite_pos]
-            #print("route", route)
-            # calculeaza distanta maxima pentru normalizare
-            #city_d       = self.individCityDistance(individ["tsp"])
-            #min_distance = city_d[city_d > 0].min()
-            #min_distance = min_distance if min_distance > 0 else 1
-            # compute score
-            best_score   = self.__computeIndividScore(individ, *args)
-            best_individ = individ.copy()
-            # apply tabu search
-            for locus1 in range(self.GENOME_LENGTH-1):
-                for locus2 in range(locus1+1, self.GENOME_LENGTH):
-                    tmp   = individ.copy()
-                    tmp["tsp"][locus1], tmp["tsp"][locus2] = tmp["tsp"][locus2], tmp["tsp"][locus1]
-                    score = self.__computeIndividScore(tmp, *args)
-                    if (score > best_score):
-                        best_score   = score
-                        best_individ = tmp
-            # set best route
-            genoms[elite_pos] = best_individ
-            #print("genoms", genoms[elite_pos]["tsp"])
+            self.__tabu_search_full(genoms, elite_pos, *args)
 
     def stresTabuSearchDistance(self, genoms, scores):
         # unpack datassets
@@ -78,30 +57,56 @@ class StresTTP(StresBase):
 
         # start tabu search by distance
         for elite_pos in genoms.getElitePos():
-            # unpack elites
-            individ = genoms[elite_pos]
-            # unpack route
-            route   = individ["tsp"]
-            # calcularea distantelor dintre fiecare oras
-            city_d  = self.individCityDistance(route)
-            # creare mask de depasire media pe distanta
-            mask    = city_d > city_d.mean()
-            args    = np.argwhere(mask).reshape(-1)
-            # compute score
-            best_score   = self.__computeIndividScore(individ, *args)
-            best_individ = individ.copy()
-            # apply tabu search
-            for i in range(len(args) - 1):
-                for j in range(i + 1, len(args)):
-                    locus1, locus2 = args[i], args[j]
-                    tmp   = individ.copy()
-                    tmp["tsp"][locus1], tmp["tsp"][locus2] = tmp["tsp"][locus2], tmp["tsp"][locus1]
-                    score = self.__computeIndividScore(tmp, *args)
-                    if (score > best_score):
-                        best_score   = score
-                        best_individ = tmp
-            # set best route
-            genoms[elite_pos] = best_individ
+            self.__tabu_search_distance(genoms, elite_pos, *args)
+
+    def __tabu_search_full(self, genoms, elite_pos, *args):
+        # unpack elites
+        individ = genoms[elite_pos]
+        # calculeaza distanta maxima pentru normalizare
+        city_d       = self.individCityDistance(individ["tsp"])
+        min_distance = city_d[city_d > 0].min()
+        min_distance = min_distance if min_distance > 0 else 1
+        # compute score
+        best_score   = self.__computeIndividScore(individ, min_distance, *args)
+        best_individ = individ.copy()
+        # apply tabu search
+        for locus1 in range(self.GENOME_LENGTH-1):
+            for locus2 in range(locus1+1, self.GENOME_LENGTH):
+                tmp   = individ.copy()
+                tmp["tsp"][locus1], tmp["tsp"][locus2] = tmp["tsp"][locus2], tmp["tsp"][locus1]
+                score = self.__computeIndividScore(tmp, min_distance, *args)
+                if (score > best_score):
+                    best_score   = score
+                    best_individ = tmp
+        # set best route
+        genoms[elite_pos] = best_individ
+
+    def __tabu_search_distance(self, genoms, elite_pos, *args):
+        # unpack elites
+        individ = genoms[elite_pos]
+        # calcularea distantelor dintre fiecare oras
+        city_d  = self.individCityDistance(individ["tsp"])
+        min_distance = city_d[city_d > 0].min()
+        min_distance = min_distance if min_distance > 0 else 1
+        # creare mask de depasire media pe distanta
+        mask = city_d > city_d.mean()
+        args_distance = np.argwhere(mask).reshape(-1)
+        # compute score
+        best_score   = self.__computeIndividScore(individ, min_distance, *args)
+        best_individ = individ.copy()
+        # apply tabu search
+        for i in range(len(args_distance) - 1):
+            for j in range(i + 1, len(args_distance)):
+                locus1, locus2 = args_distance[i], args_distance[j]
+                tmp   = individ.copy()
+                tmp["tsp"][locus1], tmp["tsp"][locus2] = tmp["tsp"][locus2], tmp["tsp"][locus1]
+                score = self.__computeIndividScore(tmp, min_distance, *args)
+                if (score > best_score):
+                    best_score   = score
+                    best_individ = tmp
+        # set best route
+        genoms[elite_pos] = best_individ
+
 
 
     # ------------------ Utils ------------------
@@ -122,7 +127,7 @@ class StresTTP(StresBase):
         return (profit * time) / (profit + time)
 
     #  TTP Liniar ---------------------
-    def __computeIndividScore(self, individ, *args, v_min=0.1, v_max=1, W=2000, alpha=0.01):
+    def __computeIndividScore(self, individ, min_distance, *args, v_min=0.1, v_max=1, W=2000, alpha=0.01):
         # unpack chromosomes
         tsp_individ = individ["tsp"]
         kp_individ  = individ["kp"]
@@ -136,7 +141,7 @@ class StresTTP(StresBase):
         weights = item_weight[tsp_individ]*takes
         # calcularea distantelor dintre fiecare oras
         city_d  = self.individCityDistance(tsp_individ)
-        city_d  = min_norm(city_d)
+        city_d  = 2*min_distance / (min_distance + city_d)
         # calculare score
         score = city_d * profits / (weights + 1e-7)
         return score.sum()

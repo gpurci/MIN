@@ -145,7 +145,7 @@ class MetricsTTPMATEI(MetricsBase):
         item_weight = self.dataset["item_weight"]
         args = [distance, item_profit, item_weight]
 
-        N = self.POPULATION_SIZE
+        N = genomics.shape[0]
         profits = np.zeros(N, dtype=np.float32)
         weights = np.zeros(N, dtype=np.float32)
         times = np.zeros(N, dtype=np.float32)
@@ -158,7 +158,6 @@ class MetricsTTPMATEI(MetricsBase):
             weights[idx] = weight
             times[idx] = time
 
-        # CHANGED: use chromozomes(...) – matches Genoms API from project 1.
         tsp_pop = genomics.chromosomes("tsp")
         number_city = self.computeNumberCities(tsp_pop)
 
@@ -373,27 +372,76 @@ class MetricsTTPMATEI(MetricsBase):
 
     def getScoreTTP(self, genomics, fitness_values):
         """
-        Score used for logging/monitoring:
-          - score := profit (same as your original extension)
-          - distance, weight are also returned
+        Logging score for TTP:
+
+        - score   := standard TTP score = profit - R * time
+        - profit  := raw knapsack profit (sum of picked item profits)
+        - time    := total travel time along the tour (TTP model)
+        - distance: geometric TSP tour length
+        - weight  := total knapsack weight
+        - best_fitness := value from TTPFitness
         """
+        # index of best individual according to fitness
         arg_best = self.getArgBest(fitness_values)
         individ = genomics[arg_best]
-        best_fitness = fitness_values[arg_best]
+        best_fitness = float(fitness_values[arg_best])
 
+        # remember best in GA
         genomics.setBest(individ)
 
-        distance = self.computeIndividDistance(individ["tsp"])
-        kp_individ = individ["kp"]
-        profit = self.computeIndividProfitKP(kp_individ)
-        weight = self.computeIndividWeightKP(kp_individ)
+        # ----- basic metrics -----
+        tsp_individ = individ["tsp"]
+        kp_individ  = individ["kp"]
+
+        distance = self.computeIndividDistance(tsp_individ)
+        profit   = float(self.computeIndividProfitKP(kp_individ))
+        weight   = float(self.computeIndividWeightKP(kp_individ))
+
+        # ----- parameters for time & score -----
+        v_min = float(self._configs.get("v_min", 0.1))
+        v_max = float(self._configs.get("v_max", 1.0))
+        Wmax  = float(self._configs.get("W",   2000.0))
+
+        # Renting rate R: try configs, then dataset, then fallback
+        if "R" in self._configs:
+            R = float(self._configs["R"])
+        elif isinstance(getattr(self, "dataset", None), dict) and "R" in self.dataset:
+            R = float(self.dataset["R"])
+        else:
+            R = 1.0  # fallback
+
+        dist_mat    = self.dataset["distance"]
+        item_weight = self.dataset["item_weight"]
+
+        # ----- compute standard TTP travel time -----
+        Wcur = 0.0
+        Tcur = 0.0
+
+        # traverse tour edges
+        for i in range(len(tsp_individ) - 1):
+            city = tsp_individ[i]
+            take = kp_individ[city]
+            Wcur += item_weight[city] * take
+
+            v = self.computeSpeedTTP(Wcur, v_max, v_min, Wmax)
+            Tcur += dist_mat[city, tsp_individ[i + 1]] / v
+
+        # edge from last city back to start
+        v = self.computeSpeedTTP(Wcur, v_max, v_min, Wmax)
+        Tcur += dist_mat[tsp_individ[-1], tsp_individ[0]] / v
+
+        # ----- standard TTP score -----
+        ttp_score = profit - R * Tcur
 
         return {
-            "score": profit,
-            "distance": distance,
-            "weight": weight,
+            "score":        ttp_score,   # profit - R * time
+            "profit":       profit,      # raw profit
+            "time":         Tcur,        # <-- HERE
+            "distance":     distance,
+            "weight":       weight,
             "best_fitness": best_fitness,
         }
+
 
 
 # OLD helper kept for backwards compatibility with any legacy code

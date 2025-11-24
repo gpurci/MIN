@@ -209,7 +209,8 @@ class GeneticAlgorithm(RootGA):
         print(info)
 
     def setParameters(self, **kw):
-        print("setParameters: {}".format(kw))
+        debug_kw = {k: v for k, v in kw.items() if k != "dataset"}
+        print("setParameters:", debug_kw)
         # 
         GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
         POPULATION_SIZE = kw.get("POPULATION_SIZE", None)

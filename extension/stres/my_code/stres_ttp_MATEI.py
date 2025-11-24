@@ -73,6 +73,7 @@ class StresTTP(StresBase):
 
         # To remember the "normal" mutation rate when we boost it
         self._last_mutation_rate = None
+        self.fitness = None
 
     # -------------------------------------------------------------
     # GA plumbing
@@ -132,6 +133,14 @@ class StresTTP(StresBase):
     # Core stress logic
     # -------------------------------------------------------------
     def _do_stress(self, best_scalar, population):
+
+        # ---------------------------------------------------------
+        # 0) Optional cooldown: prevents repeated firing
+        # ---------------------------------------------------------
+        if getattr(self, "_cooldown", 0) > 0:
+            self._cooldown -= 1
+            return
+
         # ---- 1) Update history ----
         self._best_hist.append(best_scalar)
         if len(self._best_hist) > self.plateau_window:
@@ -149,78 +158,100 @@ class StresTTP(StresBase):
             atol=0.0,
         )
 
-        # Safe access to fitness config (where alpha lives)
+        # ---------------------------------------------------------
+        # Access to fitness + alpha
+        # ---------------------------------------------------------
         fitness_obj = getattr(self, "fitness", None)
-        if fitness_obj is not None:
-            fit_cfg = getattr(fitness_obj, "_Fitness__configs", {})
-        else:
-            fit_cfg = {}
 
-        base_alpha = fit_cfg.get("alpha", 2.0)
+        if fitness_obj is None:
+            fit_cfg = {}
+            base_alpha = 2.0
+        else:
+            fit_cfg = getattr(fitness_obj, "_TTPFitness__configs", {})
+            base_alpha = fit_cfg.get("alpha", 2.0)
+
+        current_alpha = fit_cfg.get("alpha", base_alpha)
 
         # ---------------------------------------------------------
-        # NO PLATEAU  → relax mutation + alpha back to baseline
+        # NO PLATEAU → relax alpha + mutation
         # ---------------------------------------------------------
         if not plateau:
-            # Restore mutation rate if we had boosted it
+
+            # Debug
+            print(f"[STRESS] No plateau | best_scalar={best_scalar:.4f}, alpha={current_alpha:.4f}")
+
+            # Restore mutation rate
             if self.mutation_boost and self._last_mutation_rate is not None:
+                print(f"   • Restoring MUTATION_RATE → {self._last_mutation_rate:.4f}")
                 self.setParameters(MUTATION_RATE=self._last_mutation_rate)
 
-            # Slowly decrease alpha towards baseline
+            # Relax alpha towards baseline
             if self.dynamic_alpha and fitness_obj is not None:
-                cur_alpha = fit_cfg.get("alpha", base_alpha)
-                if cur_alpha > base_alpha:
-                    fit_cfg["alpha"] = max(base_alpha, cur_alpha - 0.1)
+                if current_alpha > base_alpha:
+                    new_alpha = max(base_alpha, current_alpha - 0.05)
+                    print(f"   • alpha relaxed: {current_alpha} → {new_alpha}")
+                    fit_cfg["alpha"] = new_alpha
 
             return
 
         # ---------------------------------------------------------
-        # PLATEAU  → big but controlled shake
+        # PLATEAU → stress actions
         # ---------------------------------------------------------
-        print("[STRESS] Plateau detected in StresTTP. Injecting diversity into population...")
+        print("\n[STRESS] Plateau detected in StresTTP")
+        print(f"   • plateau_window = {self.plateau_window}")
+        print(f"   • window values  = {window_vals}")
 
-        # --- Mutation boost ---
+        # ---------------------------------------------------------
+        # Mutation boost
+        # ---------------------------------------------------------
         if self.mutation_boost:
             if self._last_mutation_rate is None:
                 self._last_mutation_rate = self.MUTATION_RATE
 
-            # e.g. 0.01 → up to 0.05–0.1
-            boosted = min(0.1, max(self.MUTATION_RATE * 5.0, 0.02))
+            boost_factor = 2.0
+            boosted = min(0.06, self.MUTATION_RATE * boost_factor)
+
+            print(f"   • mutation boosted: {self.MUTATION_RATE:.4f} → {boosted:.4f}")
             self.setParameters(MUTATION_RATE=boosted)
 
-        # --- Dynamic alpha ---
+        # ---------------------------------------------------------
+        # Dynamic alpha
+        # ---------------------------------------------------------
         if self.dynamic_alpha and fitness_obj is not None:
-            cur_alpha = fit_cfg.get("alpha", base_alpha)
-            new_alpha = min(3.5, cur_alpha + 0.5)  # clamp at 3.5
+            new_alpha = min(3.5, current_alpha + 0.2)
+            print(f"   • alpha increased: {current_alpha} → {new_alpha}")
             fit_cfg["alpha"] = new_alpha
-            print(f"   • alpha increased: {cur_alpha} → {new_alpha}")
 
-        # --- Population shake ---
+        # ---------------------------------------------------------
+        # Shake population
+        # ---------------------------------------------------------
         if self.population_shake and (population is not None):
+            print(f"   • shaking {int(self.replace_ratio * self.POPULATION_SIZE)} individuals")
             self._shake_population(population)
 
-        # After a big shake, reset history so we don’t retrigger immediately
+        # ---------------------------------------------------------
+        # Reset history & enable cooldown
+        # ---------------------------------------------------------
         self._best_hist.clear()
+        self._cooldown = 10   # skip next ~10 gens to avoid spam
+        print(f"   • cooldown activated (10 generations)\n")
+
 
     # -------------------------------------------------------------
     # Population shake: re-randomize X% of individuals
     # -------------------------------------------------------------
     def _shake_population(self, population):
         """
-        We don't see per-individual fitness here (GA only passes
-        aggregated `scores`), so we can't literally pick "worst Y%".
-        Instead, we randomize a random subset of size `replace_ratio`.
-
-        If later you have access to per-individual fitness, you can
-        sort by fitness instead of random indices here.
+        Smarter population shake:
+        - TSP: apply several random 2-opt style segment reversals
+        - KP:  flip ~8% of bits instead of randomizing the whole vector
         """
-        # Try Genoms-style access by chromosome name first
+
         try:
-            tsp = population["tsp"]   # (n_pop, n_cities)
-            kp  = population["kp"]    # (n_pop, n_items)
+            tsp = population["tsp"]
+            kp  = population["kp"]
             by_name = True
         except Exception:
-            # Fallback: assume shape (n_pop, 2, L)
             tsp = population[:, 0, :]
             kp  = population[:, 1, :]
             by_name = False
@@ -228,16 +259,46 @@ class StresTTP(StresBase):
         n_pop = tsp.shape[0]
         n_replace = max(1, int(self.replace_ratio * n_pop))
 
-        # Random indices (since we don't know "worst" individuals)
         idx = self._rng.choice(n_pop, size=n_replace, replace=False)
 
-        for i in idx:
-            # Random permutation of cities
-            self._rng.shuffle(tsp[i])
-            # Fresh random 0/1 vector for items
-            kp[i] = self._rng.randint(0, 2, size=kp[i].shape[0])
+        def two_opt_swap(route, rng):
+            n = route.shape[0]
+            i, j = sorted(rng.choice(n, size=2, replace=False))
+            if j - i <= 1:
+                return
+            route[i:j] = route[i:j][::-1]
 
-        # Write back if we used the raw array view
+        for i in idx:
+            route = tsp[i]
+
+            # 2-opt noise moves
+            n_moves = max(3, int(np.sqrt(route.shape[0]) / 2))
+            for _ in range(n_moves):
+                two_opt_swap(route, self._rng)
+
+            # SAFE segment rotation (fixed)
+            if self._rng.rand() < 0.30:
+                L = route.shape[0]
+
+                # ensure we do not pick an 'a' too close to the end
+                if L > 10:
+                    a = self._rng.randint(0, L - 10)
+                    b_low = a + 5
+                    b_high = min(a + 35, L)
+
+                    if b_low < b_high:
+                        b = self._rng.randint(b_low, b_high)
+                        segment = route[a:b]
+                        shift = self._rng.randint(1, len(segment))
+                        route[a:b] = np.roll(segment, shift)
+
+            # KP shake
+            bits = kp[i]
+            n_flip = max(5, int(0.08 * bits.shape[0]))
+            flip_idx = self._rng.choice(bits.shape[0], n_flip, replace=False)
+            bits[flip_idx] ^= 1
+
         if not by_name:
             population[:, 0, :] = tsp
             population[:, 1, :] = kp
+

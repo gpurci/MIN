@@ -44,11 +44,11 @@ class FitnessTTP(FitnessBase):
         weights = metric_values["weights"]
         times   = metric_values["times"]
         number_city = metric_values["number_city"]
+        number_obj  = metric_values["number_obj"]
         # normalization
         #profits = normalization(profits)
-        mask_city = self.__cityBinaryTSP(number_city)
         # calculate fitness
-        fitness = (profits - R*times) * mask_city
+        fitness = (profits - R*times) * number_obj
         #summary(profits=profits, weights=weights, times=times, fitness=fitness)
         return fitness
     # TTP =================================
@@ -76,9 +76,10 @@ class FitnessTTP(FitnessBase):
         # normalization
         profits = normalization(profits)
         times   = min_norm(times)
-        mask_city = self.__cityBinaryTSP(number_city)
+        #mask_city = self.__cityBinaryTSP(number_city)
         # calculate fitness
-        fitness = mask_city * number_obj * ((profits * times) / (profits + R*times+1e-7))
+        #fitness = mask_city * number_obj * ((profits * times) / (profits + R*times+1e-7))
+        fitness = number_obj * ((profits * times) / (profits + R*times+1e-7))
         #summary(profits=profits, weights=weights, times=times, fitness=fitness)
         return fitness
     # TTP =================================

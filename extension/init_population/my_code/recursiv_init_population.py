@@ -10,7 +10,6 @@ class RecInitPopulation(InitPopulationBase):
     def __init__(self, method, dataset, **configs):
         super().__init__(method, name="RecInitPopulation", **configs)
         self.__fn = self._unpackMethod(method, 
-                                        rec_tsp=self.recTsp, 
                                         rec_ttp=self.recTTP,
                                     )
         self.__dataset = dataset
@@ -20,32 +19,24 @@ class RecInitPopulation(InitPopulationBase):
 
     def help(self):
         info = """RecInitPopulation:
-    metoda: 'rec_tsp';  config: "city":0, "window_size":4;
     metoda: 'rec_ttp';  config: "city":0, "window_size":4;
     'dataset' - dataset \n"""
         print(info)
 
-    def recTsp(self, size, genoms=None, city=0, window_size=4):
+    def recTTP(self, population_size=-1, genoms=None, city=0, window_size=4):
         """
         """
-        visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
-        visited_city[city] = True
-        self.__population_size = self.POPULATION_SIZE
-        population   = self.recFill(city, window_size, visited_city, self.GENOME_LENGTH-1)
-        for tmp in population:
-            tmp.insert(0, city)
-        population = np.array(population, dtype=np.int32)
-        
-        if (genoms is not None):
-            for individ in population:
-                genoms.add(tsp=individ)
+        if ((population_size == -1) or (population_size == self.POPULATION_SIZE)):
+            self.__population_size = self.POPULATION_SIZE
+        else:
+            city        = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
+            window_size = np.random.randint(low=5, high=20, size=None)
+            self.__population_size = population_size
+            print("setCache")
+            genoms.setCache()
 
-    def recTTP(self, size, genoms=None, city=0, window_size=4):
-        """
-        """
         visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited_city[city] = True
-        self.__population_size = self.POPULATION_SIZE
         population   = self.recFill(city, window_size, visited_city, self.GENOME_LENGTH-1)
         for tmp in population:
             tmp.insert(0, city)

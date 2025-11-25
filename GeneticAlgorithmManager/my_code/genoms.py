@@ -7,7 +7,7 @@ class Genoms(object):
     """
     Clasa 'Genoms', ofera metode pentru a structura si procesa populatia.
     """
-    def __init__(self, genome_lenght=10, check_freq=1, **gene_range):
+    def __init__(self, genome_lenght=10, check_freq=1, elite_cmp=None, **gene_range):
         # if condition returns False, AssertionError is raised:
         #assert (isinstance(gene_range, dict)), "Parametrul 'gene_range': '{}', are un type differit de 'dict'".format(type(gene_range))
 
@@ -17,12 +17,17 @@ class Genoms(object):
         self.__keys = list(gene_range.keys())
         if (len(self.__keys) == 0):
             warnings.warn("\n\nLipseste numele chromosomilor: '{}'".format(gene_range))
+        self.__elite_cmp  = None
+        self.__check_elite_cmp(elite_cmp)
         # init range of genes
         self.__gene_range = gene_range
         self.__best_chromosome = None
         self.__elites_pos = None
+        self.__args_weaks_genoms = None
         self.__genoms     = None
         self.__new_genoms = None
+        self.__is_cache   = False
+        self.__count_cache = 0
         # Define the structure: key (string), gene range (int32/float32)
         # set population shape
         self.shape = None
@@ -36,7 +41,7 @@ class Genoms(object):
         self.__genoms[key] = value
 
     def __str__(self):
-        info = "Genoms: shape '{}', check_freq '{}'\n".format(self.shape, self.__CHECK_FREQ)
+        info = "Genoms: shape: '{}', check_freq: '{}', elite_cmp: {}\n".format(self.shape, self.__CHECK_FREQ, self.__elite_cmp)
         for key in self.__keys:
             info += "\tChromosom name: '{}': range from ({} to {})\n".format(key, *self.__gene_range[key])
         return info
@@ -46,6 +51,15 @@ class Genoms(object):
 
     def getElitePos(self):
         return self.__elites_pos
+
+    def getElites(self):
+        return self.__genoms[self.__elites_pos]
+
+    def getWeaksPos(self):
+        return self.__args_weaks_genoms
+
+    def setWeaksPos(self, args_weaks):
+        self.__args_weaks_genoms = args_weaks
 
     def population(self):
         return self.__genoms
@@ -86,6 +100,19 @@ class Genoms(object):
     def getBest(self):
         return self.__best_chromosome
 
+    def setCache(self):
+        self.__is_cache = True
+        self.__cache = []
+
+    def getCache(self):
+        cache = None
+        if (self.__is_cache):
+            self.__is_cache = False
+            cache = self.__cache
+            del self.__cache
+            self.__cache = None
+        return cache
+
     def isGenoms(self):
         return (self.shape[0] > 0)
 
@@ -99,29 +126,53 @@ class Genoms(object):
         # salveaza chromozomii in genom
         return np.array(tuple(chromosomes), dtype=self.__chromosome_dtype)
 
+    def equal(self, individs, individ):
+        is_equal = False
+        for chromosome_name in self.__elite_cmp:
+            tmps = individs[chromosome_name]
+            tmp  = individ[chromosome_name]
+            is_equal |= np.allclose(tmps, tmp, rtol=1e-03, atol=1e-07)
+        return is_equal
+
+    def apply(self, individs, fn, *args, **kw):
+        for key in self.__keys:
+            individs[key] = fn(individs[key], *args, **kw)
+
     def append(self, genome):
         # adauga genomul in lista de genomi
         self.__new_genoms.append(genome)
 
-    def add(self, **kw):
+    def __unpackKW(self, **kw):
         tmp = []
         # adauga chromozomii in ordinea care au fost initializati
         for key in self.__keys:
             tmp.append(kw[key])
         # salveaza chromozomii in genom
-        genome = np.array(tuple(tmp), dtype=self.__chromosome_dtype)
-        # adauga genomul in lista de genomi
-        self.__new_genoms.append(genome)
+        return np.array(tuple(tmp), dtype=self.__chromosome_dtype)
+
+    def add(self, **kw):
+        genome = self.__unpackKW(**kw)
+        if (self.__is_cache):
+            # adauga genomul in cache
+            if (self.__cache is not None):
+                self.__cache.append(genome)
+            else:
+                self.__cache = [genome]
+        else:
+            # adauga genomul in lista de genomi
+            self.__new_genoms.append(genome)
 
     def saveInit(self):
         """Salveaza noua generatie de genomuri"""
-        self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
-        self.__check_valid_range()
+        if (self.__is_cache == False):
+            self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
+            self.__check_valid_range()
 
     def save(self):
         """Salveaza noua generatie de genomuri"""
-        self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
-        self.__freq_check_valid_range()
+        if (self.__is_cache == False):
+            self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
+            self.__freq_check_valid_range()
 
     def __freq_check_valid_range(self):
         if (self.__save_count >= self.__CHECK_FREQ):
@@ -160,6 +211,29 @@ class Genoms(object):
         # update shape
         self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
 
+    def __check_elite_cmp(self, elite_cmp):
+        if (elite_cmp is None):
+            self.__elite_cmp = self.__keys
+        else:
+            if (isinstance(elite_cmp, list)):
+                for key in elite_cmp:
+                    err_msg = "Numele chromosomului: '{}', pentru selectia 'elitei', nu este 'string'".format(key)
+                    assert (isinstance(key, str)), err_msg
+                    err_msg = "Numele chromosomului: '{}', pentru selectia 'elitei', nu este in lista de nume '{}' a chromosomilor".format(key, self.__keys)
+                    assert (key in self.__keys), err_msg
+                self.__elite_cmp = elite_cmp
+            elif (isinstance(elite_cmp, str)):
+                err_msg = "Numele chromosomului: '{}', pentru selectia 'elitei', nu este in lista de nume '{}' a chromosomilor".format(elite_cmp, self.__keys)
+                assert (elite_cmp in self.__keys), err_msg
+                self.__elite_cmp = [elite_cmp]
+            else:
+                err_msg = "Numele chromosomului: '{}', pentru selectia 'elitei', este differit de type 'list' sau 'str': type {}".format(elite_cmp, type(elite_cmp))
+                raise NameError(err_msg)
+
     def help(self):
-        info = """Genoms: "check_freq":1, "chromosome_name1": (min_range, max_range), "chromosome_name2": (min_range, max_range), ...\n"""
+        info = """Genoms: 
+    genome_lenght - lungimea genomului, 
+    check_freq    - frecventa (epoch/generatii) cu care chromosomii vor fi verificati ca sunt in range-ul prestabilit, 
+    elite_cmp     - chromosomii dupa care se compara doi genomi pentru a stabili, data doi genomi sunt egali, 
+    "chromosome_name1": (min_range, max_range), "chromosome_name2": (min_range, max_range), ...\n"""
         return info

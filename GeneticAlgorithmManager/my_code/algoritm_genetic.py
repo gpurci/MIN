@@ -313,19 +313,29 @@ class GeneticAlgorithm(RootGA):
         args_sort = np.flip(args_sort)
         # seteaza primul individ al elitei
         valid_elites = [args_sort[0]]
+        # add count
+        count = 1
         # verifica ca fiecare membru al elitei sa fie uniq
-        for arg in args_sort[:self.ELITE_SIZE-1]: # elite size -1 valid este setat cu primul argument
+        for arg in args_sort: # elite size -1 valid este setat cu primul argument
             # adauga un nou membru in populatie daca membrul elitei este intalnit
-            if (self.__genoms.equal(self.__genoms[valid_elites], self.__genoms[arg])):
-                individ = self.initPopulation(1, self.__genoms)
-                if (individ.shape[0] != 0):
-                    self.__genoms[arg]  = individ
-                    fitness_values[arg] = 0
-                else:
-                    warnings.warn("\n\nFunctia 'initPopulation' nu returneaza un individ!!!")
-            valid_elites.append(arg)
+            if (not self.__genoms.equal(self.__genoms[valid_elites], self.__genoms[arg])):
+                valid_elites.append(arg)
+                count += 1
+            else:
+                fitness_values[arg] = 0.
+            if (count >= self.ELITE_SIZE):
+                print("count", count)
+                break
         # cast to numpy
         valid_elites = np.array(valid_elites, dtype=np.int32)
+        if (count < self.ELITE_SIZE):
+            need_elite_size = self.ELITE_SIZE - count
+            tmp = need_elite_size / count
+            if (tmp > 2):
+                valid_elites = np.repeat(valid_elites, int(tmp))
+            tmp -= int(tmp)
+            if (tmp > 0):
+                valid_elites = np.concatenate((valid_elites, valid_elites[:int(count*tmp)]), axis=0)
         self.__genoms.setElitePos(valid_elites)
 
     def externCommand(self):

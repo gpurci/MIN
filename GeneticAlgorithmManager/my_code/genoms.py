@@ -221,6 +221,8 @@ class Genoms(object):
                 err_msg = "Numele chromosomului: '{}', pentru selectia 'elitei', nu este in lista de nume '{}' a chromosomilor".format(elite_cmp, self.__keys)
                 assert (elite_cmp in self.__keys), err_msg
                 self.__elite_cmp = [elite_cmp]
+            elif (isinstance(elite_cmp, dict)):
+                pass # TO DO
             else:
                 err_msg = "Numele chromosomului: '{}', pentru selectia 'elitei', este differit de type 'list' sau 'str': type {}".format(elite_cmp, type(elite_cmp))
                 raise NameError(err_msg)

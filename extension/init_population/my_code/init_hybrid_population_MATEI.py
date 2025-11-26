@@ -83,6 +83,13 @@ class InitPopulationHybrid(RootGA):
         seen_routes = set()
         count = 0
 
+        # ------------------------------------------------------------------
+        # Limit expensive KP local search to a small budget
+        # For example: 10% of the population, at least 10 individuals
+        # This has a *huge* impact on init time.
+        kpls_budget = max(10, size // 10)
+        kpls_used = 0
+
         while count < size:
 
             # ------------------------------------------------------------------
@@ -119,20 +126,28 @@ class InitPopulationHybrid(RootGA):
             # (3) Repair KP
             # ------------------------------------------------------------------
             offspring = {"tsp": r, "kp": kp}
-            offspring2 = kp_ls(None, None, offspring)
-            new_kp = offspring2["kp"]
 
+            # Only run expensive KP LS for a limited number of individuals
+            if kpls_used < kpls_budget:
+                offspring2 = kp_ls(None, None, offspring)
+                new_kp = offspring2["kp"]
+                kpls_used += 1
+            else:
+                # After budget is exhausted, keep the greedy KP as-is
+                new_kp = kp
+
+            # ------------------------------------------------------------------
             # Avoid exact duplicates
-            tup = tuple(r)
-            if tup in seen_routes:
+            # ------------------------------------------------------------------
+            key = hash(r.tobytes())
+            if key in seen_routes:
                 continue
-            seen_routes.add(tup)
+            seen_routes.add(key)
 
-            # ------------------------------------------------------------------
-            # (4) Insert individual into population
-            # ------------------------------------------------------------------
+            # Add final hybrid solution
             genoms.add(tsp=r, kp=new_kp)
             count += 1
+
 
         genoms.save()
         print("Hybrid mixed TTP population =", genoms.shape)

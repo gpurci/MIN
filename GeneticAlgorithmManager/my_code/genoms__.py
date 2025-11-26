@@ -26,6 +26,8 @@ class Genoms(object):
         self.__args_weaks_genoms = None
         self.__genoms     = None
         self.__new_genoms = None
+        self.__is_cache   = False
+        self.__count_cache = 0
         # Define the structure: key (string), gene range (int32/float32)
         # set population shape
         self.shape = None
@@ -98,6 +100,19 @@ class Genoms(object):
     def getBest(self):
         return self.__best_chromosome
 
+    def setCache(self):
+        self.__is_cache = True
+        self.__cache = []
+
+    def getCache(self):
+        cache = None
+        if (self.__is_cache):
+            self.__is_cache = False
+            cache = self.__cache
+            del self.__cache
+            self.__cache = None
+        return cache
+
     def isGenoms(self):
         return (self.shape[0] > 0)
 
@@ -137,8 +152,15 @@ class Genoms(object):
 
     def add(self, **kw):
         genome = self.__unpackKW(**kw)
-        # adauga genomul in lista de genomi
-        self.__new_genoms.append(genome)
+        if (self.__is_cache):
+            # adauga genomul in cache
+            if (self.__cache is not None):
+                self.__cache.append(genome)
+            else:
+                self.__cache = [genome]
+        else:
+            # adauga genomul in lista de genomi
+            self.__new_genoms.append(genome)
 
     def saveInit(self):
         """Salveaza noua generatie de genomuri"""

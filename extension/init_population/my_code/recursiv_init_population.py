@@ -32,8 +32,6 @@ class RecInitPopulation(InitPopulationBase):
             city        = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
             window_size = np.random.randint(low=5, high=20, size=None)
             self.__population_size = population_size
-            print("setCache")
-            genoms.setCache()
 
         visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited_city[city] = True

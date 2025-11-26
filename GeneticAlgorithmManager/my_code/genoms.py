@@ -28,7 +28,7 @@ class Genoms(object):
         self.__new_genoms = None
         # Define the structure: key (string), gene range (int32/float32)
         # set population shape
-        self.shape = None
+        self.shape = (0, len(self.__keys), genome_lenght)
         # init chromosome datatype
         self.setGenomeLenght(genome_lenght)
 
@@ -65,7 +65,7 @@ class Genoms(object):
     def setPopulation(self, population=None):# TO DO: a secured set, check genom names
         if (population is not None):
             self.__update_genoms(population)
-            self.__check_valid_range()
+            self.__check_valid_range(self.__genoms)
 
     def chromosomes(self, chromosome_name):
         return self.__genoms[chromosome_name]
@@ -83,7 +83,7 @@ class Genoms(object):
         self.__chromosome_dtype = np.dtype(tmp_types)
 
     def setGenomeLenght(self, size):
-        if ((self.shape is None) or (self.shape[-1][0] != size)):
+        if (self.shape[-1] != size):
             # init chromosome datatype
             self.__update_chromosome_dtype(size)
             self.__update_genoms(np.array([], dtype=self.__chromosome_dtype))
@@ -140,10 +140,33 @@ class Genoms(object):
         # adauga genomul in lista de genomi
         self.__new_genoms.append(genome)
 
+    def __check_shapes(self, **kw):
+        tmp_population_sizes = []
+        for key in self.__keys:
+            tmp_shape = kw[key].shape
+            err_msg   = "'GENOME_LENGTH' pentru chromosomul: '{}', este diferit '{}' de valoarea setata '{}' a chromosomilor".format(key, tmp_shape[-1], self.shape[-1])
+            assert (tmp_shape[-1] == self.shape[-1]), err_msg
+            tmp_population_sizes.append((tmp_shape[0], key))
+        tmp_size = tmp_population_sizes[0][0]
+        for s in tmp_population_sizes:
+            err_msg = "'POPULATION_SIZE': este diferit '{}'!='{}'".format(tmp_size, tmp_population_sizes)
+            assert (tmp_size == s[0]), err_msg
+
+    def concatChromosomes(self, **kw):
+        self.__check_shapes(**kw)
+        size = kw[self.__keys[0]].shape[0]
+        # init genoms
+        ret_genoms = np.zeros(size, dtype=self.__chromosome_dtype)
+        # set genoms
+        for key in self.__keys:
+            ret_genoms[key] = kw[key]
+        self.__check_valid_range(ret_genoms)
+        return ret_genoms
+
     def saveInit(self):
         """Salveaza noua generatie de genomuri"""
         self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
-        self.__check_valid_range()
+        self.__check_valid_range(self.__genoms)
 
     def save(self):
         """Salveaza noua generatie de genomuri"""
@@ -153,13 +176,13 @@ class Genoms(object):
     def __freq_check_valid_range(self):
         if (self.__save_count >= self.__CHECK_FREQ):
             self.__save_count = 0
-            self.__check_valid_range()
+            self.__check_valid_range(self.__genoms)
         else:
             self.__save_count += 1
 
-    def __check_valid_range(self):
+    def __check_valid_range(self, genoms):
         for chromosome_name in self.__keys:
-            chromosomes_vals = self.__genoms[chromosome_name]
+            chromosomes_vals = genoms[chromosome_name]
             x_min = chromosomes_vals.min()
             x_max = chromosomes_vals.max()
             r_min, r_max = self.__gene_range[chromosome_name]
@@ -180,12 +203,8 @@ class Genoms(object):
         self.__update_shape()
 
     def __update_shape(self):
-        # update shape
-        tmp_shape = []
-        for key in self.__keys:
-            tmp_shape.append(self.__genoms[key].shape[1])
-        # update shape
-        self.shape = (self.__genoms.shape[0], len(self.__keys), tuple(tmp_shape))
+        tmp_size = self.__genoms[self.__keys[0]].shape[1]
+        self.shape = (self.__genoms.shape[0], len(self.__keys), tmp_size)
 
     def __check_elite_cmp(self, elite_cmp):
         if (elite_cmp is None):

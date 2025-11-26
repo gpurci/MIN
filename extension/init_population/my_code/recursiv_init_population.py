@@ -14,8 +14,8 @@ class RecInitPopulation(InitPopulationBase):
                                     )
         self.__dataset = dataset
 
-    def __call__(self, size, genoms=None):
-        self.__fn(size, genoms=genoms, **self._configs)
+    def __call__(self, population_size):
+        return self.__fn(population_size, **self._configs)
 
     def help(self):
         info = """RecInitPopulation:
@@ -23,11 +23,12 @@ class RecInitPopulation(InitPopulationBase):
     'dataset' - dataset \n"""
         print(info)
 
-    def recTTP(self, population_size=-1, genoms=None, city=0, window_size=4):
+    def recTTP(self, population_size=-1, city=0, window_size=4):
         """
         """
         if ((population_size == -1) or (population_size == self.POPULATION_SIZE)):
             self.__population_size = self.POPULATION_SIZE
+            population_size = self.POPULATION_SIZE
         else:
             city        = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None)
             window_size = np.random.randint(low=5, high=20, size=None)
@@ -35,21 +36,13 @@ class RecInitPopulation(InitPopulationBase):
 
         visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
         visited_city[city] = True
-        population   = self.recFill(city, window_size, visited_city, self.GENOME_LENGTH-1)
-        for tmp in population:
+        tsp_population   = self.recFill(city, window_size, visited_city, self.GENOME_LENGTH-1)
+        for tmp in tsp_population:
             tmp.insert(0, city)
-        population = np.array(population, dtype=np.int32)
-        
-        if (genoms is not None):
-            for tsp_individ in population:
-                # adauga tsp_individ in genome
-                kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
-                genoms.add(tsp=tsp_individ, kp=kp_individ)
-            # adauga indivizi in noua generatie
-            genoms.saveInit()
-            print("recTTP", genoms)
-        else:
-            raise NameError("Din functia externa 'RecInitPopulation', metoda 'recTTP', lipseste 'genoms'")
+        tsp_population = np.array(tsp_population, dtype=np.int32)
+        kp_population  = np.random.randint(low=0, high=2, size=(population_size, self.GENOME_LENGTH))
+        #print("tsp_population: {}, kp_population {}".format(tsp_population.shape, kp_population.shape))
+        return {"tsp":tsp_population, "kp":kp_population}
 
     def computeBestKDistance(self, city, window_size, visited_city):
         """Calculul distantei pentru un individ"""

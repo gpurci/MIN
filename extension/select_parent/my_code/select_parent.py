@@ -136,7 +136,7 @@ class SelectParent(SelectParentBase):
             - unde valoarea fitness este probabilitatea de a fi ales
         """
         # selectie dupa compatibilitate, mixt
-        cond = np.random.choice([0, 1, 2, 3, 4, 5, 6, 7], size=None, p=p_select)
+        cond = np.random.choice([0, 1, 2, 3, 4, 5, 6], size=None, p=p_select)
         if   (cond == 0):
             arg = self.selectParentChoice()
         elif (cond == 1):

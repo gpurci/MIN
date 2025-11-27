@@ -1,10 +1,10 @@
 #!/usr/bin/python
 import numpy as np
-from GeneticAlgorithmManager.my_code.algoritm_genetic import GeneticAlgorithm
+from GeneticAlgorithmManager.my_code.algoritm_geneticMATEI import GeneticAlgorithmMATEI
 from GeneticAlgorithmManager.my_code.genoms import Genoms
 
 
-class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
+class GeneticAlgorithmWithEliteSearch(GeneticAlgorithmMATEI):
     """
     Genetic Algorithm with:
       - Elite local search (e.g., TTPVNDLocalSearch)

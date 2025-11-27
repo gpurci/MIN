@@ -37,7 +37,14 @@ def build_ttp_ga(dataset, cfg, extern_command_file, log_file):
     """
 
     # ---- init & operators ----
-    init_population_ttp_obj = InitPopulationHybrid(method="TTP_hybrid", dataset=dataset)
+    init_population_ttp_obj = InitPopulationHybrid(
+        method="TTP_hybrid",
+        dataset=dataset,
+        use_ttp_vnd_init=cfg.get("init_use_ttp_vnd", True),
+        init_vnd_frac=cfg.get("init_vnd_frac", 0.15),
+        init_vnd_rounds=cfg.get("init_vnd_rounds", 2),
+    )
+
 
     crossover_tsp_obj = CrossoverMateiTSP("mixt", p_select=[0.7, 0.3])
 
@@ -87,7 +94,14 @@ def build_ttp_ga(dataset, cfg, extern_command_file, log_file):
         method="mixt_extended",
         rate=0.035,
         p_select=[0.4, 0.3, 0.3],
+
+        dataset=dataset,
+        W=dataset["W"],
+
+        soft_capacity_ratio=0.95,
+        max_soft_drop=2,
     )
+
 
     # ---- KP mutation (wrapped with repair / stress) ----
     if cfg["use_stress"]:
@@ -244,7 +258,12 @@ BASE_GA = {
     "use_vnd": True,
     "use_tsp_ls": True,
     "use_kp_ls": True,
+
+    "init_use_ttp_vnd": True,
+    "init_vnd_frac": 0.05,
+    "init_vnd_rounds": 1,
 }
+
 
 
 def _cfg(base, **kwargs):
@@ -303,6 +322,9 @@ GA_NO_MULTI_REPAIR = _cfg(
     use_vnd=True,
     use_tsp_ls=True,
     use_kp_ls=True,
+    init_use_ttp_vnd=True,
+    init_vnd_frac=0.05,   # only 5% of pop instead of 15%
+    init_vnd_rounds=1,    # only 1 round, very shallow
 )
 
 GA_NO_STRESS = _cfg(

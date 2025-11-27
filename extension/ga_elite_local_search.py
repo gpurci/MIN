@@ -9,6 +9,7 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
     Genetic Algorithm with:
       - Elite local search (e.g., TTPVNDLocalSearch)
       - Optional adaptive selection rate over generations
+      - Optional uniqueness filtering for elites
     """
 
     def __init__(
@@ -25,7 +26,8 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
         self.verbose_elite = verbose_elite
 
         # gene range for temporary Genoms in _fitness_of_elites
-        self._gene_range   = configs.get("genoms", {}).copy()
+        # (this is the dict you pass as `genoms={...}` in builder_ttp.py)
+        self._gene_range   = (configs.get("genoms", {}) or {}).copy()
 
         # safe generation counter (we control it)
         self._internal_generation = -1
@@ -96,10 +98,6 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
         new_rate = max(0.05, min(0.95, new_rate))
         self.SELECT_RATE = new_rate
 
-        # (Optional debug)
-        # if g % 50 == 0:
-        #     print(f"[AdaptiveSelect] gen={g}/{G-1}, SELECT_RATE={self.SELECT_RATE:.3f}")
-
     # ---------------------------
     # Improve elites using LS
     # ---------------------------
@@ -120,9 +118,7 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
         elites2 = elites.copy()
         n_elites = elites.shape[0]
 
-        # ---------------------------------------------------------
         # FULL GENOME LOCAL SEARCH (TTP-aware VND)
-        # ---------------------------------------------------------
         if self.elite_chrom == "":
             for i in range(n_elites):
                 elites2[i] = self.elite_search(None, None, elites2[i])
@@ -132,9 +128,7 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
 
             return elites2
 
-        # ---------------------------------------------------------
-        # CLASSIC SINGLE-CHROMOSOME LOCAL SEARCH (e.g. TSP route only)
-        # ---------------------------------------------------------
+        # SINGLE-CHROMOSOME LOCAL SEARCH (e.g. TSP route only)
         for i in range(n_elites):
             route = elites2[i][self.elite_chrom].copy()
             elites2[i][self.elite_chrom] = self.elite_search(None, None, route)
@@ -152,7 +146,10 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
         Re-evaluate fitness of elites after local search by
         building a temporary Genoms object and calling fitness().
         """
-        tmp = Genoms(size=self.GENOME_LENGTH, **self._gene_range)
+        tmp = Genoms(
+            genome_lenght=self.GENOME_LENGTH,
+            **self._gene_range
+        )
 
         for e in elites:
             tmp.append(e)
@@ -166,6 +163,45 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
 
         return f
 
+    # ------------------------------------------------------------------
+    # Ensure elites are unique (no duplicate chromosomes)
+    # ------------------------------------------------------------------
+    def _unique_elites(self, elites, fitness_elites=None):
+        """
+        Remove duplicate elite chromosomes based on their raw bytes.
+
+        elites:         np.ndarray of chromosomes (Genoms dtype)
+        fitness_elites: None or 1D array-like aligned with elites
+        """
+        if elites is None:
+            return elites, fitness_elites
+
+        elites = np.asarray(elites)
+        if elites.size == 0:
+            return elites, fitness_elites
+
+        seen = set()
+        kept_indices = []
+
+        for i, chrom in enumerate(elites):
+            key = chrom.tobytes()  # works for structured dtypes too
+            if key in seen:
+                continue
+            seen.add(key)
+            kept_indices.append(i)
+
+        if len(kept_indices) == len(elites):
+            return elites, fitness_elites
+
+        elites_unique = elites[kept_indices]
+
+        if fitness_elites is None:
+            return elites_unique, None
+
+        fitness_elites = np.asarray(fitness_elites)
+        fitness_unique = fitness_elites[kept_indices]
+        return elites_unique, fitness_unique
+
     # ---------------------------------------------------------------------
     # Override ONLY elite insertion — run LS every elite_freq generations
     # and update SELECT_RATE schedule once per generation.
@@ -178,9 +214,21 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
           - bump internal generation counter
           - update SELECT_RATE adaptively
           - occasionally run elite local search
+          - ensure elites are unique
         """
         # generation counter we control
         self._internal_generation += 1
+
+        # Sync mutation rate from stress → GA (but only if increased)
+        if hasattr(self.stres, "MUTATION_RATE") and self.stres.MUTATION_RATE > self.MUTATION_RATE:
+            new_rate = float(self.stres.MUTATION_RATE)
+            print(f"[GA] Sync MUTATION_RATE (stress → GA): {self.MUTATION_RATE:.4f} → {new_rate:.4f}")
+            self.MUTATION_RATE = new_rate
+
+            try:
+                self.mutate.setParameters(MUTATION_RATE=new_rate)
+            except Exception:
+                pass
 
         # update SELECT_RATE for *next* generation
         self._update_select_rate()
@@ -194,7 +242,8 @@ class GeneticAlgorithmWithEliteSearch(GeneticAlgorithm):
             elites_out = self._improve_elites(elites_out)
             fitness_elites = self._fitness_of_elites(elites_out)
 
-        # call original GA method with possibly improved elites
+        elites_out, fitness_elites = self._unique_elites(elites_out, fitness_elites)
+
         return super().setElitesByFitness(
             fitness_values,
             elites_out,

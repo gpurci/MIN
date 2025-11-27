@@ -3,7 +3,7 @@
 import numpy as np
 import yaml
 import warnings
-
+'''
 from sys_function import sys_remove_modules
 
 sys_remove_modules("root_GA")
@@ -16,6 +16,7 @@ sys_remove_modules("metrics")
 sys_remove_modules("mutate")
 sys_remove_modules("select_parent")
 sys_remove_modules("stres")
+'''
 
 from root_GA import *
 from genoms import *

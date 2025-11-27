@@ -96,50 +96,140 @@ class MetricsTTPMATEI(MetricsBase):
     #                    TTP LINEAR METRIC
     # ==============================================================
 
-    def __computeIndividLiniarTTP(
-        self, individ, *args, v_min=0.1, v_max=1.0, W=2000, alpha=0.01
-    ):
+    def __computeIndividLiniarTTP(self, individ, *args, v_min=0.1, v_max=1.0, W=2000):
         """
-        Linear TTP model:
-          - profit penalized by current time (alpha * Tcur)
-          - speed decreases linearly as bag weight increases.
+        Canonical linear TTP model (per-instance metrics):
+        - profit is the sum of taken item profits (no time penalty here)
+        - speed decreases linearly as bag weight increases:
+                v(Wcur) = v_max - (v_max - v_min) * (Wcur / W)
         """
-        Wcur = 0.0
-        Tcur = 0.0
-        Pcur = 0.0
 
+        Wcur = 0.0  # current knapsack weight
+        Tcur = 0.0  # current time
+        Pcur = 0.0  # current profit
+ 
         tsp_individ = individ["tsp"]
         kp_individ = individ["kp"]
 
         distance, item_profit, item_weight = args
 
+        # Walk the tour
         for i in range(self.GENOME_LENGTH - 1):
             city = tsp_individ[i]
-            take = kp_individ[city]
+            next_city = tsp_individ[i + 1]
 
+            take = kp_individ[city]          # 0 or 1, or {0,1} float
+
+            # Items picked up at this city
             profit = item_profit[city] * take
             weight = item_weight[city] * take
 
-            # CHANGED: same as old code, but clarified in comment.
-            Pcur += max(0.0, profit - alpha * Tcur)
+            Pcur += profit
             Wcur += weight
 
-            v = v_max - v_min * (Wcur / float(W))
+            # Linear velocity model
+            v = v_max - (v_max - v_min) * (Wcur / float(W))
+            if v < v_min:
+                v = v_min
+
+            Tcur += distance[city, next_city] / v
+
+        # Return to start city with final speed
+        last_city = tsp_individ[-1]
+        start_city = tsp_individ[0]
+
+        v = v_max - (v_max - v_min) * (Wcur / float(W))
+        if v < v_min:
+            v = v_min
+        Tcur += distance[last_city, start_city] / v
+
+        return Pcur, Tcur, Wcur
+
+    
+    def __computeIndividStandardTTP(
+        self, individ, distance, item_profit, item_weight,
+        v_min=0.1, v_max=1.0, W=2000):
+        Wcur = 0.0
+        Tcur = 0.0
+        Pcur = 0.0
+
+        tsp = individ["tsp"]
+        kp  = individ["kp"]
+        n   = len(tsp)
+
+        for i in range(n):
+            city = tsp[i]
+            take = kp[city]
+
+            # raw profit & weight
+            Pcur += item_profit[city] * take
+            Wcur += item_weight[city] * take
+
+            # speed as in standard TTP
+            v = v_max - (v_max - v_min) * (Wcur / float(W))
             v = max(v_min, v)
 
-            Tcur += distance[city, tsp_individ[i + 1]] / v
+            # cyclic tour
+            next_city = tsp[(i + 1) % n]
+            Tcur += distance[city, next_city] / v
 
-        # return to start city
-        Tcur += distance[tsp_individ[-1], tsp_individ[0]] / v
         return Pcur, Tcur, Wcur
+
+    def metricsTTPStandard(self, genomics, **kw):
+        distance    = self.dataset["distance"]
+        item_profit = self.dataset["item_profit"]
+        item_weight = self.dataset["item_weight"]
+        args = [distance, item_profit, item_weight]
+
+        N        = genomics.shape[0]
+        profits  = np.zeros(N, dtype=np.float32)
+        weights  = np.zeros(N, dtype=np.float32)
+        times    = np.zeros(N, dtype=np.float32)
+
+        for idx, individ in enumerate(genomics.population()):
+            # 1) accumulate profit and weight
+            # 2) compute time using computeSpeedTTP
+            Wcur = 0.0
+            Tcur = 0.0
+            Pcur = 0.0
+
+            tsp = individ["tsp"]
+            kp  = individ["kp"]
+
+            for i in range(self.GENOME_LENGTH - 1):
+                city = tsp[i]
+                take = kp[city]
+                Pcur += item_profit[city] * take
+                Wcur += item_weight[city] * take
+
+                v = self.computeSpeedTTP(Wcur, kw["v_max"], kw["v_min"], kw["W"])
+                Tcur += distance[city, tsp[i+1]] / v
+
+            # return to start city
+            v = self.computeSpeedTTP(Wcur, kw["v_max"], kw["v_min"], kw["W"])
+            Tcur += distance[tsp[-1], tsp[0]] / v
+
+            profits[idx] = Pcur
+            weights[idx] = Wcur
+            times[idx]   = Tcur
+
+        tsp_pop     = genomics.chromosomes("tsp")
+        number_city = self.computeNumberCities(tsp_pop)
+
+        return {
+            "profits": profits,
+            "times":   times,
+            "weights": weights,
+            "number_city": number_city,
+        }
 
     def metricsTTPLiniar(self, genomics, **kw):
         """
         Compute TTP-linear metrics for the whole population.
         Returns dict with:
             'profits', 'times', 'weights', 'number_city'
-        (no 'number_obj' here, but TTPFitness can handle that being absent).
         """
+
         distance = self.dataset["distance"]
         item_profit = self.dataset["item_profit"]
         item_weight = self.dataset["item_weight"]
@@ -150,9 +240,13 @@ class MetricsTTPMATEI(MetricsBase):
         weights = np.zeros(N, dtype=np.float32)
         times = np.zeros(N, dtype=np.float32)
 
+        # alpha may be passed in, but we no longer use it in the metric
+        kw_local = dict(kw)
+        kw_local.pop("alpha", None)
+
         for idx, individ in enumerate(genomics.population(), 0):
             profit, time, weight = self.__computeIndividLiniarTTP(
-                individ, *args, **kw
+                individ, *args, **kw_local
             )
             profits[idx] = profit
             weights[idx] = weight
@@ -163,11 +257,12 @@ class MetricsTTPMATEI(MetricsBase):
 
         metric_values = {
             "profits": profits,
-            "times": times,
+            "times":   times,
             "weights": weights,
             "number_city": number_city,
         }
         return metric_values
+
 
     # ==============================================================
     #                 TTP ADA-LINEAR METRIC
@@ -408,7 +503,7 @@ class MetricsTTPMATEI(MetricsBase):
         elif isinstance(getattr(self, "dataset", None), dict) and "R" in self.dataset:
             R = float(self.dataset["R"])
         else:
-            R = 1.0  # fallback
+            R = 5.61  # fallback
 
         dist_mat    = self.dataset["distance"]
         item_weight = self.dataset["item_weight"]

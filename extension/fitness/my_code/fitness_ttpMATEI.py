@@ -15,7 +15,8 @@ class TTPFitness(RootGA):
 
     def __init__(self, method=None, **configs):
         super().__init__()
-        self.__configs = configs
+        # keep all constructor configs (R, W, alpha, beta, etc.)
+        self.__configs = dict(configs)
         self.__method = method
         self.__fn = self.__unpackMethod(method)
 
@@ -23,10 +24,25 @@ class TTPFitness(RootGA):
         return f"TTPFitness(method={self.__method}, configs={self.__configs})"
 
     def setParameters(self, **kw):
+        """
+        Called from GA.setParameters(...).
+        Keeps compatibility with your previous project:
+          - can override GENOME_LENGTH
+          - can inject dataset, R, W, alpha, beta, ...
+        """
         super().setParameters(**kw)
-        # CHANGED: still allow explicit override of GENOME_LENGTH
+
+        # still allow explicit override of GENOME_LENGTH
         if "GENOME_LENGTH" in kw:
             self.GENOME_LENGTH = kw["GENOME_LENGTH"]
+
+        # remember dataset & scalar configs if passed here
+        if "dataset" in kw:
+            self.dataset = kw["dataset"]
+
+        for key in ("R", "W", "alpha", "beta"):
+            if key in kw:
+                self.__configs[key] = kw[key]
 
     def __unpackMethod(self, method):
         table = {
@@ -46,26 +62,108 @@ class TTPFitness(RootGA):
         return self.__fn(metric_values, **cfg)
 
     def fitnessAbstract(self, *args, **kw):
-        raise NameError(f"Fitness method '{self.__method}' does not exist in TTPFitness")
+        raise NameError(
+            f"Fitness method '{self.__method}' does not exist in TTPFitness"
+        )
+
+    # ------------------------------------------------------------
+    #  Helpers to resolve R and W (capacity) consistently
+    # ------------------------------------------------------------
+    def _resolve_R(self, R):
+        """
+        Resolve renting rate R with the following priority:
+          1) explicit argument R
+          2) constructor / setParameters configs
+          3) dataset["R"], if available
+          4) fallback to 5.61 (last resort)
+        """
+        if R is not None:
+            return float(R)
+
+        # from stored configs
+        if "R" in self.__configs:
+            return float(self.__configs["R"])
+
+        # from dataset, if attached via setParameters(dataset=...)
+        ds = getattr(self, "dataset", None)
+        if isinstance(ds, dict) and "R" in ds:
+            return float(ds["R"])
+
+        # last-resort fallback (avoid crashes, but you probably want to override)
+        return 5.61
+
+    def _resolve_W(self, W):
+        """
+        Resolve capacity W (Wmax) similarly:
+          1) explicit arg W
+          2) configs["W"]
+          3) dataset["W"] or dataset["capacity"]
+          4) otherwise raise (no silent wrong default)
+        """
+        if W is not None:
+            return float(W)
+
+        if "W" in self.__configs:
+            return float(self.__configs["W"])
+
+        ds = getattr(self, "dataset", None)
+        if isinstance(ds, dict):
+            if "W" in ds:
+                return float(ds["W"])
+            if "capacity" in ds:
+                return float(ds["capacity"])
+
+        raise ValueError(
+            "TTPFitness: missing capacity 'W'. "
+            "Provide W either in constructor, setParameters, or dataset."
+        )
 
     # ------------------------------------------------------------
     #  TTP_standard == (profit - R*time) * mask_city
     # ------------------------------------------------------------
     # Accept **kw so extra configs don't crash this method.
-    def fitnessTTPStandard(self, metric_values, R=1.0, **kw):
+    def fitnessTTPStandard(self, metric_values, R=None, W=None, **kw):
+        """
+        GECCO-compatible fitness:
+            - On feasible solutions (weight <= W):  fitness = shifted(profit - R*time)
+            - On infeasible solutions (weight > W): fitness = tiny (death penalty)
+        The logged 'score' remains profit - R*time, so GECCO comparison is untouched.
+        """
+
         profits     = np.asarray(metric_values["profits"], dtype=np.float64)
         times       = np.asarray(metric_values["times"], dtype=np.float64)
+        weights     = np.asarray(metric_values["weights"], dtype=np.float64)
         number_city = np.asarray(metric_values["number_city"], dtype=np.float64)
 
-        # only full tours get non-zero fitness
+        # Only full tours are valid
         mask_city = (number_city >= self.GENOME_LENGTH).astype(np.float64)
 
-        fit = (profits - R * times) * mask_city
+        # Resolve parameters
+        R_use = self._resolve_R(R)
+        W_use = self._resolve_W(W)
 
-        # shift to positive (GA requires positive fitness)
+        # -----------------------------
+        # Raw TTP objective (GECCO one)
+        # -----------------------------
+        raw = profits - R_use * times   # (profit - R * travel_time)
+
+        # -------------------------------------
+        # DEATH PENALTY FOR INFEASIBLE SOLUTIONS
+        # -------------------------------------
+        overweight = weights > W_use
+        # strong negative penalty
+        raw_penalized = np.where(overweight, -1e18, raw)
+
+        # Apply city mask (non-tours stay zero)
+        fit = raw_penalized * mask_city
+
+        # -------------------------------------
+        # Shift to positive (GA requirement)
+        # -------------------------------------
         min_fit = fit.min()
         if min_fit <= 0:
             fit = fit - min_fit + 1e-6
+
         return fit
 
     # ------------------------------------------------------------
@@ -81,20 +179,20 @@ class TTPFitness(RootGA):
     def fitnessF1scoreTTP(
         self,
         metric_values,
-        R=1.0,
-        beta=1.0,
+        R=None,
+        beta=None,
         W=None,
         alpha=None,
         **kw
     ):
-        # accepts R, W, alpha, beta, **kw so passing W=..., alpha=...
+        # accepts R, W, alpha, beta, **kw
         profits     = np.asarray(metric_values["profits"], dtype=np.float64)
         times       = np.asarray(metric_values["times"], dtype=np.float64)
-        # CHANGED: we also use weights here for overweight penalty
+        # we also use weights here for overweight penalty
         weights     = np.asarray(metric_values["weights"], dtype=np.float64)
         number_city = np.asarray(metric_values["number_city"], dtype=np.float64)
 
-        # NEW: number_obj is optional; if metrics don't provide it,
+        # number_obj is optional; if metrics don't provide it,
         # we just use a factor of 1.0 for everyone.
         if "number_obj" in metric_values:
             number_obj = np.asarray(metric_values["number_obj"], dtype=np.float64)
@@ -104,26 +202,18 @@ class TTPFitness(RootGA):
         # 1) mask for full tours (same idea as project-1 __cityBinaryTSP)
         mask_city = (number_city >= self.GENOME_LENGTH).astype(np.float64)
 
-        # 2) determine capacity Wmax:
-        #    - explicit W argument has priority
-        #    - otherwise, try self.__configs["W"]
-        if W is None:
-            Wmax = self.__configs.get("W", None)
-        else:
-            Wmax = W
-
-        if Wmax is None:
-            raise ValueError(
-                "TTPFitness: missing capacity 'W'. "
-                "Provide W either in constructor or per-call."
-            )
+        # 2) determine R and capacity Wmax using the helpers
+        R_use = self._resolve_R(R)
+        Wmax  = self._resolve_W(W)
 
         # 3) overweight penalty like in project-1 Fitness.fitnessF1scoreTTP
         overweight = np.maximum(0.0, weights - Wmax)
-        # allow beta from __configs if provided
-        beta_cfg = self.__configs.get("beta", None)
-        if beta_cfg is not None:
-            beta = beta_cfg
+
+        # beta from argument or configs
+        if beta is None:
+            beta = self.__configs.get("beta", 1.0)
+        beta = float(beta)
+
         penalty = beta * overweight
 
         # 4) base F1-like term, similar to:
@@ -132,7 +222,7 @@ class TTPFitness(RootGA):
         #       mask_city  (only full tours)
         #       number_obj (optional extra factor from metrics)
         raw = mask_city * number_obj * (
-            2.0 * profits / (profits + R * times + penalty + 1e-9)
+            2.0 * profits / (profits + R_use * times + penalty + 1e-9)
         )
 
         # 5) shift to positive (GA needs > 0 fitness)
@@ -143,6 +233,7 @@ class TTPFitness(RootGA):
         # 6) selective pressure exponent alpha
         if alpha is None:
             alpha = self.__configs.get("alpha", 2.0)
+        alpha = float(alpha)
 
         return raw ** alpha
 

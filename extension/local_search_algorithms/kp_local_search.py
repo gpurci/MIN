@@ -1,33 +1,33 @@
+
 #!/usr/bin/python
 import numpy as np
 from GeneticAlgorithmManager.my_code.root_GA import RootGA
 
 
-class KPGreedyImprove(RootGA):
+class TTPKPLocalSearch(RootGA):
     """
-    KP-aware local search for TTP.
-    Improves the knapsack chromosome given a fixed TSP route.
+    Genome-level KP greedy improvement (TTP-aware)
 
-    Idea:
-      - simulate traveling along tsp
-      - estimate profit contribution of each city item at its visit time
-      - greedily add high-value items while feasible
-      - remove items with non-positive contribution
-      - repeat a couple passes
+    Correct GA interface:
+        __call__(parent1, parent2, offspring)
 
-    Defaults match your metrics config:
-        mode="ada_linear"
-        v_min=0.1, v_max=1.0, W=25936, alpha=0.01
-
-    Usage:
-        kp_ls = KPGreedyImprove(dataset, mode="ada_linear")
-        kp2 = kp_ls(tsp, kp)
+    offspring is:
+        {"tsp": array(n), "kp": array(n)}
     """
 
-    def __init__(self, dataset, mode="ada_linear",
-                 v_min=0.1, v_max=1.0, W=25936, alpha=0.01,
-                 max_passes=2, seed=None):
+    def __init__(
+        self,
+        dataset,
+        mode="ada_linear",
+        v_min=0.1,
+        v_max=1.0,
+        W=25936,
+        alpha=0.01,
+        max_passes=2,
+        seed=None,
+    ):
         super().__init__()
+
         self.dataset = dataset
         self.distance = dataset["distance"]
         self.profit = dataset["item_profit"]
@@ -36,55 +36,49 @@ class KPGreedyImprove(RootGA):
         self.mode = mode
         self.v_min = v_min
         self.v_max = v_max
-        self.Wmax  = W
+        self.Wmax = W
         self.alpha = alpha
 
         self.max_passes = max_passes
         self.seed = seed
 
+    # ------------------------------------------------------
+    # Allow GA to override parameters
+    # ------------------------------------------------------
     def setParameters(self, **kw):
-        """
-        Let GA overwrite parameters if it provides them.
-        """
         super().setParameters(**kw)
         self.v_min = kw.get("v_min", self.v_min)
         self.v_max = kw.get("v_max", self.v_max)
-        self.Wmax  = kw.get("W", self.Wmax)
+        self.Wmax = kw.get("W", self.Wmax)
         self.alpha = kw.get("alpha", self.alpha)
 
-    # ---------- core TTP simulation ----------
+    # ------------------------------------------------------
+    # Speed function (TTP linear model)
+    # ------------------------------------------------------
     def _speed(self, Wcur):
-        # match your ada_linear speed in MetricsTTP
         if self.mode == "ada_linear":
             v = self.v_max - self.v_min * ((Wcur / self.Wmax) - 1.0)
         else:
             v = self.v_max - (self.v_max - self.v_min) * (Wcur / float(self.Wmax))
         return max(self.v_min, min(self.v_max, v))
 
+    # ------------------------------------------------------
+    # Simulation of TTP route
+    # ------------------------------------------------------
     def _simulate(self, tsp, kp):
-        """
-        Simulate route to get:
-          - visit_time[city]  (time when city is visited)
-          - visit_weight[city] (current bag weight at city)
-          - total_score (ttp profit proxy)
-          - total_weight, total_time
-        """
         n = len(tsp)
-        visit_time   = np.zeros(n, dtype=np.float64)
+        visit_time = np.zeros(n, dtype=np.float64)
         visit_weight = np.zeros(n, dtype=np.float64)
 
         Wcur = 0.0
         Tcur = 0.0
-        score = 0.0
 
         for i in range(n - 1):
             city = tsp[i]
-            take = kp[city]
-
             visit_time[city] = Tcur
             visit_weight[city] = Wcur
 
-            if take:
+            if kp[city] == 1:
                 p = self.profit[city]
                 w = self.weight[city]
 
@@ -93,35 +87,45 @@ class KPGreedyImprove(RootGA):
                 else:
                     contrib = max(0.0, p - self.alpha * Tcur)
 
-                score += contrib
                 Wcur += w
 
             v = self._speed(Wcur)
             Tcur += self.distance[city, tsp[i + 1]] / v
 
-        # return to start
+        # return to depot
         v = self._speed(Wcur)
         Tcur += self.distance[tsp[-1], tsp[0]] / v
 
-        return visit_time, visit_weight, score, Wcur, Tcur
+        return visit_time, visit_weight, Wcur, Tcur
 
-    # ---------- greedy improvement ----------
-    def __call__(self, tsp, kp):
+    # ------------------------------------------------------
+    # Main call — GA interface
+    # ------------------------------------------------------
+    def __call__(self, parent1, parent2, offspring, **kw):
+        """
+        offspring: {"tsp":..., "kp":...}
+        Returns: same structure with improved kp
+        """
+
+        out = offspring.copy()
+        tsp = out["tsp"]
+        kp = out["kp"].copy()
+
         if self.seed is not None:
             np.random.seed(self.seed)
 
-        kp2 = kp.copy()
-
+        # ----- Iterative improvement -----
         for _ in range(self.max_passes):
-            visit_time, visit_weight, score, Wcur, Tcur = self._simulate(tsp, kp2)
+            visit_time, visit_weight, Wcur, Tcur = self._simulate(tsp, kp)
 
-            # --- ADD PASS (greedy by adjusted gain/weight) ---
+            # ADD PASS
             remaining = self.Wmax - Wcur
             candidates = []
 
             for city in tsp:
-                if kp2[city] == 1:
+                if kp[city] == 1:
                     continue
+
                 w = self.weight[city]
                 if w > remaining:
                     continue
@@ -138,19 +142,19 @@ class KPGreedyImprove(RootGA):
                     candidates.append((gain / (w + 1e-7), city, gain, w))
 
             candidates.sort(reverse=True, key=lambda x: x[0])
-
             for _, city, gain, w in candidates:
                 if Wcur + w <= self.Wmax:
-                    kp2[city] = 1
+                    kp[city] = 1
                     Wcur += w
 
-            # --- REMOVE PASS (drop useless items) ---
-            visit_time, visit_weight, score, Wcur, Tcur = self._simulate(tsp, kp2)
+            # REMOVE PASS
+            visit_time, visit_weight, Wcur, Tcur = self._simulate(tsp, kp)
+            removed = False
 
-            removed_any = False
             for city in tsp:
-                if kp2[city] == 0:
+                if kp[city] == 0:
                     continue
+
                 w = self.weight[city]
                 p = self.profit[city]
                 t_at = visit_time[city]
@@ -161,10 +165,15 @@ class KPGreedyImprove(RootGA):
                     contrib = max(0.0, p - self.alpha * t_at)
 
                 if contrib <= 0:
-                    kp2[city] = 0
-                    removed_any = True
+                    kp[city] = 0
+                    removed = True
 
-            if not removed_any:
+            if not removed:
                 break
 
-        return kp2
+        # ALWAYS enforce depot rule
+        if kp.shape[0] > 0:
+            kp[0] = 0
+
+        out["kp"] = kp
+        return out

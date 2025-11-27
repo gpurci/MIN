@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import numpy as np
-from sys_function import sys_remove_modules
+'''from sys_function import sys_remove_modules
 
-sys_remove_modules("genom_op")
+sys_remove_modules("genom_op")'''
 from genom_op import *
 
 class Mutate(GenomOp):

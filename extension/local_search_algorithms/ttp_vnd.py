@@ -5,7 +5,7 @@ from GeneticAlgorithmManager.my_code.root_GA import RootGA
 from extension.local_search_algorithms.two_opt import TwoOpt
 from extension.local_search_algorithms.or_opt import OrOpt
 from extension.local_search_algorithms.three_opt import ThreeOpt
-from extension.local_search_algorithms.kp_greedy import TTPKPLocalSearch
+from extension.local_search_algorithms.kp_local_search import TTPKPLocalSearch
 
 
 class TTPVNDLocalSearch(RootGA):
@@ -14,7 +14,7 @@ class TTPVNDLocalSearch(RootGA):
        - Improves TSP route using (2-opt, or-opt, 3-opt)
        - Improves KP bitstring using greedy repair (TTPKPLocalSearch)
        - Evaluates REAL TTP objective:
-            profit - alpha * travel_time(weight-dependent)
+            profit - R * travel_time(weight-dependent)
 
     Offspring format (GA style):
        __call__(p1, p2, offspring, **cfg)
@@ -28,7 +28,7 @@ class TTPVNDLocalSearch(RootGA):
         v_max=1.0,
         v_min=0.1,
         W=25936,
-        alpha=0.01,
+        R=5.61,
         max_rounds=3,
         **configs,
     ):
@@ -45,7 +45,7 @@ class TTPVNDLocalSearch(RootGA):
         self.v_max = v_max
         self.v_min = v_min
         self.Wmax = W
-        self.alpha = alpha
+        self.R = R
         self.max_rounds = max_rounds
         self.use_kp_ls = use_kp_ls
 
@@ -63,7 +63,7 @@ class TTPVNDLocalSearch(RootGA):
         self.kp_ls = TTPKPLocalSearch(dataset)
 
     def __str__(self):
-        return f"TTPVNDLocalSearch(max_rounds={self.max_rounds}, alpha={self.alpha})"
+        return f"TTPVNDLocalSearch(max_rounds={self.max_rounds}, R={self.R})"
 
     def help(self):
         info = "TTPVNDLocalSearch: full TTP-aware VND (2-opt, or-opt, 3-opt + KP LS)\n"
@@ -80,7 +80,7 @@ class TTPVNDLocalSearch(RootGA):
             self.kp_ls.setParameters(**kw)
 
     # -----------------------------------------------------------
-    #   TTP scoring: profit - alpha * (distance / speed)
+    #   TTP scoring: profit - R * (distance / speed)
     # -----------------------------------------------------------
     def _compute_ttp_score(self, route, kp):
         d = self.distance
@@ -89,7 +89,7 @@ class TTPVNDLocalSearch(RootGA):
 
         v_max, v_min = self.v_max, self.v_min
         Wmax = self.Wmax
-        alpha = self.alpha
+        R = self.R
 
         Wcur = 0.0
         time = 0.0
@@ -117,7 +117,7 @@ class TTPVNDLocalSearch(RootGA):
 
             time += d[city, nxt] / v
 
-        return profit - alpha * time
+        return profit - R * time
 
     # -----------------------------------------------------------
     #   Diversification "shake" when VND is stuck

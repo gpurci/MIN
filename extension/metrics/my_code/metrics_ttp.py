@@ -140,14 +140,32 @@ class MetricsTTP(MetricsBase):
             weights[idx] = weight
             times[idx]   = time
 
+        W = kw.get("W")
+        if (W < weights.min()):
+            CAPACITY   = np.mean(weights)
+            number_obj = CAPACITY / weights
+            #number_obj = normalization(number_obj)+0.1
+        else:
+            CAPACITY   = W
+            number_obj = CAPACITY / (weights + 1e-7)
+            mask = number_obj > 1
+            number_obj[mask] = 1/number_obj[mask]
+
+        if (number_obj.max() < 10):
+            number_obj = number_obj**3
+
         # number city
         number_city = self.computeNumberCities(genomics.chromosomes("tsp"))
+
+        profits = normalization(profits) * times.max()
+
         # pack metrick values
         metric_values = {
             "profits"    : profits,
             "times"      : times,
             "weights"    : weights,
-            "number_city": number_city
+            "number_city": number_city,
+            "number_obj" : number_obj
         }
         return metric_values
     # TTP Liniar =================================
@@ -194,9 +212,9 @@ class MetricsTTP(MetricsBase):
         # pack args
         args = [distance, item_profit, item_weight]
         # calculate metrics for every individ
-        profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        profits = np.zeros(genomics.shape[0], dtype=np.float32)
+        weights = np.zeros(genomics.shape[0], dtype=np.float32)
+        times   = np.zeros(genomics.shape[0], dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
             profit, time, weight = self.__computeIndividAdaLiniarTTP(individ, *args, **kw)
             profits[idx] = profit
@@ -210,17 +228,21 @@ class MetricsTTP(MetricsBase):
 
         W = kw.get("W")
         if (W < weights.min()):
-            number_obj = np.mean(weights) / weights
+            CAPACITY   = np.mean(weights)
+            number_obj = CAPACITY / weights
             #number_obj = normalization(number_obj)+0.1
         else:
-            number_obj = W / (weights + 1e-7)
+            CAPACITY   = W
+            number_obj = CAPACITY / (weights + 1e-7)
             mask = number_obj > 1
             number_obj[mask] = 1/number_obj[mask]
 
         if (number_obj.max() < 10):
-            number_obj = number_obj**5
+            number_obj = number_obj**3
 
+        #mask = weights <= (CAPACITY * 1.2)
         tmp_profits = tmp_profits / (tmp_profits.max() + 1e-7)
+        #tmp_profits[mask] = 1/tmp_profits[mask]
         number_obj *= tmp_profits
         # pack metrick values
         metric_values = {
@@ -337,5 +359,5 @@ def normalization(x):
         # all values are identical: return a constant vector (e.g. all 1s)
         x_ret = np.ones_like(x, dtype=np.float32)
     else:
-        x_ret = (x_max-x)/(x_max-x_min)
+        x_ret = (x_max-x)/denom
     return x_ret

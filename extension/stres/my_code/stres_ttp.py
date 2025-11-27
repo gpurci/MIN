@@ -12,6 +12,7 @@ class StresTTP(StresBase):
     def __init__(self, method, dataset, freq_stres=10, subset_size=5, **configs):
         super().__init__(method, name="StresTTP", **configs)
         self.__fn = self._unpackMethod(method, 
+                                        normal=self.normal,
                                         elite_tabu_search=self.stresTabuSearch, 
                                         elite_tabu_search_by_distance=self.stresTabuSearchDistance, 
                                     )
@@ -20,21 +21,25 @@ class StresTTP(StresBase):
         self.FREQ_STRES = freq_stres
         self.freq_stres = 0
 
-    def __call__(self, genoms, scores):
-        if (self.freq_stres >= self.FREQ_STRES):
+    def __call__(self, genoms, scores): # TO DO: add zomby
+        if (self.freq_stres < self.FREQ_STRES):
+            self.freq_stres += 1
+        else:
             self.freq_stres = 0
             self.__fn(genoms, scores, **self._configs)
-        else:
-            self.freq_stres += 1
 
     def help(self):
         info = """StresTTP:
-    metoda: 'elite_tabu_search'; config: -> None ;
+    metoda: 'normal';                        config: -> None ;
+    metoda: 'elite_tabu_search';             config: -> None ;
     metoda: 'elite_tabu_search_by_distance'; config: -> None ;
-    dataset    - setul de date de antrenare,
-    freq_stres - frecventa cu care se va aplica stres,
+    dataset     - setul de date de antrenare,
+    freq_stres  - frecventa cu care se va aplica stres,
     subset_size - esantionul de supraveghere\n"""
         print(info)
+
+    def normal(self, genoms, scores):
+        pass
 
     def stresTabuSearch(self, genoms, scores):
         # unpack datassets

@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import numpy as np
-'''from sys_function import sys_remove_modules
+from sys_function import sys_remove_modules
 
-sys_remove_modules("extern_fn")'''
+sys_remove_modules("extern_fn")
 from extern_fn import *
 
 class Metrics(ExtenFn):

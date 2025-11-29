@@ -3,9 +3,9 @@
 import numpy as np
 import warnings
 #import traceback
-'''from sys_function import sys_remove_modules
+from sys_function import sys_remove_modules
 
-sys_remove_modules("root_GA")'''
+sys_remove_modules("root_GA")
 from root_GA import *
 
 def inherits_class_name(obj, class_name: str):

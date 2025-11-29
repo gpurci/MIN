@@ -1,5 +1,0 @@
-{
-    "python.analysis.extraPaths": [
-        "./extension/local_search_algorithms"
-    ]
-}

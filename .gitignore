@@ -3,6 +3,7 @@
 .ipynb_checkpoints
 .idea
 .cache
+.vscode
 __pycache__/
 *.pyc
 *.pyo

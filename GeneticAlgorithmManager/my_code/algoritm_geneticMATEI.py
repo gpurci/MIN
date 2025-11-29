@@ -29,7 +29,7 @@ from mutate import *
 from select_parent import *
 from stres import *
 
-class GeneticAlgorithm(RootGA):
+class GeneticAlgorithmMATEI(RootGA):
     """
     Managerul de configuratie al algoritmului genetic,
     """
@@ -59,14 +59,13 @@ class GeneticAlgorithm(RootGA):
         self.__init_command()
         # initiaizarea populatiei
         if (self.__genoms.isGenoms()==False):
-            population = self.initPopulation(self.POPULATION_SIZE, self.__genoms)
-            self.__genoms.setPopulation(population)
+            self.initPopulation(self.POPULATION_SIZE, self.__genoms)
         # calculate metrics
         metric_values  = self.metrics(self.__genoms)
         # init fitness value
         fitness_values = self.fitness(metric_values)
         # obtinerea pozitiei pentru elite
-        self.doElite(fitness_values)
+        args_elite = self.getArgsElite(fitness_values)
         # evolutia generatiilor
         for generation in range(self.GENERATIONS):
             # pentru oprire fortata
@@ -90,9 +89,13 @@ class GeneticAlgorithm(RootGA):
                 # adauga urmasii la noua generatie
                 self.__genoms.append(offspring)
             else:
-                for elite_individ in self.__genoms.getElites():
+                for arg_elite in args_elite:
+                    elite_individ = self.__genoms[arg_elite]
                     # adauga elita la noua generatie
                     self.__genoms.append(elite_individ)
+                else:
+                    args = np.arange(self.POPULATION_SIZE-self.ELITE_SIZE, self.POPULATION_SIZE, dtype=np.int32)
+                    self.__genoms.setElitePos(args)
 
             # schimbarea generatiei
             self.__genoms.save()
@@ -101,7 +104,7 @@ class GeneticAlgorithm(RootGA):
             # calculare fitness
             fitness_values = self.fitness(metric_values)
             # obtinerea pozitiei pentru elite
-            self.doElite(fitness_values)
+            args_elite = self.getArgsElite(fitness_values)
             # calculare metrici
             scores = self.metrics.getScore(self.__genoms, fitness_values)
             # adaugare stres in populatie atunci cand lipseste progresul
@@ -207,6 +210,9 @@ class GeneticAlgorithm(RootGA):
         print(info)
 
     def setParameters(self, **kw):
+        debug_kw = {k: v for k, v in kw.items() if k != "dataset"}
+        print("setParameters:", debug_kw)
+        # 
         GENOME_LENGTH   = kw.get("GENOME_LENGTH", None)
         POPULATION_SIZE = kw.get("POPULATION_SIZE", None)
         if (GENOME_LENGTH is not None):
@@ -249,8 +255,7 @@ class GeneticAlgorithm(RootGA):
     # => we must compute metrics first, then compute fitness again.
     def setElites(self, elites):
         if (self.__genoms.isGenoms()==False):
-            population = self.initPopulation(self.POPULATION_SIZE, self.__genoms)
-            self.__genoms.setPopulation(population)
+            self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         if (elites.shape[0] > 0):
             # MUST compute metrics first
@@ -263,8 +268,7 @@ class GeneticAlgorithm(RootGA):
 
     def setElitesByFitness(self, fitness_values, elites, fitness_elites=None):
         if (self.__genoms.isGenoms()==False):
-            population = self.initPopulation(self.POPULATION_SIZE, self.__genoms)
-            self.__genoms.setPopulation(population)
+            self.initPopulation(self.POPULATION_SIZE, self.__genoms)
 
         # here fitness_values already exists (caller passed it)
         if (elites.shape[0] > 0):
@@ -306,37 +310,16 @@ class GeneticAlgorithm(RootGA):
             args = np.array([], dtype=np.int32)
         return args
 
-    def doElite(self, fitness_values):
-        # sorteaza valorile fitness
-        args_sort = np.argsort(fitness_values)
-        self.__genoms.setWeaksPos(args_sort)
-        # ordoneaza descrescator elitele
-        args_sort = np.flip(args_sort)
-        # seteaza primul individ al elitei
-        valid_elites = [args_sort[0]]
-        # add count
-        count = 1
-        # verifica ca fiecare membru al elitei sa fie uniq
-        for arg in args_sort: # elite size -1 valid este setat cu primul argument
-            # adauga un nou membru in populatie daca membrul elitei este intalnit
-            if (not self.__genoms.equal(self.__genoms[valid_elites], self.__genoms[arg])):
-                valid_elites.append(arg)
-                count += 1
-            else:
-                fitness_values[arg] = 0.
-            if (count >= self.ELITE_SIZE):
-                break
-        # cast to numpy
-        valid_elites = np.array(valid_elites, dtype=np.int32)
-        if (count < self.ELITE_SIZE):
-            need_elite_size = self.ELITE_SIZE - count
-            tmp = need_elite_size / count
-            if (tmp > 2):
-                valid_elites = np.repeat(valid_elites, int(tmp))
-            tmp -= int(tmp)
-            if (tmp > 0):
-                valid_elites = np.concatenate((valid_elites, valid_elites[:int(count*tmp)]), axis=0)
-        self.__genoms.setElitePos(valid_elites)
+    def getArgsElite(self, fitness_values):
+        """Returneaza pozitiile 'ELITE_SIZE' cu cele mai mari valori, ale fitnesului
+        fitness_values - valorile fitness a populatiei
+        """
+        if (self.ELITE_SIZE > 0):
+            args = np.argpartition(fitness_values, -self.ELITE_SIZE)
+            args = args[-self.ELITE_SIZE:]
+        else:
+            args = np.array([], dtype=np.int32)
+        return args
 
     def externCommand(self):
         command_dict = self.__read_command_yaml_file()

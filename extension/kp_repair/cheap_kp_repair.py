@@ -55,3 +55,24 @@ class FastKPRepair:
                     break
 
         return kp
+    
+    def greedy_add_high_density(self, x, p_add=0.2):
+        """
+        After repair, try to add a few high-density items if there is capacity.
+        p_add = probability of trying each candidate item.
+        """
+        w = self.w
+        Wmax = self.Wmax
+
+        Wcur = (w * x).sum()
+        # walk from highest density down
+        for idx in self.order_hi_density:
+            if np.random.rand() > p_add:
+                continue
+            if x[idx] == 1:
+                continue
+            w_i = w[idx]
+            if Wcur + w_i <= Wmax:
+                x[idx] = 1
+                Wcur += w_i
+

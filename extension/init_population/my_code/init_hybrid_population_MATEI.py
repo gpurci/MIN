@@ -2,11 +2,12 @@
 import numpy as np
 from GeneticAlgorithmManager.my_code.root_GA import *
 
-from extension.local_search_algorithms.kp_greedy import TTPKPLocalSearch
+from extension.local_search_algorithms.kp_local_search import TTPKPLocalSearch
 from extension.local_search_algorithms.or_opt import OrOpt
 from extension.local_search_algorithms.tabu_hybrid_search import TabuHybridSearch
 from extension.local_search_algorithms.two_opt import TwoOpt
 from extension.local_search_algorithms.vnd import VND
+from extension.local_search_algorithms.ttp_vnd import TTPVNDLocalSearch
 
 
 class InitPopulationHybrid(RootGA):
@@ -14,14 +15,15 @@ class InitPopulationHybrid(RootGA):
     Hybrid TTP initial population generator (TTP_hybrid).
     Uses greedy constructive heuristic for TTP + light local-search refinement.
 
-    *** IMPORTANT ***
-    This version does NOT use TTP-VND (too heavy for initialization).
-    Only lightweight route improvements are applied to preserve diversity.
+    NEW:
+      * Optional TTP-aware VND on a small fraction of the initial population
+        (use_ttp_vnd_init=True, init_vnd_frac ~ 0.10–0.20).
     """
 
     def __init__(self, method="TTP_hybrid", dataset=None, **configs):
         super().__init__()
-        self.__configs = configs
+        # IMPORTANT: copy configs so we can safely pop stuff
+        self.__configs = dict(configs)
         self.__method = method
 
         if dataset is None:
@@ -35,23 +37,94 @@ class InitPopulationHybrid(RootGA):
         # Cheap per-route 2-opt operator
         self.two_opt_operator = TwoOpt("two_opt_LS", dataset)
 
+        # ---------- NEW: TTP-aware VND init options ----------
+        # Pop them out so they are NOT passed to initPopulationHybrid(...)
+        self.use_ttp_vnd_init = bool(self.__configs.pop("use_ttp_vnd_init", False))
+        self.init_vnd_frac    = float(self.__configs.pop("init_vnd_frac", 0.15))
+        self.init_vnd_rounds  = int(self.__configs.pop("init_vnd_rounds", 2))
+
+        if self.use_ttp_vnd_init:
+            self.ttp_vnd_init = TTPVNDLocalSearch(
+                dataset=dataset,
+                v_max=dataset["v_max"],
+                v_min=dataset["v_min"],
+                W=dataset["W"],
+                R=dataset["R"],
+                max_rounds=self.init_vnd_rounds,
+                use_kp_ls=True,
+                use_tsp_ls=True,
+            )
+        else:
+            self.ttp_vnd_init = None
+
         self.__fn = self.initPopulationHybrid
 
     def __str__(self):
-        return f"InitPopulationHybrid(method={self.__method}, configs={self.__configs})"
+        return (
+            f"InitPopulationHybrid(method={self.__method}, "
+            f"use_ttp_vnd_init={self.use_ttp_vnd_init}, "
+            f"init_vnd_frac={self.init_vnd_frac}, "
+            f"init_vnd_rounds={self.init_vnd_rounds}, "
+            f"configs={self.__configs})"
+        )
 
     def help(self):
         print("""InitPopulationHybrid:
-    metoda: 'TTP_hybrid'; config:
-        lambda_time=0.1, vmax=1.0, vmin=0.1, Wmax=25936, seed\n""")
+    method: 'TTP_hybrid'; config:
+        lambda_time=0.1, vmax=1.0, vmin=0.1, Wmax=25936, seed
+        use_ttp_vnd_init (bool)
+        init_vnd_frac (float, e.g. 0.15)
+        init_vnd_rounds (int, e.g. 2)
+""")
 
+    # ==================================================================
+    # __call__ supports 2 modes:
+    #   (1) GA InitPopulation wrapper: extern_fn(size) -> dict("tsp", "kp")
+    #   (2) direct Genoms filling: extern_fn(size, genoms=genoms) -> None
+    # ==================================================================
     def __call__(self, size, genoms=None):
+        if genoms is None:
+            # Mode 1: return dict of arrays for Genoms.concatChromosomes(...)
+            routes = []
+            kps    = []
+
+            class _Collector:
+                def __init__(self, routes_list, kps_list):
+                    self._routes = routes_list
+                    self._kps    = kps_list
+                    self.shape = (0, 0, 0)
+
+                def add(self, tsp=None, kp=None, **_):
+                    tsp = np.asarray(tsp, dtype=np.int32)
+                    kp  = np.asarray(kp,  dtype=np.int32)
+                    self._routes.append(tsp)
+                    self._kps.append(kp)
+                    self.shape = (len(self._routes), 2, tsp.shape[0])
+
+                def save(self):
+                    pass
+
+            collector = _Collector(routes, kps)
+            self.__fn(size, genoms=collector, **self.__configs)
+
+            tsp_arr = np.stack(routes, axis=0)
+            kp_arr  = np.stack(kps,    axis=0)
+            return {"tsp": tsp_arr, "kp": kp_arr}
+
+        # Mode 2: fill an existing Genoms object
         self.__fn(size, genoms=genoms, **self.__configs)
 
     def setParameters(self, **kw):
-        super().setParameters(**kw)
-        if self.GENOME_LENGTH and not hasattr(self, "_all_cities"):
-            self._all_cities = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+            super().setParameters(**kw)
+
+            # existing bit
+            if self.GENOME_LENGTH and not hasattr(self, "_all_cities"):
+                self._all_cities = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+
+            # *** NEW: forward params into the TTP-VND init LS ***
+            if getattr(self, "ttp_vnd_init", None) is not None:
+                # This will pass GENOME_LENGTH, dataset, etc.
+                self.ttp_vnd_init.setParameters(**kw)
 
     # ==================================================================
     #                      HYBRID INITIAL POPULATION
@@ -60,7 +133,6 @@ class InitPopulationHybrid(RootGA):
         self, size, genoms=None, lambda_time=0.1,
         vmax=1.0, vmin=0.1, Wmax=25936, seed=None
     ):
-
         if seed is not None:
             np.random.seed(seed)
 
@@ -83,71 +155,65 @@ class InitPopulationHybrid(RootGA):
         seen_routes = set()
         count = 0
 
-        # ------------------------------------------------------------------
-        # Limit expensive KP local search to a small budget
-        # For example: 10% of the population, at least 10 individuals
-        # This has a *huge* impact on init time.
+        # Budget for KP-LS (already in your code)
         kpls_budget = max(10, size // 10)
         kpls_used = 0
 
-        while count < size:
+        # ---------- NEW: budget for TTP-aware VND at init ----------
+        if self.use_ttp_vnd_init and (self.ttp_vnd_init is not None):
+            vnd_budget = max(5, int(size * self.init_vnd_frac))
+        else:
+            vnd_budget = 0
+        vnd_used = 0
 
-            # ------------------------------------------------------------------
+        while count < size:
             # (1) Build greedy TTP route + KP
-            # ------------------------------------------------------------------
             start_city = np.random.randint(0, self.GENOME_LENGTH)
             lam = lambda_time * np.random.uniform(0.8, 1.2)
 
             r, kp = self._constructGreedyRoute(start_city, lam, vmax, vmin, Wmax)
 
-            # ------------------------------------------------------------------
-            # (2) Light post-processing (cheap)
-            # ------------------------------------------------------------------
+            # (2) Light TSP LS
             choice = np.random.rand()
-
             if choice < 0.30:
-                r = two_opt_simple(r)     # cheap 2-opt
-
+                r = two_opt_simple(r)
             elif choice < 0.55:
-                r = or_opt(None, None, r) # medium LS
-
+                r = or_opt(None, None, r)
             elif choice < 0.75:
-                r = tabu2(None, None, r)  # tabu 2-opt
-
+                r = tabu2(None, None, r)
             elif choice < 0.90:
-                r = vnd(None, None, r)    # simple VND
-
+                r = vnd(None, None, r)
             else:
-                # Forced diversity
+                # forced diversity
                 r = np.random.permutation(self.GENOME_LENGTH)
                 r = vnd(None, None, r)
 
-            # ------------------------------------------------------------------
-            # (3) Repair KP
-            # ------------------------------------------------------------------
+            # (3) KP repair / LS
             offspring = {"tsp": r, "kp": kp}
-
-            # Only run expensive KP LS for a limited number of individuals
             if kpls_used < kpls_budget:
                 offspring2 = kp_ls(None, None, offspring)
                 new_kp = offspring2["kp"]
                 kpls_used += 1
             else:
-                # After budget is exhausted, keep the greedy KP as-is
                 new_kp = kp
 
-            # ------------------------------------------------------------------
-            # Avoid exact duplicates
-            # ------------------------------------------------------------------
+            # (4) NEW: TTP-aware VND on a small subset of individuals
+            if (vnd_used < vnd_budget) and (self.ttp_vnd_init is not None):
+                cand = {"tsp": r, "kp": new_kp}
+                cand2 = self.ttp_vnd_init(None, None, cand)
+                r = cand2["tsp"]
+                new_kp = cand2["kp"]
+                vnd_used += 1
+
+            # Avoid duplicates
             key = hash(r.tobytes())
             if key in seen_routes:
                 continue
             seen_routes.add(key)
 
-            # Add final hybrid solution
+            # Add final individual
             genoms.add(tsp=r, kp=new_kp)
             count += 1
-
 
         genoms.save()
         print("Hybrid mixed TTP population =", genoms.shape)

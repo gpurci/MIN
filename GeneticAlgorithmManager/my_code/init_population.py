@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
 import numpy as np
-from sys_function import sys_remove_modules
 
-sys_remove_modules("extern_fn")
+'''from sys_function import sys_remove_modules
+
+sys_remove_modules("extern_fn")'''
 from extern_fn import *
 
 class InitPopulation(ExtenFn):
@@ -16,5 +17,12 @@ class InitPopulation(ExtenFn):
         super().__init__(extern_fn, "InitPopulation")
 
     def __call__(self, size, genoms):
-        d_population = self._extern_fn(size)
-        return genoms.concatChromosomes(**d_population)
+        ret = self._extern_fn(size, genoms=genoms)
+
+        if ret is None:
+            # extern_fn did in-place init on genoms
+            return genoms.population()
+        else:
+            # extern_fn returned a dict of chromosomes
+            return genoms.concatChromosomes(**ret)
+

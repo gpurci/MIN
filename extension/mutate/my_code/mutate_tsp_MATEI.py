@@ -2,10 +2,12 @@
 
 import numpy as np
 from extension.mutate.my_code.mutate_base import *
+from extension.local_search_algorithms.two_opt import TwoOpt
+
 
 class MutateMateiTSP(MutateBase):
     """
-    TSP / permutation mutation operators (Matei combo).
+    TSP / permutation mutation operators (Matei combo) + light 2-opt local search.
 
     Methods:
         - 'swap'     : swap two random positions.
@@ -15,13 +17,14 @@ class MutateMateiTSP(MutateBase):
 
     Config:
         - subset_size: typical size of the mutated block (for scramble/inversion).
-                       If missing, a small block is chosen randomly.
         - p_select   : probabilities for 'mixt' as [p_swap, p_scramble, p_inversion].
-                       Defaults to [1/3, 1/3, 1/3].
     """
 
-    def __init__(self, method, **configs):
+    def __init__(self, method, dataset=None, **configs):
+        # MutateBase handles method, configs, etc.
         super().__init__(method, name="MutateMateiTSP", **configs)
+
+        # base mutation function (swap / scramble / inversion / mixt)
         self.__fn = self._unpackMethod(
             method,
             swap=self.mutateSwap,
@@ -30,12 +33,56 @@ class MutateMateiTSP(MutateBase):
             mixt=self.mutateMixt,
         )
 
-    def __call__(self, parent1, parent2, offspring):
+        self._rng = np.random.RandomState()
+
+        # ---- light 2-opt local search (TTP-style) ----
+        # TwoOpt understands method="two_opt_LS" (as in TTPVNDLocalSearch)
+        self._two_opt = None
+        if dataset is not None:
+            self._two_opt = TwoOpt(method="two_opt_LS", dataset=dataset)
+
+    # ------------------------------------------------------------------
+    # small 2-opt noise – always applied for diversity
+    # ------------------------------------------------------------------
+    def _two_opt_noise(self, route, prob=0.12):
         """
-        parent1, parent2: not used directly here, but kept for compatibility.
-        offspring: 1D numpy array encoding a permutation.
+        Tiny stochastic 2-opt-like shuffle.
+        Does NOT try to improve — only adds diversity.
         """
-        return self.__fn(parent1, parent2, offspring, **self._configs)
+        rng = self._rng
+        if rng.rand() > prob:
+            return
+
+        L = route.shape[0]
+        if L < 4:
+            return
+
+        a, b = sorted(rng.choice(L, size=2, replace=False))
+        if b - a <= 1:
+            return
+
+        route[a:b] = route[a:b][::-1]
+
+    # ------------------------------------------------------------------
+    # GA entry point (chromosome mode): tsp_child = mutator(p1_tsp, p2_tsp, tsp_child)
+    # ------------------------------------------------------------------
+    def __call__(self, parent1, parent2, offspring, **kw):
+        """
+        parent1, parent2, offspring are TSP chromosomes (1D permutations).
+        MutateChromosome in GA passes exactly these.
+        """
+        # 1) normal permutation mutation (swap/scramble/inversion/mixt)
+        child = self.__fn(parent1, parent2, offspring, **self._configs)
+
+        # 2) occasionally do *real* 2-opt improvement (10% of time)
+        if self._two_opt is not None and self._rng.rand() < 0.10:
+            # TwoOpt supports call: two_opt(parent1, parent2, route)
+            child = self._two_opt(parent1, parent2, child)
+
+        # 3) always add a tiny 2-opt style noise for diversity
+        self._two_opt_noise(child, prob=0.12)
+
+        return child
 
     def help(self):
         info = """MutateMateiTSP:
@@ -67,7 +114,6 @@ class MutateMateiTSP(MutateBase):
         subset_size = kw.get("subset_size", subset_size)
         subset_size = int(max(2, min(subset_size, n)))
 
-        # choose random block of length subset_size
         start = np.random.randint(0, n - subset_size + 1)
         end = start + subset_size
 
@@ -94,7 +140,8 @@ class MutateMateiTSP(MutateBase):
         return child
 
     # --------------------------- MIXTURE ------------------------------
-    def mutateMixt(self, parent1, parent2, offspring, p_select=None, subset_size=7, **kw):
+    def mutateMixt(self, parent1, parent2, offspring,
+                   p_select=None, subset_size=7, **kw):
         """
         Apply one of [swap, scramble, inversion] according to p_select.
         """
@@ -116,7 +163,8 @@ class MutateMateiTSP(MutateBase):
         if choice == 0:
             return self.mutateSwap(parent1, parent2, offspring, **kw)
         elif choice == 1:
-            return self.mutateScramble(parent1, parent2, offspring, subset_size=subset_size, **kw)
+            return self.mutateScramble(parent1, parent2, offspring,
+                                       subset_size=subset_size, **kw)
         else:
-            return self.mutateInversion(parent1, parent2, offspring, subset_size=subset_size, **kw)
-
+            return self.mutateInversion(parent1, parent2, offspring,
+                                        subset_size=subset_size, **kw)

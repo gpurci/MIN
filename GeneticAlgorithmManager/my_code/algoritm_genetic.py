@@ -324,7 +324,6 @@ class GeneticAlgorithm(RootGA):
             else:
                 fitness_values[arg] = 0.
             if (count >= self.ELITE_SIZE):
-                print("count", count)
                 break
         # cast to numpy
         valid_elites = np.array(valid_elites, dtype=np.int32)

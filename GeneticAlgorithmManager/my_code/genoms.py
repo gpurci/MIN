@@ -66,6 +66,7 @@ class Genoms(object):
         if (population is not None):
             self.__update_genoms(population)
             self.__check_valid_range(self.__genoms)
+            self.__check_valid_shape(self.__genoms)
 
     def chromosomes(self, chromosome_name):
         return self.__genoms[chromosome_name]
@@ -167,16 +168,18 @@ class Genoms(object):
         """Salveaza noua generatie de genomuri"""
         self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
         self.__check_valid_range(self.__genoms)
+        self.__check_valid_shape(self.__genoms)
 
     def save(self):
         """Salveaza noua generatie de genomuri"""
         self.__update_genoms(np.array(self.__new_genoms, dtype=self.__chromosome_dtype))
-        self.__freq_check_valid_range()
+        self.__freq_check()
 
-    def __freq_check_valid_range(self):
+    def __freq_check(self):
         if (self.__save_count >= self.__CHECK_FREQ):
             self.__save_count = 0
             self.__check_valid_range(self.__genoms)
+            self.__check_valid_shape(self.__genoms)
         else:
             self.__save_count += 1
 
@@ -190,6 +193,15 @@ class Genoms(object):
                 err_msg = """Chromosomul '{}', depaseste range-ul: 
     range min: '{}', cromosome min: '{}'; 
     range max: '{}', cromosome max: '{}'""".format(chromosome_name, r_min, x_min, r_max, x_max)
+                raise NameError(err_msg)
+
+    def __check_valid_shape(self, genoms):
+        for chromosome_name in self.__keys:
+            chromosomes_vals = genoms[chromosome_name]
+            tmp_shape = chromosomes_vals.shape
+            if (tmp_shape == self.shape):
+                err_msg = """Chromosomul '{}', are un 'shape' diferit: 
+    chromosome shape: '{}', shape: '{}'""".format(chromosome_name, tmp_shape, self.shape)
                 raise NameError(err_msg)
 
     def __update_genoms(self, population_genoms):

@@ -2,7 +2,7 @@
 
 import numpy as np
 from extension.crossover.my_code.crossover_base import *
-from extension.crossover.my_code.primitive_chromosome_crossover import *
+from extension.crossover.my_code.ox_utils import * 
 
 class CrossoverOXSPUnif(CrossoverBase):
     """

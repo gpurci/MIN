@@ -43,6 +43,13 @@ def sim_inversion_field(parent1, parent2, start, subset_size, genome_length):
         parent2[locus1:locus2] = np.flip(parent2[locus1:locus2])
     return parent2
 
+def sim_inversion(parent1, parent2):
+    # check diff
+    mask_sim_locus = parent1==parent2
+    if (mask_sim_locus.sum() == mask_sim_locus.shape[0]):
+        parent2 = np.flip(parent2)
+    return parent2
+
 def sim_scramble_field(parent1, parent2, start, subset_size, genome_length):
     # check diff
     mask_sim_locus = parent1==parent2
@@ -50,6 +57,13 @@ def sim_scramble_field(parent1, parent2, start, subset_size, genome_length):
         locus1 = max(0, start-subset_size//3)
         locus2 = min(genome_length, start+subset_size//3)
         parent2[locus1:locus2] = np.random.permutation(parent2[locus1:locus2])
+    return parent2
+
+def sim_scramble(parent1, parent2):
+    # check diff
+    mask_sim_locus = parent1==parent2
+    if (mask_sim_locus.sum() == mask_sim_locus.shape[0]):
+        parent2 = np.random.permutation(parent2)
     return parent2
 
 def sim_shift_field(parent1, parent2, start, subset_size, genome_length):
@@ -60,5 +74,13 @@ def sim_shift_field(parent1, parent2, start, subset_size, genome_length):
         locus2 = min(genome_length, start+subset_size//3)
         size_shift = np.random.randint(low=1, high=subset_size, size=None)
         parent2[locus1:locus2] = np.roll(parent2[locus1:locus2], size_shift)
+    return parent2
+
+def sim_shift_field(parent1, parent2):
+    # check diff
+    mask_sim_locus = parent1==parent2
+    if (mask_sim_locus.sum() == mask_sim_locus.shape[0]):
+        size_shift = np.random.randint(low=1, high=subset_size, size=None)
+        parent2 = np.roll(parent2, size_shift)
     return parent2
 

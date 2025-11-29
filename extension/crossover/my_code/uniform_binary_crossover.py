@@ -4,15 +4,15 @@ import numpy as np
 from extension.crossover.my_code.crossover_base import *
 from extension.crossover.my_code.ox_utils import *
 
-class CrossoverBinarySPUnif(CrossoverBase):
+class CrossoverBinaryUnif(CrossoverBase):
     """
-    Clasa 'CrossoverBinarySPUnif', 
+    Clasa 'CrossoverBinaryUnif', 
     Functia 'crossover' are 2 parametri, parinte1, parinte2.
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
     def __init__(self, method, **configs):
-        super().__init__(method, name="CrossoverBinarySPUnif", **configs)
+        super().__init__(method, name="CrossoverBinaryUnif", **configs)
         self.__fn = self._unpackMethod(method, 
                                         scramble=self.crossoverScramble, 
                                         shift=self.crossoverShift,
@@ -23,69 +23,60 @@ class CrossoverBinarySPUnif(CrossoverBase):
         return self.__fn(parent1, parent2, **self._configs)
 
     def help(self):
-        info = """CrossoverBinarySPUnif:
-    metoda: 'scramble';  config -> "subset_size":20;
-    metoda: 'shift';     config -> "subset_size":20;
-    metoda: 'inversion'; config -> "subset_size":20;
-    metoda: 'mixt';      config -> "p_select":[1/3, 1/3, 1/3], "subset_size":20;\n"""
+        info = """CrossoverBinaryUnif:
+    metoda: 'scramble';  config None;
+    metoda: 'shift';     config None;
+    metoda: 'inversion'; config None;
+    metoda: 'mixt';      config -> "p_select":[1/3, 1/3, 1/3], ;\n"""
         print(info)
 
-    def crossoverScramble(self, parent1, parent2, subset_size=20):
+    def crossoverScramble(self, parent1, parent2):
         """Incrucisarea a doi parinti pentru a crea un urmas
         parent1 - individ
         parent2 - individ
         """
         # mosteneste parinte1
         offspring = parent1.copy()
-        # selectarea diapazonului de mostenire
-        start = np.random.randint(low=0, high=self.GENOME_LENGTH-subset_size, size=None)
-        # creare locus
-        locus = np.arange(start, start+subset_size)
-        parent2 = sim_scramble_field(parent1, parent2, start, subset_size, self.GENOME_LENGTH)
+        locus     = np.random.randint(low=0, high=self.GENOME_LENGTH, size=self.GENOME_LENGTH//2)
+        parent2   = sim_scramble(parent1, parent2)
         offspring[locus] = parent2[locus]
         return offspring
 
-    def crossoverShift(self, parent1, parent2, subset_size=20):
+    def crossoverShift(self, parent1, parent2):
         """Incrucisarea a doi parinti pentru a crea un urmas
         parent1 - individ
         parent2 - individ
         """
         # mosteneste parinte1
         offspring = parent1.copy()
-        # selectarea diapazonului de mostenire
-        start = np.random.randint(low=0, high=self.GENOME_LENGTH-subset_size, size=None)
-        # creare locus
-        locus = np.arange(start, start+subset_size)
-        parent2 = sim_shift_field(parent1, parent2, start, subset_size, self.GENOME_LENGTH)
+        locus     = np.random.randint(low=0, high=self.GENOME_LENGTH, size=self.GENOME_LENGTH//2)
+        parent2   = sim_shift(parent1, parent2)
         offspring[locus] = parent2[locus]
         return offspring
 
-    def crossoverInversion(self, parent1, parent2, subset_size=20):
+    def crossoverInversion(self, parent1, parent2):
         """Incrucisarea a doi parinti pentru a crea un urmas
         parent1 - individ
         parent2 - individ
         """
         # mosteneste parinte1
         offspring = parent1.copy()
-        # selectarea diapazonului de mostenire
-        start = np.random.randint(low=0, high=self.GENOME_LENGTH-subset_size, size=None)
-        # creare locus
-        locus = np.arange(start, start+subset_size)
-        parent2 = sim_inversion_field(parent1, parent2, start, subset_size, self.GENOME_LENGTH)
+        locus     = np.random.randint(low=0, high=self.GENOME_LENGTH, size=self.GENOME_LENGTH//2)
+        parent2   = sim_inversion(parent1, parent2)
         offspring[locus] = parent2[locus]
         return offspring
 
-    def crossoverMixt(self, parent1, parent2, p_select=None, subset_size=20):
+    def crossoverMixt(self, parent1, parent2, p_select=None):
         """Incrucisarea a doi parinti pentru a crea un urmas
         parent1 - individ
         parent2 - individ
         """
         cond = np.random.choice([0, 1, 2], size=None, p=p_select)
         if   (cond == 0):
-            offspring = self.crossoverScramble( parent1, parent2, subset_size=subset_size)
+            offspring = self.crossoverScramble( parent1, parent2)
         elif (cond == 1):
-            offspring = self.crossoverShift(    parent1, parent2, subset_size=subset_size)
+            offspring = self.crossoverShift(    parent1, parent2)
         elif (cond == 2):
-            offspring = self.crossoverInversion(parent1, parent2, subset_size=subset_size)
+            offspring = self.crossoverInversion(parent1, parent2)
         return offspring
 

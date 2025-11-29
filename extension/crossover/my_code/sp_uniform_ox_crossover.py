@@ -73,9 +73,9 @@ class CrossoverOXSPUnif(CrossoverBase):
         """
         cond = np.random.choice([0, 1, 2], size=None, p=p_select)
         if   (cond == 0):
-            offspring = self.crossoverScramble(parent1, parent2)
+            offspring = self.crossoverScramble( parent1, parent2, subset_size=subset_size)
         elif (cond == 1):
-            offspring = self.crossoverShift(parent1, parent2)
+            offspring = self.crossoverShift(    parent1, parent2, subset_size=subset_size)
         elif (cond == 2):
-            offspring = self.crossoverInversion(parent1, parent2)
+            offspring = self.crossoverInversion(parent1, parent2, subset_size=subset_size)
         return offspring

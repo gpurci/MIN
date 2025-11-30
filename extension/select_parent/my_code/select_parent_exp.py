@@ -24,7 +24,6 @@ class SelectParentExp(SelectParentBase):
                                         tour_choice=self.selectParentTourChoice, 
                                         mixt=self.selectParentMixt, 
                                     )
-        self.parent_arg = 0
 
     def __call__(self):
         return self.__fn(**self._configs)
@@ -51,7 +50,7 @@ class SelectParentExp(SelectParentBase):
         fitness_values[args_weaks] = min_fitness
         fitness_values = normalization(fitness_values)
         # update: adauga doar cei mai puternici indivizi
-        self.fitness_values = np.exp(fitness_values)
+        self.setFitnessValues(np.exp(fitness_values))
 
     def selectParentMixt(self, size_subset=7, p_select=None):
         """Selecteaza un parinte aleator din populatie,

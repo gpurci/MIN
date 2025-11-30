@@ -2,11 +2,12 @@
 
 import numpy as np
 from extension.select_parent.my_code.select_parent_base import *
-from extension.utils.my_code.normaliation import *
+from extension.utils.my_code.normalization import *
+from extension.utils.my_code.softmax import *
 
-class SelectParentExp(SelectParentBase):
+class SelectParentPow(SelectParentBase):
     """
-    Clasa 'SelectParentExp', ofera doar metode pentru a selecta unul din parinti in calitate de parinte 1 sau 2
+    Clasa 'SelectParentPow', ofera doar metode pentru a selecta unul din parinti in calitate de parinte 1 sau 2
     Functia 'selectParent' nu are parametri.
     Pentru a folosi aceasta functie este necesar la inceputul fiecarei generatii de apelat functia 'startEpoch', cu parametrul 'fitness_values'.
     Metoda 'call', aplica functia din configuratie.
@@ -14,7 +15,7 @@ class SelectParentExp(SelectParentBase):
     """
 
     def __init__(self, method, presure=1, **configs):
-        super().__init__(method, name="SelectParentExp", **configs)
+        super().__init__(method, name="SelectParentPow", **configs)
         self.__fn = self._unpackMethod(method, 
                                         choice=self.selectParentChoice, 
                                         uniform=self.selectParentUniform, 
@@ -30,14 +31,13 @@ class SelectParentExp(SelectParentBase):
         return self.__fn(**self._configs)
 
     def help(self):
-        info = """SelectParentExp:
+        info = """SelectParentPow:
     metoda: 'choice';      config: None;
     metoda: 'uniform';     config: None;
     metoda: 'wheel';       config: None;
     metoda: 'sort_wheel';  config: None;
     metoda: 'tour';        config: -> "size_subset":7;
     metoda: 'tour_choice'; config: -> "size_subset":7;
-    metoda: 'rise';        config: None;
     metoda: 'mixt';        config: -> "p_select":[1/6, 1/6, 1/6, 1/6, 1/6, 1/6], "size_subset":7;\n"""
         print(info)
 
@@ -50,8 +50,9 @@ class SelectParentExp(SelectParentBase):
         # scoterea indivizilor slabi din cursa pentru parinte
         fitness_values[args_weaks] = min_fitness
         fitness_values = normalization(fitness_values)
+        fitness_values = np.power(fitness_values, self.__presure)
         # update: adauga doar cei mai puternici indivizi
-        self.setFitnessValues(np.power(fitness_values, self.__presure))
+        self.setFitnessValues(softmax(fitness_values))
 
     def selectParentMixt(self, size_subset=7, p_select=None):
         """Selecteaza un parinte aleator din populatie,

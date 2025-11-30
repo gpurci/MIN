@@ -2,7 +2,8 @@
 
 import numpy as np
 from extension.select_parent.my_code.select_parent_base import *
-from extension.utils.my_code.normaliation import *
+from extension.utils.my_code.normalization import *
+from extension.utils.my_code.softmax import *
 
 class SelectParentExp(SelectParentBase):
     """
@@ -36,7 +37,6 @@ class SelectParentExp(SelectParentBase):
     metoda: 'sort_wheel';  config: None;
     metoda: 'tour';        config: -> "size_subset":7;
     metoda: 'tour_choice'; config: -> "size_subset":7;
-    metoda: 'rise';        config: None;
     metoda: 'mixt';        config: -> "p_select":[1/6, 1/6, 1/6, 1/6, 1/6, 1/6], "size_subset":7;\n"""
         print(info)
 
@@ -49,8 +49,9 @@ class SelectParentExp(SelectParentBase):
         # scoterea indivizilor slabi din cursa pentru parinte
         fitness_values[args_weaks] = min_fitness
         fitness_values = normalization(fitness_values)
+        fitness_values = np.exp(fitness_values)
         # update: adauga doar cei mai puternici indivizi
-        self.setFitnessValues(np.exp(fitness_values))
+        self.setFitnessValues(softmax(fitness_values))
 
     def selectParentMixt(self, size_subset=7, p_select=None):
         """Selecteaza un parinte aleator din populatie,

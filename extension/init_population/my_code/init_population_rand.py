@@ -10,51 +10,39 @@ class InitPopulationRand(InitPopulationBase):
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
 
-    def __init__(self):
-        super().__init__(method, name="RecInitPopulation", **configs)
+    def __init__(self, method, **configs):
+        super().__init__(method, name="InitPopulationRand", **configs)
         self.__fn = self._unpackMethod(method, 
-                                        TSP_rand=self.initPopulationsTSPRand, 
-                                        TTP_rand=self.initPopulationsTTPRand,
+                                        ttp=self.initPopulationTTP,
                                     )
 
-    def __call__(self, size, genoms=None):
-        self.__fn(size, genoms=genoms, **self._configs)
+    def __call__(self, population_size):
+        return self.__fn(population_size, **self._configs)
 
     def help(self):
         info = """InitPopulationRand:
-    metoda: 'TTP_rand';  config: None;
-    metoda: 'TSP_rand';  config: None;\n"""
+    metoda: 'tsp';  config: None;\n"""
         print(info)
 
-    # initPopulationsTSPRand -------------------------------------
-    def initPopulationsTSPRand(self, population_size=-1, genoms=None):
-        """Initializarea populatiei, cu drumuri aleatorii"""
-        if (population_size == -1):
-            population_size = self.POPULATION_SIZE
-        # creaza un individ
-        individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
-        # creaza o populatie aleatorie
-        for _ in range(population_size):
-            # adauga individ in genome
-            genoms.add(tsp=np.random.permutation(individ))
-        # adauga indivizi in noua generatie
-        genoms.saveInit()
-        print("population {}".format(genoms.shape))
-    # initPopulationsTSPRand =====================================
-
-    # initPopulationsTTPRand -------------------------------------
-    def initPopulationsTTPRand(self, population_size=-1, genoms=None):
+    # initPopulationTTP -------------------------------------
+    def initPopulationTTP(self, population_size=-1):
         """Initializarea populatiei, cu drumuri aleatorii"""
         if (population_size == -1):
             population_size = self.POPULATION_SIZE
         # creaza un individ
         tsp_individ = np.arange(self.GENOME_LENGTH, dtype=np.int32)
+        tsp_population = []
+        kp_population  = []
         # creaza o populatie aleatorie
         for _ in range(population_size):
             # adauga tsp_individ in genome
-            kp_individ = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
-            genoms.add(tsp=np.random.permutation(tsp_individ), kp=kp_individ)
-        # adauga indivizi in noua generatie
-        genoms.saveInit()
-        print("population {}".format(genoms.shape))
-    # initPopulationsTTPRand =====================================
+            tsp_individ = np.random.permutation(tsp_individ)
+            kp_individ  = np.random.randint(low=0, high=2, size=self.GENOME_LENGTH)
+            # add to population
+            tsp_population.append(tsp_individ)
+            kp_population.append(kp_individ)
+        # cast to array
+        tsp_population = np.array(tsp_population, dtype=np.int32)
+        kp_population  = np.array(kp_population,  dtype=np.int32)
+        return {"tsp":tsp_population, "kp":kp_population}
+    # initPopulationTTP =====================================

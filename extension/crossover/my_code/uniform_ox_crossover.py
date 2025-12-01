@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
 import numpy as np
+
+from sys_function import sys_remove_modules
+sys_remove_modules("extension.crossover.my_code.ox_utils")
+
 from extension.crossover.my_code.crossover_base import *
 from extension.crossover.my_code.ox_utils import * 
 
@@ -35,7 +39,7 @@ class CrossoverOXUnif(CrossoverBase):
         parent1 - individ
         parent2 - individ
         """
-        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH, size=self.GENOME_LENGTH//2)
+        locus   = np.random.choice(self.GENOME_LENGTH, size=self.GENOME_LENGTH//2, replace=False)
         parent2 = sim_scramble(parent1, parent2)
         return ox_crossover_order_parent2(parent1, parent2, locus)
 
@@ -44,7 +48,7 @@ class CrossoverOXUnif(CrossoverBase):
         parent1 - individ
         parent2 - individ
         """
-        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH, size=self.GENOME_LENGTH//2)
+        locus   = np.random.choice(self.GENOME_LENGTH, size=self.GENOME_LENGTH//2, replace=False)
         parent2 = sim_shift(parent1, parent2)
         return ox_crossover_order_parent2(parent1, parent2, locus)
 
@@ -53,7 +57,7 @@ class CrossoverOXUnif(CrossoverBase):
         parent1 - individ
         parent2 - individ
         """
-        locus   = np.random.randint(low=0, high=self.GENOME_LENGTH, size=self.GENOME_LENGTH//2)
+        locus   = np.random.choice(self.GENOME_LENGTH, size=self.GENOME_LENGTH//2, replace=False)
         parent2 = sim_inversion(parent1, parent2)
         return ox_crossover_order_parent2(parent1, parent2, locus)
 

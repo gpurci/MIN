@@ -11,6 +11,8 @@ def ox_crossover_order_parent2(parent1, parent2, locus):
     _, pos_p2   = np.nonzero(parent2 == genes_p1.reshape(-1, 1))
     # aranjarea genelor dupa ordinea din parent 2
     sort_pos_p2 = np.argsort(pos_p2)
+    if (sort_pos_p2.shape[0] > locus.shape[0]):
+        sort_pos_p2 = sort_pos_p2[:locus.shape[0]]
     # salvarea genelor dupa ordinea din parent 2
     offspring[locus] = genes_p1[sort_pos_p2]
     return offspring
@@ -76,11 +78,11 @@ def sim_shift_field(parent1, parent2, start, subset_size, genome_length):
         parent2[locus1:locus2] = np.roll(parent2[locus1:locus2], size_shift)
     return parent2
 
-def sim_shift_field(parent1, parent2):
+def sim_shift(parent1, parent2):
     # check diff
     mask_sim_locus = parent1==parent2
     if (mask_sim_locus.sum() == mask_sim_locus.shape[0]):
-        size_shift = np.random.randint(low=1, high=subset_size, size=None)
+        size_shift = np.random.randint(low=1, high=mask_sim_locus.shape[0]-1, size=None)
         parent2 = np.roll(parent2, size_shift)
     return parent2
 

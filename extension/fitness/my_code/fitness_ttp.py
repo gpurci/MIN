@@ -29,63 +29,72 @@ class FitnessTTP(FitnessBase):
 
     def help(self):
         info = """FitnessTTP:
-    metoda: 'f1score';     config: -> P_pres=1, W_pres=1, T_pres=1;
-    metoda: 'linear';      config: -> W_pres=1, R=1;
-    metoda: 'norm_linear'; config: -> W_pres=1, R=1;
-    metoda: 'damped';      config: -> W_pres=1, T_pres=1;
-    metoda: 'exponential'; config: -> W_pres=1, T_pres=1;
-    metoda: 'norm_log';    config: -> W_pres=1, T_pres=1;\n"""
+    metoda: 'f1score';     config: -> P_pres=1, W_pres=1, T_pres=1, D_pres=1;
+    metoda: 'linear';      config: -> W_pres=1, D_pres=1, R=1;
+    metoda: 'norm_linear'; config: -> W_pres=1, D_pres=1, R=1;
+    metoda: 'damped';      config: -> W_pres=1, D_pres=1, R=1;
+    metoda: 'exponential'; config: -> W_pres=1, D_pres=1, R=1;
+    metoda: 'norm_log';    config: -> W_pres=1, D_pres=1, R=1;\n"""
         print(info)
 
     # TTP ------------------------------
-    def f1score(self, metric_values, P_pres=1, W_pres=1, T_pres=1, R=1):
+    def f1score(self, metric_values, P_pres=1, W_pres=1, T_pres=1, D_pres=1):
         """
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"] # normalized
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        number_obj  = metric_values["number_obj"]
+        profits = metric_values.get("profits")
+        weights = metric_values.get("weights") # normalized
+        times   = metric_values.get("times")
+        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        number_city = metric_values.get("number_city")
+        number_obj  = metric_values.get("number_obj")
         # normalization
         profits = normalization(profits)
         profits = profits**P_pres
         weights = weights**W_pres
         times   = min_nonzeronorm(times)
         times   = times**T_pres
+        distances   = min_nonzeronorm(distances)
+        distances   = distances**D_pres
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * number_obj * ((weights * profits * times) / (weights + profits + times + 1e-7))
+        fitness = mask_city * number_obj * ((weights * profits * distances * times) / (weights + profits + distances + times + 1e-7))
         return fitness
 
-    def linear(self, metric_values, W_pres=1, R=1):
+    def linear(self, metric_values, W_pres=1, D_pres=1, R=1):
         """
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"]
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        number_obj  = metric_values["number_obj"]
+        profits = metric_values.get("profits")
+        weights = metric_values.get("weights") # normalized
+        times   = metric_values.get("times")
+        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        number_city = metric_values.get("number_city")
+        number_obj  = metric_values.get("number_obj")
         # normalization
-        weights = weights**W_pres
+        distances   = min_nonzeronorm(distances)
+        distances   = distances**D_pres
+        weights   = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * number_obj * weights * (profits - R * times + 1e-7)
+        fitness = mask_city * number_obj * weights * distances * (profits - R * times + 1e-7)
         return fitness
 
-    def norm_linear(self, metric_values, W_pres=1, R=1): # To DO
+    def norm_linear(self, metric_values, W_pres=1, D_pres=1, R=1):
         """
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"]
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        number_obj  = metric_values["number_obj"]
+        profits = metric_values.get("profits")
+        weights = metric_values.get("weights") # normalized
+        times   = metric_values.get("times")
+        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        number_city = metric_values.get("number_city")
+        number_obj  = metric_values.get("number_obj")
         # normalization
+        distances   = min_nonzeronorm(distances)
+        distances   = distances**D_pres
         weights = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
@@ -93,59 +102,68 @@ class FitnessTTP(FitnessBase):
         tmp_linear = (profits - R * times + 1e-7)
         linear_min = tmp_linear.min()
         linear_max = tmp_linear.max()
-        norm_linear = (tmp_linear - linear_min) / (linear_max - linear_min)
-        fitness = mask_city * number_obj * weights * norm_linear / (weights + norm_linear)
+        norm_linear = (tmp_linear - linear_min) / (linear_max - linear_min + 1e-7)
+        fitness = mask_city * number_obj * weights * distances * norm_linear / (weights + distances + norm_linear)
         return fitness
 
-    def damped(self, metric_values, W_pres=1, T_pres=1, R=1):
+    def damped(self, metric_values, W_pres=1, D_pres=1, R=1):
         """
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"]
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        number_obj  = metric_values["number_obj"]
+        profits = metric_values.get("profits")
+        weights = metric_values.get("weights") # normalized
+        times   = metric_values.get("times")
+        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        number_city = metric_values.get("number_city")
+        number_obj  = metric_values.get("number_obj")
         # presure
+        distances   = min_nonzeronorm(distances)
+        distances   = distances**D_pres
         weights = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * number_obj * weights * profits * np.exp(-T_pres * times)
+        fitness = mask_city * number_obj * weights * distances * profits * np.exp(-R * times)
         return fitness
 
-    def exponential(self, metric_values, W_pres=1, T_pres=1, R=1):
+    def exponential(self, metric_values, W_pres=1, D_pres=1, R=1):
         """
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"]
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        number_obj  = metric_values["number_obj"]
+        profits = metric_values.get("profits")
+        weights = metric_values.get("weights") # normalized
+        times   = metric_values.get("times")
+        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        number_city = metric_values.get("number_city")
+        number_obj  = metric_values.get("number_obj")
         # normalization
+        distances   = min_nonzeronorm(distances)
+        distances   = distances**D_pres
         weights = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * number_obj * weights * np.exp(profits - T_pres * times)
+        fitness = mask_city * number_obj * weights * distances * np.exp(profits - R * times)
         return fitness
 
-    def norm_log(self, metric_values, W_pres=1, T_pres=1, R=1):
+    def norm_log(self, metric_values, W_pres=1, D_pres=1, R=1):
         """
         """
         # unpack metrics
-        profits = metric_values["profits"]
-        weights = metric_values["weights"]
-        times   = metric_values["times"]
-        number_city = metric_values["number_city"]
-        number_obj  = metric_values["number_obj"]
+        profits = metric_values.get("profits")
+        weights = metric_values.get("weights") # normalized
+        times   = metric_values.get("times")
+        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        number_city = metric_values.get("number_city")
+        number_obj  = metric_values.get("number_obj")
         # normalization
+        distances   = min_nonzeronorm(distances)
+        distances   = distances**D_pres
         weights = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * number_obj * weights * np.exp(profits) / (1 + np.exp(T_pres * times))
+        fitness = mask_city * number_obj * weights * distances * np.exp(profits) / (1 + np.exp(R * times))
         return fitness
 
     # TTP =================================

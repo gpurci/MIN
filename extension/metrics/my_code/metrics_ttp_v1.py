@@ -13,7 +13,7 @@ class MetricsTTPV1(MetricsBase):
     def __init__(self, method, dataset_man, **configs):
         super().__init__(method, name="MetricsTTPV1", **configs)
         self.__fn, self.getScore = self._unpackMethod(method, 
-                                        liniar=(self.metricsTTPLiniar, self.getScoreTTPLiniar), 
+                                        liniar=(self.liniar, self.getScoreLiniar), 
                                     )
         self.dataset_man = dataset_man
 
@@ -22,7 +22,8 @@ class MetricsTTPV1(MetricsBase):
 
     def help(self):
         info = """MetricsTTPV1:
-    metoda: 'liniar'; config: -> "v_min":0.1, "v_max":1, "W":2000;\n"""
+    metoda: 'liniar'; config: -> v_min=0.1, v_max=1, W=2000, R=1;
+    dataset_man - managerul setului de date\n"""
         print(info)
 
     # Liniar ---------------------
@@ -39,9 +40,9 @@ class MetricsTTPV1(MetricsBase):
         for i in range(self.GENOME_LENGTH):
             # get city
             city = tsp_individ[i]
-            # se ia sau nu obiectul
+            # take or not take object
             take = kp_individ[city]
-            # calculeaza greutatea
+            # calculate weight
             weight = item_weight[city]*take
             Wcur  += weight
             # calculeaza viteza de tranzitie
@@ -49,21 +50,23 @@ class MetricsTTPV1(MetricsBase):
             speeds[i] = max(v_min, speed)
         return speeds
 
-    def metricsLiniar(self, genomics, **kw):
+    def liniar(self, genomics, **kw):
         # unpack datassets
         distance, item_profit, item_weight = self.dataset_man.getTupleDataset()
         # pack args
         args = [distance, item_weight]
         # calculate metrics for every individ
-        profits = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        weights = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
-        times   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        profits   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        weights   = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        times     = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
+        distances = np.zeros(self.POPULATION_SIZE, dtype=np.float32)
         for idx, individ in enumerate(genomics.population(), 0):
             speeds = self.__computeIndividSpeeds(individ, *args, **kw)
             profits[idx] = self.dataset_man.computeIndividProfit(individ["kp"])
             weights[idx] = self.dataset_man.computeIndividWeight(individ["kp"])
-            tmp_distances = self.dataset_man.individCityDistance(individ["kp"])
-            times[idx]   = (tmp_distances / speeds).sum()
+            tmp_distances  = self.dataset_man.individCityDistance(individ["tsp"])
+            times[idx]     = (tmp_distances / speeds).sum()
+            distances[idx] = tmp_distances.sum()
 
         # number city
         number_city = self.dataset_man.computeNumberCities(genomics.chromosomes("tsp"))
@@ -83,7 +86,8 @@ class MetricsTTPV1(MetricsBase):
             "times"      : times,
             "weights"    : weights,
             "number_city": number_city,
-            "number_obj" : number_obj
+            "number_obj" : number_obj,
+            "distances"  : distances
         }
         return metric_values
     # Liniar =================================
@@ -104,7 +108,7 @@ class MetricsTTPV1(MetricsBase):
         kp_individ = individ["kp"]
         profit = self.dataset_man.computeIndividProfit(kp_individ)
         weight = self.dataset_man.computeIndividWeight(kp_individ)
-        cities_distances = self.dataset_man.individCityDistance(kp_individ)
+        cities_distances = self.dataset_man.individCityDistance(individ["tsp"])
         # unpack datasets
         map_distance, item_profit, item_weight = self.dataset_man.getTupleDataset()
         # pack args

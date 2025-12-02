@@ -17,7 +17,7 @@ class CrossoverDistance(CrossoverBase):
                                         distance=self.crossover,
                                         distance_all=self.crossoverAll)
         self.dataset_man = dataset_man
-        self.neighbors   = dataset_man.neighbors(neighbors_size)
+        self.neighbors   = dataset_man.neighborsDistance(neighbors_size)
 
     def __call__(self, parent1, parent2):
         return self.__fn(parent1, parent2, **self._configs)

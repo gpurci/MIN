@@ -7,20 +7,20 @@ class RecInitPopulation(InitPopulationBase):
     """
     Clasa 'RecInitPopulation', 
     """
-    def __init__(self, method, dataset, **configs):
+    def __init__(self, method, dataset_man, **configs):
         super().__init__(method, name="RecInitPopulation", **configs)
         self.__fn = self._unpackMethod(method, 
                                         rec_ttp=self.recTTP,
                                     )
-        self.__dataset = dataset
+        self.__dataset_man = dataset_man
 
     def __call__(self, population_size):
         return self.__fn(population_size, **self._configs)
 
     def help(self):
         info = """RecInitPopulation:
-    metoda: 'rec_ttp';  config: "city":0, "window_size":4;
-    'dataset' - dataset \n"""
+    metoda: 'rec_ttp';  config: city=0, window_size=4;
+    'dataset_man' - managerul setului de date \n"""
         print(info)
 
     def recTTP(self, population_size=-1, city=0, window_size=4):
@@ -41,24 +41,7 @@ class RecInitPopulation(InitPopulationBase):
             tmp.insert(0, city)
         tsp_population = np.array(tsp_population, dtype=np.int32)
         kp_population  = np.random.randint(low=0, high=2, size=(population_size, self.GENOME_LENGTH))
-        #print("tsp_population: {}, kp_population {}".format(tsp_population.shape, kp_population.shape))
         return {"tsp":tsp_population, "kp":kp_population}
-
-    def computeBestKDistance(self, city, window_size, visited_city):
-        """Calculul distantei pentru un individ"""
-        #print("individ", individ.shape, end=", ")
-        distances = self.__dataset["distance"][city]
-        # 
-        args  = np.argsort(distances)
-        count = 0
-        ret_args = []
-        for pos_city in args:
-            if (visited_city[pos_city] == False):
-                ret_args.append(pos_city)
-                count += 1
-            if (count >= window_size):
-                break
-        return np.array(ret_args, dtype=np.int32)
 
     def recFill(self, city, window_size, visited_city, deep):
         if (deep == 0):
@@ -66,7 +49,7 @@ class RecInitPopulation(InitPopulationBase):
             return [[]]
         if (self.__population_size <= 0):
             return None
-        args = self.computeBestKDistance(city, window_size, visited_city)
+        args = self.__dataset_man.unvisitedNeighborDistance(city, window_size, visited_city)
         #print("visited_city", np.argwhere(visited_city).reshape(-1), "actual city", city)
         #print("args", args, "deep", deep)
         population = []

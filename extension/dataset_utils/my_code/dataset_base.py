@@ -6,7 +6,7 @@ class DatasetBase():
     """
     """
     def __init__(self, dataset, name):
-    	self.dataset = dataset
+        self.dataset = dataset
         self.__name  = name
  
     def __str__(self):

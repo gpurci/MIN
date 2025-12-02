@@ -7,7 +7,7 @@ class DatasetTTPMan(DatasetBase):
     """
     """
     def __init__(self, dataset):
-        self.dataset = dataset
+        super().__init__(dataset, "DatasetTTPMan")
         # 
         self.__distance    = dataset["distance"]
         self.__item_profit = dataset["item_profit"]
@@ -20,11 +20,24 @@ class DatasetTTPMan(DatasetBase):
         item_weight = self.dataset["item_weight"]
         return (distance, item_profit, item_weight)
 
-    def neighbors(self, size):
+    def neighborsDistance(self, window_size):
         genom_length  = self.dataset["GENOME_LENGTH"]
         x_range       = np.arange(genom_length, dtype=np.int32)
-        ret_neighbors = np.argsort(self.__distance[x_range], axis=-1)[:, 1:size+1]
+        ret_neighbors = np.argsort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]
         return ret_neighbors
+
+    def unvisitedNeighborDistance(self, city, window_size, visited_city):
+        """Calculul distantei pentru un individ"""
+        args  = np.argsort(self.__distance[city])
+        count = 0
+        ret_args = []
+        for pos_city in args:
+            if (visited_city[pos_city] == False):
+                ret_args.append(pos_city)
+                count += 1
+            if (count >= window_size):
+                break
+        return np.array(ret_args, dtype=np.int32)
 
     # individ  ---------------------
     def computeIndividDistance(self, individ):

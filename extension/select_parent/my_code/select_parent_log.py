@@ -41,6 +41,7 @@ class SelectParentLog(SelectParentBase):
         print(info)
 
     def startEpoch(self, fitness_values):
+        fitness_values = np.nan_to_num(fitness_values, nan=1e-9)
         min_fitness = fitness_values.min()
         # calcularea numarului de indivizi valizi, pentru selectie
         size = self.POPULATION_SIZE - int(self.SELECT_RATE*self.POPULATION_SIZE)

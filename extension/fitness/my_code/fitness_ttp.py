@@ -38,7 +38,7 @@ class FitnessTTP(FitnessBase):
         print(info)
 
     # TTP ------------------------------
-    def f1score(self, metric_values, P_pres=1, W_pres=1, T_pres=1):
+    def f1score(self, metric_values, P_pres=1, W_pres=1, T_pres=1, R=1):
         """
         """
         # unpack metrics
@@ -56,7 +56,7 @@ class FitnessTTP(FitnessBase):
         mask_city = self.__cityBinarise(number_city)
         number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * ((number_obj * weights * profits * times) / (number_obj + weights + profits + times + 1e-7))
+        fitness = mask_city * number_obj * ((weights * profits * times) / (weights + profits + times + 1e-7))
         return fitness
 
     def linear(self, metric_values, W_pres=1, R=1):
@@ -94,10 +94,10 @@ class FitnessTTP(FitnessBase):
         linear_min = tmp_linear.min()
         linear_max = tmp_linear.max()
         norm_linear = (tmp_linear - linear_min) / (linear_max - linear_min)
-        fitness = mask_city * number_obj * weights * norm_linear
+        fitness = mask_city * number_obj * weights * norm_linear / (weights + norm_linear)
         return fitness
 
-    def damped(self, metric_values, W_pres=1, T_pres=1):
+    def damped(self, metric_values, W_pres=1, T_pres=1, R=1):
         """
         """
         # unpack metrics
@@ -114,7 +114,7 @@ class FitnessTTP(FitnessBase):
         fitness = mask_city * number_obj * weights * profits * np.exp(-T_pres * times)
         return fitness
 
-    def exponential(self, metric_values, W_pres=1, T_pres=1):
+    def exponential(self, metric_values, W_pres=1, T_pres=1, R=1):
         """
         """
         # unpack metrics
@@ -131,7 +131,7 @@ class FitnessTTP(FitnessBase):
         fitness = mask_city * number_obj * weights * np.exp(profits - T_pres * times)
         return fitness
 
-    def norm_log(self, metric_values, W_pres=1, T_pres=1):
+    def norm_log(self, metric_values, W_pres=1, T_pres=1, R=1):
         """
         """
         # unpack metrics

@@ -13,14 +13,30 @@ class FitnessTTPV1(FitnessBase):
     Functia 'fitness' are 1 parametru, numarul populatiei.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, method, **configs):
+    def __init__(self, method, cycles=None, **configs):
         super().__init__(method, name="FitnessTTPV1", **configs)
         self.__fn = self._unpackMethod(method, 
                                         f1score=self.f1score,
                                         linear=self.linear,
                                         norm_linear=self.norm_linear,
                                         mixt=self.mixt,
+                                        cyclic=self.cyclic
                                     )
+        self.__cycles = self.__check_cyclic(cycles)
+        self.__count  = 0
+
+    def __check_cyclic(self, cyclic):
+        ret = []
+        if (cyclic is None):
+            ret = [1, 2, 3]
+        else:
+            if (len(cyclic) != 3):
+                raise NameError("Lungimea la 'cyclic' '{}', este mai mare decat '3'!".format(cyclic))
+            tmp = 0
+            for c in cyclic:
+                ret.append(c+tmp)
+                tmp += c
+        return ret
 
     def __call__(self, metric_values):
         return self.__fn(metric_values, **self._configs)
@@ -30,7 +46,8 @@ class FitnessTTPV1(FitnessBase):
     metoda: 'f1score';     config: -> P_pres=1, W_pres=1, T_pres=1, D_pres=1;
     metoda: 'linear';      config: -> W_pres=1, D_pres=1, R=1;
     metoda: 'norm_linear'; config: -> W_pres=1, D_pres=1, R=1;
-    metoda: 'mixt';        config: -> p_select=[1/3, 1/3, 1/3], P_pres=1, W_pres=1, T_pres=1, D_pres=1, R=1;\n"""
+    metoda: 'mixt';        config: -> p_select=[1/3, 1/3, 1/3], P_pres=1, W_pres=1, T_pres=1, D_pres=1, R=1;
+    metoda: 'cyclic';      config: -> cycles=[1, 1, 1], P_pres=1, W_pres=1, T_pres=1, D_pres=1, R=1;\n"""
         print(info)
 
     # TTP ------------------------------
@@ -112,6 +129,21 @@ class FitnessTTPV1(FitnessBase):
             offspring = self.linear(     metric_values, **kw)
         elif (cond == 2):
             offspring = self.norm_linear(metric_values, **kw)
+        return offspring
+
+    def cyclic(self, metric_values, **kw):
+        """
+        """
+        if   (self.__count <= self.__cycles[0]):
+            offspring = self.f1score(    metric_values, **kw)
+        elif (self.__count <= self.__cycles[1]):
+            offspring = self.linear(     metric_values, **kw)
+        elif (self.__count <= self.__cycles[2]):
+            offspring = self.norm_linear(metric_values, **kw)
+        else:
+            self.__count = 1
+            offspring = self.f1score(    metric_values, **kw)
+        self.__count +=1
         return offspring
 
 

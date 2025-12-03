@@ -73,11 +73,6 @@ class MutateDistance(MutateBase):
         # cei mai apropiati vecini
         near_neighbors_city = self.neighbors[far_city]
         # 
-        pos_offspring, pos_neighbors = np.nonzero(offspring == near_neighbors_city.reshape(-1, 1))
-        order = pos_neighbors[:-1] - pos_neighbors[1:]
-        mask  = order == 1
-        if (mask.sum() > 0):
-            arg = np.argmax(mask)
         # returneaza mostenitorul
         return offspring
 

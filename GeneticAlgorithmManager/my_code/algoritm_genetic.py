@@ -241,8 +241,8 @@ class GeneticAlgorithm(RootGA):
             self.externCommand()
         else:
             self.__freq_check_extern += 1
-        if (evolution_scores["best_fitness"] < 0):
-            raise Exception("Best fitness is less than '0'")
+        #if (evolution_scores["best_fitness"] < 0):
+        #    raise Exception("Best fitness is less than '0'")
 
     # Fitness.__call__ always requires BOTH population AND metric_values.
     # => we must compute metrics first, then compute fitness again.

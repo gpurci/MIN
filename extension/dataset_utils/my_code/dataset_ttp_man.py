@@ -12,6 +12,7 @@ class DatasetTTPMan(DatasetBase):
         self.__distance    = dataset["distance"]
         self.__item_profit = dataset["item_profit"]
         self.__item_weight = dataset["item_weight"]
+        self.GENOME_LENGTH = dataset["GENOME_LENGTH"]
 
     def getTupleDataset(self):
         # unpack datassets

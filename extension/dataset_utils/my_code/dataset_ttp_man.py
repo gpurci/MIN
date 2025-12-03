@@ -60,6 +60,24 @@ class DatasetTTPMan(DatasetBase):
 
     def computeIndividNumberCities(self, individ):
         return np.unique(individ, return_index=False, return_inverse=False, return_counts=False, axis=None).shape[0]
+
+    def computeIndividSpeeds(self, tsp_individ, kp_individ, v_min=0.1, v_max=1, W=2000):
+        # init viteza
+        speeds = np.zeros_like(tsp_individ, dtype=np.float32)
+        Wcur   = 0
+        # vizităm secvenţial
+        for i in range(self.GENOME_LENGTH):
+            # get city
+            city = tsp_individ[i]
+            # take or not take object
+            take = kp_individ[city]
+            # calculate weight
+            weight = self.__item_weight[city]*take
+            Wcur  += weight
+            # calculeaza viteza de tranzitie
+            speed     = v_max - (v_max - v_min) * (Wcur / W)
+            speeds[i] = max(v_min, speed)
+        return speeds
     # individ metrics =====================
 
     # population metrics ---------------------

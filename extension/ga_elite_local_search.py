@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import numpy as np
-from GeneticAlgorithmManager.my_code.algoritm_geneticMATEI import GeneticAlgorithmMATEI
-from GeneticAlgorithmManager.my_code.genoms import Genoms
+from GeneticAlgorithmManager.algoritm_geneticMATEI import GeneticAlgorithmMATEI
+from GeneticAlgorithmManager.genoms import Genoms
 
 
 class GeneticAlgorithmWithEliteSearch(GeneticAlgorithmMATEI):

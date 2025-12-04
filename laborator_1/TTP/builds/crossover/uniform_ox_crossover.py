@@ -3,10 +3,10 @@
 import numpy as np
 
 from sys_function import sys_remove_modules
-sys_remove_modules("extension.crossover.my_code.ox_utils")
+sys_remove_modules("extension.crossover.ox_utils")
 
-from extension.crossover.my_code.crossover_base import *
-from extension.crossover.my_code.ox_utils import * 
+from extension.crossover.crossover_base import *
+from extension.crossover.ox_utils import * 
 
 class CrossoverOXUnif(CrossoverBase):
     """

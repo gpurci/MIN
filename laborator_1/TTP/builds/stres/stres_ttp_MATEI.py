@@ -2,7 +2,7 @@
 import numpy as np
 
 from extension.ga_base import *
-from extension.stres.my_code.stres_base import StresBase
+from extension.stres.stres_base import StresBase
 
 
 class StresTTP(StresBase):

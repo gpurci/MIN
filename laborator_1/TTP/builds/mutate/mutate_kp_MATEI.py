@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import numpy as np
 
-from extension.mutate.my_code.mutate_base import *
+from extension.mutate.mutate_base import *
 
 
 class MutateMateiKP(MutateBase):

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.metrics.my_code.metrics_base import *
+from extension.metrics.metrics_base import *
 
 
 class MetricsTTPMATEI(MetricsBase):

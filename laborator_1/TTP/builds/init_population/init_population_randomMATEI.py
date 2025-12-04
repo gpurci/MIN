@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import *
+from GeneticAlgorithmManager.root_GA import *
 
 
 class InitRandomPopulation(RootGA):

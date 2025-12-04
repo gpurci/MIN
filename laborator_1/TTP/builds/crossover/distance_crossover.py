@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.crossover.my_code.crossover_base import *
-from extension.crossover.my_code.erx_utils import *
+from extension.crossover.crossover_base import *
+from extension.crossover.erx_utils import *
 
 class CrossoverDistance(CrossoverBase):
     """

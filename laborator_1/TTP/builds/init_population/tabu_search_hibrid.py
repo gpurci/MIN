@@ -1,5 +1,7 @@
+#!/usr/bin/python
+
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import RootGA
+from GeneticAlgorithmManager.root_GA import RootGA
 
 
 class TabuHybridSearch(RootGA):

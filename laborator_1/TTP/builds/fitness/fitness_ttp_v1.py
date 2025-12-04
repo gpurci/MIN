@@ -2,10 +2,10 @@
 
 import numpy as np
 from sys_function import sys_remove_modules
-sys_remove_modules("extension.utils.my_code.normalization")
+sys_remove_modules("extension.utils.normalization")
 
-from extension.fitness.my_code.fitness_base import *
-from extension.utils.my_code.normalization import *
+from extension.fitness.fitness_base import *
+from extension.utils.normalization import *
 
 class FitnessTTPV1(FitnessBase):
     """

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 import numpy as np
-from GeneticAlgorithmManager.my_code.root_GA import *
+from GeneticAlgorithmManager.root_GA import *
 
 from extension.local_search_algorithms.kp_local_search import TTPKPLocalSearch
 from extension.local_search_algorithms.or_opt import OrOpt

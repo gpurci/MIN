@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.select_parent.my_code.select_parent_base import *
-from extension.utils.my_code.normalization import *
-from extension.utils.my_code.softmax import *
+from extension.select_parent.select_parent_base import *
+from extension.utils.normalization import *
+from extension.utils.softmax import *
 
 class SelectParentExp(SelectParentBase):
     """

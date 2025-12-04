@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.dataset_utils.my_code.dataset_base import *
+from extension.dataset_utils.dataset_base import *
 
 class DatasetTTPMan(DatasetBase):
     """

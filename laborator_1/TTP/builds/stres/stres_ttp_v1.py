@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.stres.my_code.stres_base import *
-from extension.utils.my_code.normalization import *
+from extension.stres.stres_base import *
+from extension.utils.normalization import *
 
 class StresTTPV1(StresBase):
     """

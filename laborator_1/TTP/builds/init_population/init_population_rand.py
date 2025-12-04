@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.init_population.my_code.init_population_base import *
+from extension.init_population.init_population_base import *
 
 class InitPopulationRand(InitPopulationBase):
     """

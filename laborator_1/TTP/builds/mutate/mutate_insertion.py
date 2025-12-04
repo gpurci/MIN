@@ -49,17 +49,22 @@ class MutateInsertion(MutateBase):
             offspring - individul copil/descendent
         """
         # gaseste cei mai apropiati vecini
-        offspring_neighbors = all_offspring_neighbors(offspring) # sorted
+        #offspring_neighbors = all_offspring_neighbors(offspring) # sorted
         # calculeaza distanta dintre orasele din chromosom
         city_distances      = self.dataset_man.individCityDistance(offspring)
+        #print("city_distances {}".format(city_distances))
         # gaseste pozitia celei mai mari distante
-        locus1   = np.argmax(city_distances)
+        locus1   = (np.argmax(city_distances) + 1) % self.GENOME_LENGTH
+        #print("locus1 {}".format(locus1))
         # orasul cel mai indepartat
         far_city = offspring[locus1]
+        #print("far_city {}".format(far_city))
         # cei mai apropiati vecini
         near_neighbors_city = self.neighbors[far_city]
+        #print("near_neighbors_city {}".format(near_neighbors_city))
         # 
         locus2 = find_locus(offspring, near_neighbors_city)
+        #print("locus2 {}".format(locus2))
         #
         if (locus1 > locus2):
             offspring = positiveInsertion(offspring, locus1, locus2)
@@ -73,13 +78,18 @@ def find_locus(offspring, near_neighbors_city):
     pos_offspring, pos_neighbors = np.nonzero(offspring == near_neighbors_city.reshape(-1, 1))
     # cauta ordinea
     order = pos_neighbors[:-1] - pos_neighbors[1:]
+    #print("pos_neighbors ", pos_neighbors)
+    #print("order ", order)
     for cond in [1, -1]:
-        mask  = order == cond
+        mask = (order == cond)
         if (mask.sum() > 0):
-            arg = np.argmax(mask)
+            arg_near = np.argmax(mask)
+            city     = pos_neighbors[arg_near]
             break
     else:
-        arg = near_neighbors_city[0]
+        city = near_neighbors_city[0]
+    #print("city ", city)
+    arg = np.argmax(offspring==city)
     return arg
 
 def all_offspring_neighbors(offspring):

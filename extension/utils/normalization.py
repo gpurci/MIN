@@ -10,7 +10,7 @@ def normalization(x):
         # all values are identical: return a constant vector (e.g. all 1s)
         x_ret = np.ones_like(x, dtype=np.float32)
     else:
-        x_ret = (x_max-x)/denom
+        x_ret = (x-x_min)/denom
     return x_ret
 
 def min_nonzeronorm(x):

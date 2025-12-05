@@ -115,17 +115,17 @@ class InitPopulationTabuSearch(InitPopulationBase):
             kp_population[idx] = self.erase_weightier_objects(kp_population[idx], W)
         # calculeaza cea mai buna combinatie, de obiecte
         # aplica tabu search pe profit
-        is_find = True
         for idx in range(population_size):
             route  = tsp_population[idx]
             profit = kp_population[idx]
-            last_score = 0
+            last_score = self.dataset_man.computeIndividScore(route, profit, v_min=v_min, v_max=v_max, W=W, R=R)
+            is_find = True
             while (is_find): # cauta cea mai buna ruta,
                 profit, is_find = self.tabu_search_score(route, profit, v_min, v_max, W, R)
-                tmp_profit = obj.erase_weightier_objects(profit, W)
-                tmp_score  = dataset_obj.computeIndividScore(route, tmp_profit, v_min=v_min, v_max=v_max, W=W, R=R)
+                tmp_profit = self.erase_weightier_objects(profit, W)
+                tmp_score  = self.dataset_man.computeIndividScore(route, tmp_profit, v_min=v_min, v_max=v_max, W=W, R=R)
                 if (tmp_score < last_score):
-                    break
+                    is_find = False
                 else:
                     profit = tmp_profit
                 last_score = tmp_score
@@ -134,7 +134,7 @@ class InitPopulationTabuSearch(InitPopulationBase):
         return np.array(kp_population, dtype=np.int32)
 
     def erase_weightier_objects(self, kp_individ, W):
-        while (self.dataset_man.computeIndividWeight(kp_individ) > W):
+        while ((self.dataset_man.computeIndividWeight(kp_individ) > W)):
             argmax = self.dataset_man.argIndividMaxWeight(kp_individ)
             kp_individ[argmax] = 0
         return kp_individ
@@ -154,8 +154,8 @@ class InitPopulationTabuSearch(InitPopulationBase):
                 tmp = kp_individ.copy()
                 tmp[locus1] = 0
                 tmp[locus2] = 1
-                score  = self.dataset_man.computeIndividScore(tsp_individ, tmp, v_min=v_min, v_max=v_max, W=W, R=R)
-                if ((score > best_score)):
+                score = self.dataset_man.computeIndividScore(tsp_individ, tmp, v_min=v_min, v_max=v_max, W=W, R=R)
+                if (score > best_score):
                     best_score   = score
                     best_individ = tmp.copy()
                     is_find = True

@@ -22,7 +22,6 @@ class FitnessTTPV2(FitnessBase):
                                         linear=self.linear,
                                         norm_linear=self.norm_linear,
                                         mixt=self.mixt,
-                                        cyclic=self.cyclic
                                     )
 
     def __call__(self, metric_values):
@@ -118,21 +117,6 @@ class FitnessTTPV2(FitnessBase):
             offspring = self.linear(     metric_values, **kw)
         elif (cond == 2):
             offspring = self.norm_linear(metric_values, **kw)
-        return offspring
-
-    def cyclic(self, metric_values, **kw):
-        """
-        """
-        if   (self.__count <= self.__cycles[0]):
-            offspring = self.f1score(    metric_values, **kw)
-        elif (self.__count <= self.__cycles[1]):
-            offspring = self.linear(     metric_values, **kw)
-        elif (self.__count <= self.__cycles[2]):
-            offspring = self.norm_linear(metric_values, **kw)
-        else:
-            self.__count = 1
-            offspring = self.f1score(    metric_values, **kw)
-        self.__count +=1
         return offspring
 
 

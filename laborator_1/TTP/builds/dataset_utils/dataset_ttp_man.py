@@ -63,7 +63,8 @@ class DatasetTTPMan(DatasetBase):
         weight = self.__item_weight*kp_individ
         profit = self.__item_profit*kp_individ
         proportion = profit / (weight + 1e-7)
-        return np.argmin(proportion)
+        mask = proportion!=0
+        return np.argmin(proportion[mask])
 
     def computeIndividNbrObj(self, kp_individ):
         return kp_individ.sum()

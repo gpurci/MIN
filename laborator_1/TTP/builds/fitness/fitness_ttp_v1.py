@@ -55,9 +55,9 @@ class FitnessTTPV1(FitnessBase):
         distances   = min_nonzeronorm(distances)
         distances   = distances**D_pres
         mask_city = self.__cityBinarise(number_city)
-        number_obj= number_obj / self.GENOME_LENGTH
+        #number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * number_obj * ((weights * profits * distances * times) / (weights + profits + distances + times + 1e-7))
+        fitness = mask_city * ((weights * profits * distances * times) / (weights + profits + distances + times + 1e-7))
         return fitness
 
     def linear(self, metric_values, P_pres=1, W_pres=1, T_pres=1, D_pres=1, R=1):
@@ -95,13 +95,13 @@ class FitnessTTPV1(FitnessBase):
         distances   = distances**D_pres
         weights = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
-        number_obj= number_obj / self.GENOME_LENGTH
+        #number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
         tmp_linear = (profits - R * times + 1e-7)
         linear_min = tmp_linear.min()
         linear_max = tmp_linear.max()
         norm_linear = (tmp_linear - linear_min) / (linear_max - linear_min + 1e-7)
-        fitness = mask_city * number_obj * weights * distances * norm_linear / (weights + distances + norm_linear)
+        fitness = mask_city * weights * distances * norm_linear / (weights + distances + norm_linear)
         return fitness
 
     def mixt(self, metric_values, p_select=None, **kw):

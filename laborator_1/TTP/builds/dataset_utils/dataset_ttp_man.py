@@ -56,6 +56,15 @@ class DatasetTTPMan(DatasetBase):
     def computeIndividWeight(self, kp_individ):
         return (self.__item_weight*kp_individ).sum()
 
+    def argIndividMaxWeight(self, kp_individ):
+        return np.argmax(self.__item_weight*kp_individ)
+
+    def argIndividMinProportion(self, kp_individ):
+        weight = self.__item_weight*kp_individ
+        profit = self.__item_profit*kp_individ
+        proportion = profit / (weight + 1e-7)
+        return np.argmin(proportion)
+
     def computeIndividNbrObj(self, kp_individ):
         return kp_individ.sum()
 

@@ -5,7 +5,7 @@ import numpy as np
 def positiveInsertion(offspring, locus1, locus2):
     gene    = offspring[locus1]
     # make change locuses
-    locuses = np.arange(locus2+1, locus1)
+    locuses = np.arange(locus2+1, locus1, dtype=np.int32)
     offspring[locuses+1] = offspring[locuses]
     offspring[locus2+1]  = gene
     return offspring
@@ -13,7 +13,7 @@ def positiveInsertion(offspring, locus1, locus2):
 def negativeInsertion(offspring, locus1, locus2):
     gene    = offspring[locus1]
     # make change locuses
-    locuses = np.arange(locus1, locus2)
+    locuses = np.arange(locus1, locus2, dtype=np.int32)
     offspring[locuses] = offspring[locuses+1]
     offspring[locus2]  = gene
     return offspring

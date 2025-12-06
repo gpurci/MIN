@@ -73,6 +73,7 @@ class MetricsTTPV1(MetricsBase):
         number_obj  = self.dataset_man.computeNbrObj(genomics.chromosomes("kp"))
 
         if (CAPACITY < weights.min()):
+            CAPACITY = weights.mean()
             weights  = CAPACITY / weights
         else:
             weights  = CAPACITY / (weights + 1e-7)

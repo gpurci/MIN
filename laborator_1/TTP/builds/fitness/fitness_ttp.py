@@ -113,7 +113,7 @@ class FitnessTTP(FitnessBase):
         profits = metric_values.get("profits")
         weights = metric_values.get("weights") # normalized
         times   = metric_values.get("times")
-        distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
+        distances   = metric_values.get("distances")
         number_city = metric_values.get("number_city")
         number_obj  = metric_values.get("number_obj")
         # presure

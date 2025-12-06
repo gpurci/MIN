@@ -47,19 +47,29 @@ class FitnessTTPV3(FitnessBase):
         distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
         number_city = metric_values.get("number_city")
         number_obj  = metric_values.get("number_obj")
+        score = profits - R * times
+        if (self.prev_metric_values is not None):
+            x_min, x_max = normal_values(metric_values, self.prev_metric_values, "profits")
+            profits   = normalization_reference(profits, x_min, x_max)
+            x_min = min_nonzero_values(metric_values, self.prev_metric_values, "times")
+            times     = min_nonzeronorm_reference(times, x_min)
+            x_min = min_nonzero_values(metric_values, self.prev_metric_values, "distances")
+            distances = min_nonzeronorm_reference(distances, x_min)
+        else:
+            profits   = normalization(profits)
+            times     = min_nonzeronorm(times)
+            distances = min_nonzeronorm(distances)
         # normalization
-        profits = normalization(profits)
-        profits = profits**P_pres
-        weights = weights**W_pres
-        times   = min_nonzeronorm(times)
-        times   = times**T_pres
-        distances   = min_nonzeronorm(distances)
-        distances   = distances**D_pres
+        profits   = profits**P_pres
+        weights   = weights**W_pres
+        times     = times**T_pres
+        distances = distances**D_pres
         mask_city = self.__cityBinarise(number_city)
-        #number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
         fitness = mask_city * ((weights * profits * distances * times) / (weights + profits + distances + times + 1e-7))
+        x_min, x_max = norm_score(score, self.prev_metric_values)
         self.prev_metric_values = metric_values
+        self.prev_metric_values["scores"] = (x_min, x_max)
         return fitness
 
     def linear(self, metric_values, P_pres=1, W_pres=1, T_pres=1, D_pres=1, R=1):
@@ -79,8 +89,11 @@ class FitnessTTPV3(FitnessBase):
         mask_city = self.__cityBinarise(number_city)
         #number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        fitness = mask_city * (profits - R * times + 1e-7)
+        score = profits - R * times
+        fitness = mask_city * score
+        x_min, x_max = norm_score(score, self.prev_metric_values)
         self.prev_metric_values = metric_values
+        self.prev_metric_values["scores"] = (x_min, x_max)
         return fitness
 
     def norm_linear(self, metric_values, P_pres=1, W_pres=1, T_pres=1, D_pres=1, R=1):
@@ -93,19 +106,22 @@ class FitnessTTPV3(FitnessBase):
         distances   = metric_values.get("distances", np.array([1.], dtype=np.float32))
         number_city = metric_values.get("number_city")
         number_obj  = metric_values.get("number_obj")
+        if (self.prev_metric_values is not None):
+            x_min = min_nonzero_values(metric_values, self.prev_metric_values, "distances")
+            distances = min_nonzeronorm_reference(distances, x_min)
+        else:
+            distances = min_nonzeronorm(distances)
         # normalization
-        distances   = min_nonzeronorm(distances)
-        distances   = distances**D_pres
-        weights = weights**W_pres
+        distances = distances**D_pres
+        weights   = weights**W_pres
         mask_city = self.__cityBinarise(number_city)
-        #number_obj= number_obj / self.GENOME_LENGTH
         # calculate fitness
-        tmp_linear = (profits - R * times + 1e-7)
-        linear_min = tmp_linear.min()
-        linear_max = tmp_linear.max()
-        norm_linear = (tmp_linear - linear_min) / (linear_max - linear_min + 1e-7)
-        fitness = mask_city * weights * distances * norm_linear / (weights + distances + norm_linear)
+        score = profits - R * times
+        x_min, x_max = norm_score(score, self.prev_metric_values)
+        score = normalization_reference(score, x_min, x_max)
+        fitness = mask_city * weights * distances * score / (weights + distances + score)
         self.prev_metric_values = metric_values
+        self.prev_metric_values["scores"] = (x_min, x_max)
         return fitness
 
     def mixt(self, metric_values, p_select=None, **kw):
@@ -125,3 +141,14 @@ class FitnessTTPV3(FitnessBase):
     def __cityBinarise(self, number_city):
         mask_cities = (number_city>=self.GENOME_LENGTH).astype(np.float32)
         return mask_cities
+
+def norm_score(score, metric_values):
+    if (metric_values is not None):
+        x_min, x_max = metric_values.get("scores", (None, None))
+    else:
+        x_min = None
+    if (x_min is not None):
+        x_min, x_max = min(x_min, score.min()), max(x_max, score.max())
+    else:
+        x_min, x_max = score.min(), score.max()
+    return x_min, x_max

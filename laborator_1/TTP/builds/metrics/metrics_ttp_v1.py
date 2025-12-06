@@ -35,9 +35,10 @@ class MetricsTTPV1(MetricsBase):
         distance, item_weight = args
         # init viteza
         speeds = np.zeros_like(tsp_individ, dtype=np.float32)
+        speeds[0] = v_max # obiectul din orasul de start este luat la sfarsit
         Wcur   = 0
         # vizităm secvenţial
-        for i in range(self.GENOME_LENGTH):
+        for i in range(1, self.GENOME_LENGTH):
             # get city
             city = tsp_individ[i]
             # take or not take object

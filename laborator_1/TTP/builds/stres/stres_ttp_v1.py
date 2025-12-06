@@ -56,7 +56,7 @@ class StresTTPV1(StresBase):
 
     def insertion_tabu_search_distance(self, tsp_individ):
         # calcularea distantelor dintre fiecare oras
-        city_distances = self.dataset_man.individCityDistance(tsp_individ)
+        city_distances = self.dataset_man.computeIndividDistanceFromCities(tsp_individ)
         # creare mask de depasire media pe distanta
         locus1 = (np.argmax(city_distances) + 1) % self.GENOME_LENGTH
         # compute score

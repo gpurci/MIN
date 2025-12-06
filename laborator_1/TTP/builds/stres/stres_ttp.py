@@ -64,7 +64,7 @@ class StresTTP(StresBase):
         # unpack elites
         individ = genoms[elite_pos]
         # calculeaza distanta maxima pentru normalizare
-        city_d       = self.dataset_man.individCityDistance(individ["tsp"])
+        city_d       = self.dataset_man.computeIndividDistanceFromCities(individ["tsp"])
         min_distance = city_d[city_d > 0].min()
         min_distance = min_distance if min_distance > 0 else 1
         # compute score
@@ -86,7 +86,7 @@ class StresTTP(StresBase):
         # unpack elites
         individ = genoms[elite_pos]
         # calcularea distantelor dintre fiecare oras
-        city_d  = self.dataset_man.individCityDistance(individ["tsp"])
+        city_d  = self.dataset_man.computeIndividDistanceFromCities(individ["tsp"])
         min_distance = city_d[city_d > 0].min()
         min_distance = min_distance if min_distance > 0 else 1
         # creare mask de depasire media pe distanta
@@ -123,7 +123,7 @@ class StresTTP(StresBase):
         profits = item_profit[tsp_individ]*takes
         weights = item_weight[tsp_individ]*takes
         # calcularea distantelor dintre fiecare oras
-        city_d  = self.dataset_man.individCityDistance(tsp_individ)
+        city_d  = self.dataset_man.computeIndividDistanceFromCities(tsp_individ)
         city_d  = 2*min_distance / (min_distance + city_d)
         # calculare score
         score = city_d * profits / (weights + 1e-7)

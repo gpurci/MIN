@@ -42,7 +42,7 @@ class MutateDistance(MutateBase):
         # creaza o mapa de vizite
         visited_city      = np.zeros(offspring.shape[0], dtype=bool)
         # calculeaza distanta dintre orasele din chromosom
-        city_distances    = self.dataset_man.individCityDistance(offspring)
+        city_distances    = self.dataset_man.computeIndividDistanceFromCities(offspring)
         # gaseste pozitia celei mai mari distante
         arg_max_distance  = np.argmax(city_distances)
         # seteaza un camp de actiune
@@ -65,7 +65,7 @@ class MutateDistance(MutateBase):
         # gaseste cei mai apropiati vecini
         offspring_neighbors = all_offspring_neighbors(offspring) # sorted
         # calculeaza distanta dintre orasele din chromosom
-        city_distances    = self.dataset_man.individCityDistance(offspring)
+        city_distances    = self.dataset_man.computeIndividDistanceFromCities(offspring)
         # gaseste pozitia celei mai mari distante
         arg_max_distance  = np.argmax(city_distances)
         # orasul cel mai indepartat

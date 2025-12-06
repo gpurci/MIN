@@ -65,7 +65,7 @@ class MetricsTTPV1(MetricsBase):
                                             v_min=v_min, v_max=v_max, W=CAPACITY)
             profits[idx] = self.dataset_man.computeIndividProfit(individ["kp"])
             weights[idx] = self.dataset_man.computeIndividWeight(individ["kp"])
-            tmp_distances  = self.dataset_man.individCityDistance(individ["tsp"])
+            tmp_distances  = self.dataset_man.computeIndividDistanceFromCities(individ["tsp"])
             times[idx]     = (tmp_distances / speeds).sum()
             distances[idx] = tmp_distances.sum()
 
@@ -115,7 +115,7 @@ class MetricsTTPV1(MetricsBase):
         profit = self.dataset_man.computeIndividProfit(kp_individ)
         weight = self.dataset_man.computeIndividWeight(kp_individ)
         # calculeaza distanta dintre orase pentru cel mai bun individ
-        cities_distances = self.dataset_man.individCityDistance(tsp_individ)
+        cities_distances = self.dataset_man.computeIndividDistanceFromCities(tsp_individ)
         # calculeaza viteza pentru cel mai bun individ
         speeds = self.dataset_man.computeIndividSpeeds(tsp_individ, kp_individ, v_min=v_min, v_max=v_max, W=W)
         # calculeaza timpul pentru cel mai bun individ

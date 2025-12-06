@@ -51,7 +51,7 @@ class MutateInsertion(MutateBase):
         # gaseste cei mai apropiati vecini
         #offspring_neighbors = all_offspring_neighbors(offspring) # sorted
         # calculeaza distanta dintre orasele din chromosom
-        city_distances      = self.dataset_man.individCityDistance(offspring)
+        city_distances      = self.dataset_man.computeIndividDistanceFromCities(offspring)
         #print("city_distances {}".format(city_distances))
         # gaseste pozitia celei mai mari distante
         locus1   = (np.argmax(city_distances) + 1) % self.GENOME_LENGTH

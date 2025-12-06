@@ -27,12 +27,13 @@ class InitPopulationTabuSearch(InitPopulationBase):
     def init(self, population_size=-1, city=0, window_size=4, v_min=0.1, v_max=1, W=2000, R=1):
         """
         """
-        if ((population_size == -1) or (population_size == self.POPULATION_SIZE)):
-            self.__population_size = self.POPULATION_SIZE
-            population_size        = self.POPULATION_SIZE
+        if ((population_size == -1) or (population_size >= self.POPULATION_SIZE)):
+            population_size = self.POPULATION_SIZE
 
         tsp_population = self.computeRoute(population_size, city, window_size)
+        print("Ruta a fost compusa")
         kp_population  = self.computeProfit(population_size, tsp_population, v_min, v_max, W, R)
+        print("Profitul a fost compus")
         return {"tsp":np.array(tsp_population, dtype=np.int32), "kp":kp_population}
 
     def computeRoute(self, population_size, city, window_size):
@@ -81,7 +82,7 @@ class InitPopulationTabuSearch(InitPopulationBase):
 
     def insertion_tabu_search_distance(self, tsp_individ, city):
         # calcularea distantelor dintre fiecare oras
-        city_distances = self.dataset_man.individCityDistance(tsp_individ)
+        city_distances = self.dataset_man.computeIndividDistanceFromCities(tsp_individ)
         #city_distances[city] = 0
         # creare mask de depasire media pe distanta
         locus1 = np.argmax(city_distances) + 1
@@ -112,7 +113,7 @@ class InitPopulationTabuSearch(InitPopulationBase):
         kp_population = np.random.randint(low=0, high=2, size=(population_size, self.GENOME_LENGTH))
         # sterge ccele mai grele obiecte
         for idx in range(population_size):
-            kp_population[idx] = self.erase_weightier_objects(kp_population[idx], W)
+            kp_population[idx] = self.erase_weightier_objects(tsp_population[idx], kp_population[idx], W)
         # calculeaza cea mai buna combinatie, de obiecte
         # aplica tabu search pe profit
         for idx in range(population_size):
@@ -120,23 +121,23 @@ class InitPopulationTabuSearch(InitPopulationBase):
             profit = kp_population[idx]
             last_score = self.dataset_man.computeIndividScore(route, profit, v_min=v_min, v_max=v_max, W=W, R=R)
             is_find = True
+            # optimizeaza profitul
             while (is_find): # cauta cea mai buna ruta,
                 profit, is_find = self.tabu_search_score(route, profit, v_min, v_max, W, R)
-                tmp_profit = self.erase_weightier_objects(profit, W)
-                tmp_score  = self.dataset_man.computeIndividScore(route, tmp_profit, v_min=v_min, v_max=v_max, W=W, R=R)
-                if (tmp_score < last_score):
+                score  = self.dataset_man.computeIndividScore(route, profit, v_min=v_min, v_max=v_max, W=W, R=R)
+                if (score < last_score):
                     is_find = False
-                else:
-                    profit = tmp_profit
-                last_score = tmp_score
+                last_score = score
 
             kp_population[idx] = profit
         return np.array(kp_population, dtype=np.int32)
 
-    def erase_weightier_objects(self, kp_individ, W):
-        while ((self.dataset_man.computeIndividWeight(kp_individ) > W)):
-            argmax = self.dataset_man.argIndividMaxWeight(kp_individ)
-            kp_individ[argmax] = 0
+    def erase_weightier_objects(self, tsp_individ, kp_individ, W):
+        arg_earns, start_arg = self.dataset_man.argsortIndividEarning(tsp_individ, kp_individ)
+        while ((self.dataset_man.computeIndividWeight(kp_individ) > W) and (start_arg < self.GENOME_LENGTH)):
+            argmin = arg_earns[start_arg]
+            start_arg += 1
+            kp_individ[argmin] = 0
         return kp_individ
 
     def tabu_search_score(self, tsp_individ, kp_individ, v_min, v_max, W, R):
@@ -147,18 +148,22 @@ class InitPopulationTabuSearch(InitPopulationBase):
         # compute score
         best_score   = self.dataset_man.computeIndividScore(tsp_individ, kp_individ, v_min=v_min, v_max=v_max, W=W, R=R)
         best_individ = kp_individ.copy()
-        # apply tabu search
+        # cauta obiectul cu cea mai mica proportie
+        arg_earns, start_arg = self.dataset_man.argsortIndividEarning(tsp_individ, kp_individ)
+        locus1 = arg_earns[start_arg]
+        # set flag
         is_find = False
-        for locus1 in arg_take:
-            for locus2 in arg_notake:
-                tmp = kp_individ.copy()
-                tmp[locus1] = 0
-                tmp[locus2] = 1
-                score = self.dataset_man.computeIndividScore(tsp_individ, tmp, v_min=v_min, v_max=v_max, W=W, R=R)
-                if (score > best_score):
-                    best_score   = score
-                    best_individ = tmp.copy()
-                    is_find = True
+        # apply tabu search
+        for locus2 in arg_notake:
+            tmp = kp_individ.copy()
+            tmp[locus1] = 0
+            tmp[locus2] = 1
+            score = self.dataset_man.computeIndividScore(tsp_individ, tmp, v_min=v_min, v_max=v_max, W=W, R=R)
+            weight = self.dataset_man.computeIndividWeight(tmp)
+            if ((score > best_score) and (weight <= W)):
+                best_score   = score
+                best_individ = tmp.copy()
+                is_find = True
         # set best route
         return best_individ, is_find
 

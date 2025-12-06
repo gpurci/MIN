@@ -74,6 +74,12 @@ class StresTTPV1(StresBase):
         # set best route
         return best_individ
 
+    def erase_weightier_objects(self, kp_individ, W):
+        while ((self.dataset_man.computeIndividWeight(kp_individ) > W)):
+            argmax = self.dataset_man.argIndividMaxWeight(kp_individ)
+            kp_individ[argmax] = 0
+        return kp_individ
+
     def tabu_search_score(self, tsp_individ, kp_individ, v_min, v_max, W, R):
         # calcularea distantelor dintre fiecare oras
         mask = kp_individ==1
@@ -91,7 +97,7 @@ class StresTTPV1(StresBase):
                 score = self.dataset_man.computeIndividScore(tsp_individ, tmp, v_min=v_min, v_max=v_max, W=W, R=R)
                 if (score > best_score):
                     best_score   = score
-                    best_individ = tmp.copy()
+                    best_individ = self.erase_weightier_objects(tmp.copy(), W)
         # set best route
         return best_individ
 

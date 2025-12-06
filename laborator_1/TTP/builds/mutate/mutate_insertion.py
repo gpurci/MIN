@@ -18,7 +18,7 @@ class MutateInsertion(MutateBase):
                                         )
         self.dataset_man = dataset_man
         if (dataset_man is not None):
-            self.neighbors = dataset_man.neighborsDistance(neighbors_size)
+            self.neighbors = dataset_man.argsortNeighborsDistance(neighbors_size)
         else:
             self.neighbors = None
 

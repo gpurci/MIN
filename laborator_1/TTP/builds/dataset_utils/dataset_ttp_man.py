@@ -27,7 +27,7 @@ class DatasetTTPMan(DatasetBase):
         ret_neighbors = np.sort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]
         return ret_neighbors
 
-    def argsNeighborsDistance(self, window_size):
+    def argsortNeighborsDistance(self, window_size):
         genom_length  = self.GENOME_LENGTH
         x_range       = np.arange(genom_length, dtype=np.int32)
         ret_neighbors = np.argsort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]

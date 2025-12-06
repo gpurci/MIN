@@ -53,20 +53,20 @@ class FitnessTTPV3(FitnessBase):
             profits   = normalization_reference(profits, x_min, x_max)
             x_min = min_nonzero_values(metric_values, self.prev_metric_values, "times")
             times     = min_nonzeronorm_reference(times, x_min)
-            x_min = min_nonzero_values(metric_values, self.prev_metric_values, "distances")
-            distances = min_nonzeronorm_reference(distances, x_min)
+            #x_min = min_nonzero_values(metric_values, self.prev_metric_values, "distances")
+            #distances = min_nonzeronorm_reference(distances, x_min)
         else:
             profits   = normalization(profits)
             times     = min_nonzeronorm(times)
-            distances = min_nonzeronorm(distances)
+            #distances = min_nonzeronorm(distances)
         # normalization
         profits   = profits**P_pres
         weights   = weights**W_pres
         times     = times**T_pres
-        distances = distances**D_pres
+        #distances = distances**D_pres
         mask_city = self.__cityBinarise(number_city)
         # calculate fitness
-        fitness = mask_city * ((weights * profits * distances * times) / (weights + profits + distances + times + 1e-7))
+        fitness = mask_city * ((weights * profits * times) / (weights + profits + times + 1e-7))
         x_min, x_max = norm_score(score, self.prev_metric_values)
         self.prev_metric_values = metric_values
         self.prev_metric_values["scores"] = (x_min, x_max)

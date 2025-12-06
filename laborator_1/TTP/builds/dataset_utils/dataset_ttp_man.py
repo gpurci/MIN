@@ -22,7 +22,13 @@ class DatasetTTPMan(DatasetBase):
         return (distance, item_profit, item_weight)
 
     def neighborsDistance(self, window_size):
-        genom_length  = self.dataset["GENOME_LENGTH"]
+        genom_length  = self.GENOME_LENGTH
+        x_range       = np.arange(genom_length, dtype=np.int32)
+        ret_neighbors = np.sort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]
+        return ret_neighbors
+
+    def argsNeighborsDistance(self, window_size):
+        genom_length  = self.GENOME_LENGTH
         x_range       = np.arange(genom_length, dtype=np.int32)
         ret_neighbors = np.argsort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]
         return ret_neighbors
@@ -45,10 +51,19 @@ class DatasetTTPMan(DatasetBase):
         distances = self.__distance[individ[:-1], individ[1:]].sum()
         return distances + self.__distance[individ[-1], individ[0]] # intoarcerea in orasul de start
 
-    def individCityDistance(self, individ):
+    def computeIndividDistanceFromCities(self, individ):
         city_distances = self.__distance[individ[:-1], individ[1:]]
         to_first_city  = self.__distance[individ[-1], individ[0]]
         return np.concatenate((city_distances, [to_first_city]))
+
+    def individDistanceFromCityToStart(self, individ):
+        tmp = np.zeros(self.GENOME_LENGTH, dtype=np.float32)
+        distances = self.computeIndividDistanceFromCities(individ)
+        distance  = 0
+        for i in range(self.GENOME_LENGTH-1, -1, -1):
+            distance += distances[i]
+            tmp[i]    = distance
+        return tmp
 
     def computeIndividProfit(self, kp_individ):
         return (self.__item_profit*kp_individ).sum()
@@ -59,12 +74,42 @@ class DatasetTTPMan(DatasetBase):
     def argIndividMaxWeight(self, kp_individ):
         return np.argmax(self.__item_weight*kp_individ)
 
-    def argIndividMinProportion(self, kp_individ):
+    def argminIndividProportion(self, kp_individ):
+        proportion = self.calculateProportions()
+        mask = np.invert(kp_individ.astype(bool))
+        proportion[mask] = np.inf
+        return np.argmin(proportion)
+
+    def argsortIndividProportions(self, kp_individ):
+        proportion = self.calculateProportions()
+        mask = np.invert(kp_individ.astype(bool))
+        proportion[mask] = -np.inf
+        return np.argsort(proportion), mask.sum()
+
+    def calculateIndividEarning(self, tsp_individ, kp_individ):
+        proportion = self.calculateProportions()
+        mask = np.invert(kp_individ.astype(bool))
+        proportion[mask] = -np.inf
+        proportion = proportion[tsp_individ]
+        distances2start = self.individDistanceFromCityToStart(tsp_individ)
+        proportion = proportion / distances2start
+        return proportion, mask.sum()
+
+    def argsortIndividEarning(self, tsp_individ, kp_individ):
+        proportion, start_arg = self.calculateIndividEarning(tsp_individ, kp_individ)
+        return np.argsort(proportion), start_arg
+
+    def calculateIndividProportions(self, kp_individ):
         weight = self.__item_weight*kp_individ
         profit = self.__item_profit*kp_individ
         proportion = profit / (weight + 1e-7)
-        mask = proportion!=0
-        return np.argmin(proportion[mask])
+        return proportion
+
+    def calculateProportions(self):
+        weight = self.__item_weight
+        profit = self.__item_profit
+        proportion = profit / (weight + 1e-7)
+        return proportion
 
     def computeIndividNbrObj(self, kp_individ):
         return kp_individ.sum()
@@ -96,7 +141,7 @@ class DatasetTTPMan(DatasetBase):
         # calculeaza viteza pentru cel mai bun individ
         speeds = self.computeIndividSpeeds(tsp_individ, kp_individ, v_min=v_min, v_max=v_max, W=W)
         # calculeaza distanta dintre orase pentru cel mai bun individ
-        cities_distances = self.individCityDistance(tsp_individ)
+        cities_distances = self.computeIndividDistanceFromCities(tsp_individ)
         # calculeaza timpul pentru cel mai bun individ
         time   = (cities_distances / speeds).sum()
         # calculeaza scorul pentru cel mai bun individ

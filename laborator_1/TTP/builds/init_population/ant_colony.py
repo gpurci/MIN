@@ -25,7 +25,7 @@ class AntColonyOptimization(object):
         self.best_path = None
         self.best_cost = np.inf
         self.map_start_city = np.ones(self.GENOME_LENGTH, dtype=np.float32)
-        self.start_city = 0
+        self.start_city = np.random.randint(low=0, high=self.GENOME_LENGTH, size=None, dtype=int)
     # ======================================================================
 
     # ----------------------------------------------------------------------
@@ -76,7 +76,7 @@ class AntColonyOptimization(object):
         # corecteaza fata de cea mai mare distanta
         arg_min = np.argmin(repay)
         back_propagate   = np.linspace(start=1, stop=repay[arg_min], num=arg_min+1)
-        back_propagate   = np.cbrt(back_propagate)
+        back_propagate   = np.sqrt(back_propagate)
         repay[:arg_min] *= back_propagate[:-1]
         return repay
     # ======================================================================
@@ -144,17 +144,33 @@ class AntColonyOptimization(object):
             best_cost = all_costs[argmin_cost]
             best_path = population[argmin_cost]
             # apply corection for first 3 wrong
-            for idx in argsort_cost:
+            for idx in argsort_cost[:50]:
                 individ   = population[idx]
                 corection = self._propagate_corection_fn(individ)
-                corection = np.sqrt(corection)
+                #corection = np.sqrt(corection)
                 self.update_tau_apply_corection(individ, corection)
-            self.tau = np.power(self.tau, 1/np.cbrt(argsort_cost.shape[0]))
-            for idx in argsort_cost[::-1]:
+            self.tau = np.cbrt(self.tau)
+            for idx in argsort_cost[::-1][:50]:
                 cost = all_costs[idx]
                 path = population[idx]
-                q = 0.1/argsort_cost.shape[0]
+                q = 0.01
                 self._deposit(path, cost, q)
+    # ======================================================================
+
+    # ----------------------------------------------------------------------
+    def updateByElite(self, population):
+        self.tau = np.ones((self.GENOME_LENGTH, self.GENOME_LENGTH))
+        all_costs = []
+        for individ in population:
+            cost = self.dataset_man.computeIndividDistance(individ)
+            all_costs.append(cost)
+        if (len(population) > 0): # update 
+            all_costs = np.array(all_costs)
+            argsort_cost = np.argsort(all_costs).reshape(-1)
+            for idx in argsort_cost:
+                cost = all_costs[idx]
+                path = population[idx]
+                self._update_pheromones(path, cost)
     # ======================================================================
 
     def __call__(self, routes, start_city, generations, size_ants, monitor_size):

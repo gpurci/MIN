@@ -9,7 +9,7 @@ class DatasetTTPMan(DatasetBase):
     def __init__(self, dataset):
         super().__init__(dataset, "DatasetTTPMan")
         # 
-        self.__distance    = dataset["distance"]
+        self.distance    = dataset["distance"]
         self.__item_profit = dataset["item_profit"]
         self.__item_weight = dataset["item_weight"]
         self.GENOME_LENGTH = dataset["GENOME_LENGTH"]
@@ -24,18 +24,18 @@ class DatasetTTPMan(DatasetBase):
     def neighborsDistance(self, window_size):
         genom_length  = self.GENOME_LENGTH
         x_range       = np.arange(genom_length, dtype=np.int32)
-        ret_neighbors = np.sort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]
+        ret_neighbors = np.sort(self.distance[x_range], axis=-1)[:, 1:window_size+1]
         return ret_neighbors
 
     def argsortNeighborsDistance(self, window_size):
         genom_length  = self.GENOME_LENGTH
         x_range       = np.arange(genom_length, dtype=np.int32)
-        ret_neighbors = np.argsort(self.__distance[x_range], axis=-1)[:, 1:window_size+1]
+        ret_neighbors = np.argsort(self.distance[x_range], axis=-1)[:, 1:window_size+1]
         return ret_neighbors
 
     def unvisitedNeighborDistance(self, city, window_size, visited_city):
         """Calculul distantei pentru un individ"""
-        args  = np.argsort(self.__distance[city])
+        args  = np.argsort(self.distance[city])
         count = 0
         ret_args = []
         for pos_city in args:
@@ -48,12 +48,12 @@ class DatasetTTPMan(DatasetBase):
 
     # individ  ---------------------
     def computeIndividDistance(self, individ):
-        distances = self.__distance[individ[:-1], individ[1:]].sum()
-        return distances + self.__distance[individ[-1], individ[0]] # intoarcerea in orasul de start
+        distances = self.distance[individ[:-1], individ[1:]].sum()
+        return distances + self.distance[individ[-1], individ[0]] # intoarcerea in orasul de start
 
     def computeIndividDistanceFromCities(self, individ):
-        city_distances = self.__distance[individ[:-1], individ[1:]]
-        to_first_city  = self.__distance[individ[-1], individ[0]]
+        city_distances = self.distance[individ[:-1], individ[1:]]
+        to_first_city  = self.distance[individ[-1], individ[0]]
         return np.concatenate((city_distances, [to_first_city]))
 
     def individDistanceFromCityToStart(self, individ):
@@ -71,7 +71,7 @@ class DatasetTTPMan(DatasetBase):
     def computeIndividWeight(self, kp_individ):
         return (self.__item_weight*kp_individ).sum()
 
-    def argIndividMaxWeight(self, kp_individ):
+    def argmaxIndividWeight(self, kp_individ):
         return np.argmax(self.__item_weight*kp_individ)
 
     def argminIndividProportion(self, kp_individ):

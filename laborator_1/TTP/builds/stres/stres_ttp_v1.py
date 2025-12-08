@@ -76,7 +76,7 @@ class StresTTPV1(StresBase):
 
     def erase_weightier_objects(self, kp_individ, W):
         while ((self.dataset_man.computeIndividWeight(kp_individ) > W)):
-            argmax = self.dataset_man.argIndividMaxWeight(kp_individ)
+            argmax = self.dataset_man.argmaxIndividWeight(kp_individ)
             kp_individ[argmax] = 0
         return kp_individ
 

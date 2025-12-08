@@ -43,24 +43,34 @@ class TTPGenerator(object):
         for x, y in self.coords:
             cv.circle(image, (x, y), 4, (0, 255, 0), -1)
 
-    def putRoutesOnMap(self, routes):
+    def putRouteOnMap(self, route):
         image = np.zeros((self.max_distance, self.max_distance, 3), dtype=np.uint8)
         self.__put_points(image)
 
-        st_x, st_y = self.coords[routes[0]]
+        st_x, st_y = self.coords[route[0]]
         cv.circle(image, (st_x, st_y), 5, (255, 255, 255), 1)
-        for route in routes[1:]:
+        for route in route[1:]:
             en_x, en_y = self.coords[route]
             cv.circle(image, (st_x, st_y), 4, (0, 0, 255), -1)
             cv.line(image,   (st_x, st_y), (en_x, en_y), (255, 0, 0), 4)
             st_x, st_y = en_x, en_y
         else:# intoarcerea in orasul de start
-            en_x, en_y = self.coords[routes[0]]
+            en_x, en_y = self.coords[route[0]]
             cv.circle(image, (st_x, st_y), 4, (0, 0, 255), -1)
             cv.line(image,   (st_x, st_y), (en_x, en_y), (255, 0, 0), 4)
             st_x, st_y = en_x, en_y
             # marcheaza orasul de stop
             cv.circle(image, (st_x, st_y), 8, (0, 255, 255), 1)
+        return image
+
+    def putRoutesOnMap(self, routes):
+        image = np.zeros((self.max_distance, self.max_distance, 3), dtype=np.uint8)
+        self.__put_points(image)
+
+        for start, stop in routes:
+            st_x, st_y = self.coords[start]
+            en_x, en_y = self.coords[stop]
+            cv.line(image, (st_x, st_y), (en_x, en_y), (255, 0, 0), 2)
         return image
 
     def read_csv(self, filename):

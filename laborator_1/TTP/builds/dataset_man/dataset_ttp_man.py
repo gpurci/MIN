@@ -4,7 +4,7 @@ import numpy as np
 import cv2 as cv
 import pandas as pd
 
-class TTPGenerator(object):
+class DatasetTTPMan(object):
     def __init__(self, path):
         self.path         = path
         self.max_distance = 0

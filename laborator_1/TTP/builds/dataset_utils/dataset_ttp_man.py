@@ -49,8 +49,8 @@ class TTPGenerator(object):
 
         st_x, st_y = self.coords[route[0]]
         cv.circle(image, (st_x, st_y), 5, (255, 255, 255), 1)
-        for route in route[1:]:
-            en_x, en_y = self.coords[route]
+        for city in route[1:]:
+            en_x, en_y = self.coords[city]
             cv.circle(image, (st_x, st_y), 4, (0, 0, 255), -1)
             cv.line(image,   (st_x, st_y), (en_x, en_y), (255, 0, 0), 4)
             st_x, st_y = en_x, en_y

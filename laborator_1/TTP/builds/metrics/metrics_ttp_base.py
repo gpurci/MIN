@@ -2,17 +2,19 @@
 
 import numpy as np
 from extension.dataset_utils.dataset_base import *
+from extension.utils.normalization import *
 
-class DatasetTTPMan(DatasetBase):
+class MetricsTTPBase(DatasetBase):
     """
     """
-    def __init__(self, dataset):
-        super().__init__(dataset, "DatasetTTPMan")
+    def __init__(self, dataset, capacity):
+        super().__init__(dataset, "MetricsTTPBase")
         # 
         self.distance    = dataset["distance"]
         self.__item_profit = dataset["item_profit"]
         self.__item_weight = dataset["item_weight"]
         self.GENOME_LENGTH = dataset["GENOME_LENGTH"]
+        self.CAPACITY      = capacity
 
     def getTupleDataset(self):
         # unpack datassets
@@ -185,4 +187,36 @@ class DatasetTTPMan(DatasetBase):
         return np.apply_along_axis(self.computeIndividNbrObj,
                                         axis=1,
                                         arr=kp_population)
+
+    def citiesBinarise(self, number_city):
+        mask_cities = (number_city>=self.GENOME_LENGTH).astype(np.float32)
+        return mask_cities
+
+    def bestTSP(self, tsp_population):
+        distances  = self.computeDistances(tsp_population)
+        distances  = min_nonzeronorm(distances)
+        nbr_cities = self.computeNumberCities(tsp_population)
+        nbr_cities = citiesBinarise(nbr_cities)
+        return distances * nbr_cities
+    """
+        def bestKP(self, kp_population):
+            profits = self.computeProfit(kp_population)
+            weights = self.computeWeight(kp_population)
+
+            if (self.CAPACITY < weights.min()):
+                CAPACITY = weights.mean()
+                weights  = CAPACITY / weights
+            else:
+                weights  = CAPACITY / (weights + 1e-7)
+                mask     = weights > 1
+                weights[mask] = 1./weights[mask]
+
+                
+            return distances * nbr_cities
+    """
+
+
+
+
+
     # population metrics =====================

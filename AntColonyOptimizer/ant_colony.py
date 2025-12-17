@@ -26,7 +26,31 @@ class AntColonyOptimization(object):
     # ======================================================================
 
     # ----------------------------------------------------------------------
-    def _construct_solution(self, start_city):
+    def fill_chromosome(self, route, start_gene, allowed_city):
+        # make route
+        for i in range(start_gene, self.GENOME_LENGTH-1):
+            current = route[i]
+            # allowed cities
+            allowed = np.argwhere(allowed_city).reshape(-1)
+            # transition probabilities
+            tau_vals = self.tau[current, allowed] ** self.alpha
+            eta_vals = self.eta[current, allowed] ** self.beta
+            # calculeaza probabilitatea selectarii urmatorului oras
+            probs  = tau_vals * eta_vals
+            total_probs = probs.sum()
+            if (total_probs != 0):
+                probs /= total_probs
+            else:
+                probs  = eta_vals / eta_vals.sum()
+            # selecteaza urmatorul oras
+            next_city  = np.random.choice(allowed, p=probs.reshape(-1))
+            route[i+1] = next_city
+            allowed_city[next_city] = False
+        return route
+    # ======================================================================
+
+    # ----------------------------------------------------------------------
+    def _construct_solution(self, path=None, start_city=0):
         """ Construct a TSP tour for one ant """
         self.start_city = (self.start_city + 1) % self.GENOME_LENGTH
         rand_start_city = self.start_city
@@ -36,21 +60,7 @@ class AntColonyOptimization(object):
         # allowed city
         allowed_city = np.ones(self.GENOME_LENGTH, dtype=bool)
         allowed_city[rand_start_city] = False
-        # make route
-        for i in range(self.GENOME_LENGTH-1):
-            current = route[i]
-            # allowed cities
-            allowed = np.argwhere(allowed_city).reshape(-1)
-            # transition probabilities
-            tau_vals = self.tau[current, allowed] ** self.alpha
-            eta_vals = self.eta[current, allowed] ** self.beta
-            # calculeaza probabilitatea selectarii urmatorului oras
-            probs  = tau_vals * eta_vals
-            probs /= probs.sum()
-            # selecteaza urmatorul oras
-            next_city  = np.random.choice(allowed, p=probs.reshape(-1))
-            route[i+1] = next_city
-            allowed_city[next_city] = False
+        route = self.fill_chromosome(route, 0, allowed_city)
         # 
         size_shift = np.argwhere(route == start_city).reshape(-1)
         route = np.roll(route, -size_shift)
@@ -58,10 +68,15 @@ class AntColonyOptimization(object):
     # ======================================================================
 
     # ----------------------------------------------------------------------
-    def _apply_corection(self, route, corection):
+    def _penalization(self, route, penalization):
         start_city = np.arange(self.GENOME_LENGTH, dtype=np.int32)
         next_city  = np.roll(start_city, -1)
-        self.tau[start_city, next_city] *= corection
+        self.tau[start_city, next_city] *= penalization
+    # ======================================================================
+
+    # ----------------------------------------------------------------------
+    def _penalize_one_city(self, start_city, next_city, penalization=0.1):
+        self.tau[start_city, next_city] *= penalization
     # ======================================================================
 
     # ----------------------------------------------------------------------
@@ -79,13 +94,14 @@ class AntColonyOptimization(object):
     # ======================================================================
 
     # ----------------------------------------------------------------------
-    def __call__(self, start_city, generations, size_ants, monitor_size):
+    def __call__(self, start_city, generations, size_ants):
+        # init potential population
+        all_paths = np.zeros((size_ants, self.GENOME_LENGTH), dtype=np.int32)
         # find best route
         for epoch in range(generations):
-            all_paths = []
-            # 
-            for _ in range(size_ants):
-                path = self._construct_solution(start_city)
-                all_paths.append(path)
-            yield all_path
+            # find the best 'size_ants' routes
+            yield np.apply_along_axis(self._construct_solution,
+                                        axis=1,
+                                        arr=all_paths,
+                                        start_city=start_city)
     # ======================================================================

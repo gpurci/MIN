@@ -10,14 +10,14 @@ class MutateDistance(MutateBase):
     Metoda 'call', returneaza functia din configuratie.
     Pentru o configuratie inexistenta, vei primi un mesaj de eroare.
     """
-    def __init__(self, method, dataset_man=None, neighbors_size=20, **configs):
+    def __init__(self, method, metrics=None, neighbors_size=20, **configs):
         super().__init__(method, name="MutateDistance", **configs)
         self.__fn = self._unpackMethod(method, 
                                         distance=self.mutateDistance, 
                                     )
-        self.dataset_man = dataset_man
-        if (dataset_man is not None):
-            self.neighbors = dataset_man.argsortNeighborsDistance(neighbors_size)
+        self.metrics = metrics
+        if (metrics is not None):
+            self.neighbors = metrics.argsortNeighborsDistance(neighbors_size)
         else:
             self.neighbors = None
 
@@ -27,7 +27,7 @@ class MutateDistance(MutateBase):
     def help(self):
         info = """MutateDistance:
     metoda: 'distance'; config: -> "subset_size":20;
-    dataset_man    - managerul setului de date, metode de procesare a cromosomilor
+    metrics    - managerul setului de date, metode de procesare a cromosomilor
     neighbors_size - numarul celor mai apropiati vecini\n"""
         print(info)
 
@@ -42,7 +42,7 @@ class MutateDistance(MutateBase):
         # creaza o mapa de vizite
         visited_city      = np.zeros(offspring.shape[0], dtype=bool)
         # calculeaza distanta dintre orasele din chromosom
-        city_distances    = self.dataset_man.computeIndividDistanceFromCities(offspring)
+        city_distances    = self.metrics.computeIndividDistanceFromCities(offspring)
         # gaseste pozitia celei mai mari distante
         arg_max_distance  = np.argmax(city_distances)
         # seteaza un camp de actiune
@@ -65,7 +65,7 @@ class MutateDistance(MutateBase):
         # gaseste cei mai apropiati vecini
         offspring_neighbors = all_offspring_neighbors(offspring) # sorted
         # calculeaza distanta dintre orasele din chromosom
-        city_distances    = self.dataset_man.computeIndividDistanceFromCities(offspring)
+        city_distances    = self.metrics.computeIndividDistanceFromCities(offspring)
         # gaseste pozitia celei mai mari distante
         arg_max_distance  = np.argmax(city_distances)
         # orasul cel mai indepartat

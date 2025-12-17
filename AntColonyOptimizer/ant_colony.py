@@ -80,9 +80,9 @@ class AntColonyOptimization(object):
     # ======================================================================
 
     # ----------------------------------------------------------------------
-    def _deposit(self, best_path, best_cost, q):
+    def _deposit(self, best_path, best_cost, q, rho):
         # Evaporation
-        self.tau *= (1 - self.rho)
+        self.tau *= (1 - rho)
         # Deposit pheromone on edges of best ant
         deposit   = q / best_cost
         # deposit 
@@ -100,7 +100,7 @@ class AntColonyOptimization(object):
         # find best route
         for epoch in range(generations):
             # find the best 'size_ants' routes
-            yield np.apply_along_axis(self._construct_solution,
+            yield epoch, np.apply_along_axis(self._construct_solution,
                                         axis=1,
                                         arr=all_paths,
                                         start_city=start_city)

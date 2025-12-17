@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import numpy as np
-from extension.dataset_utils.dataset_base import *
+from extension.dataset_man.dataset_base import *
 from extension.utils.normalization import *
 
 class MetricsTTPBase(DatasetBase):

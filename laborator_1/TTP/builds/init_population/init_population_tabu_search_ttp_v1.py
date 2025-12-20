@@ -13,7 +13,8 @@ class InitPopulationTabuSearchV1(InitPopulationBase):
         self.__fn = self._unpackMethod(method, 
                                         init=self.init,
                                     )
-        self.dataset_man = dataset_man
+        self.dataset_man  = dataset_man
+        self.min_distance = dataset_man.argsortNeighborsDistance(1).reshape(-1)
 
     def __call__(self, population_size):
         return self.__fn(population_size, **self._configs)
@@ -37,6 +38,12 @@ class InitPopulationTabuSearchV1(InitPopulationBase):
         return {"tsp":np.array(tsp_population, dtype=np.int32), "kp":kp_population}
 
     def computeRoute(self, population_size, city, window_size):
+        tsp_population = self.neighborRouteFill(population_size, city, window_size)
+        tsp_population = self.insertion_tabu_search_distance_all(population_size, tsp_population, city)
+
+        return np.array(tsp_population, dtype=np.int32)
+
+    def neighborRouteFill(self, population_size, city, window_size):
         self.__population_size = population_size
         # creaza mapa de orase vizitate
         visited_city = np.zeros(self.GENOME_LENGTH, dtype=bool)
@@ -47,15 +54,8 @@ class InitPopulationTabuSearchV1(InitPopulationBase):
         for route in tsp_population:
             route.insert(0, city)
         tsp_population = np.array(tsp_population, dtype=np.int32)
-        #print("primul oras", tsp_population[:, 0], " city", city)
-        # aplica tabu search pe rute
-        for idx in range(population_size):
-            route = tsp_population[idx]
-            is_find = True
-            while (is_find): # cauta cea mai buna ruta,
-                route, is_find = self.insertion_tabu_search_distance(route, city)
-            tsp_population[idx] = route
-        return np.array(tsp_population, dtype=np.int32)
+        del self.__population_size
+        return tsp_population
 
     def recNeighborFill(self, city, window_size, visited_city, deep):
         if (deep == 0):
@@ -80,10 +80,19 @@ class InitPopulationTabuSearchV1(InitPopulationBase):
         visited_city[args] = False
         return population
 
+    def insertion_tabu_search_distance_all(self, population_size, tsp_population, city):
+        # aplica tabu search pe rute
+        for idx in range(population_size):
+            route = tsp_population[idx]
+            is_find = True
+            while (is_find): # cauta cea mai buna ruta,
+                route, is_find = self.insertion_tabu_search_distance(route, city)
+            tsp_population[idx] = route
+        return tsp_population
+
     def insertion_tabu_search_distance(self, tsp_individ, city):
         # calcularea distantelor dintre fiecare oras
         city_distances = self.dataset_man.computeIndividDistanceFromCities(tsp_individ)
-        #city_distances[city] = 0
         # creare mask de depasire media pe distanta
         locus1 = np.argmax(city_distances) + 1
         if (locus1 >= self.GENOME_LENGTH):

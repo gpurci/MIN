@@ -1,0 +1,29 @@
+
+Traveling Salesman Problem (TSP)
+Vehicle Routing Problem (VRP)
+Job-shop scheduling
+Quadratic assignment problems
+Maximum Satisfiability Problem
+Vehicle Routing Problem
+0–1 Integer Linear Program (ILP)
+
+
+Heuristics & Metaheuristics
+Greedy Randomized
+Adaptive Search Procedure (GRASP), Variable Neighborhood Search (VNS), Guided Local Search (GLS)
+and Iterated Local Search (ILS)
+
+Local Search (GSAT, WalkSAT)
+
+Simulated Annealing
+
+Genetic Algorithms
+
+Ant Colony Optimization
+
+Tabu Search
+Genetic operators,
+
+Neighborhood design,
+
+Fitness landscape analysis.

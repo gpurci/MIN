@@ -14,7 +14,7 @@ Adaptive Search Procedure (GRASP), Variable Neighborhood Search (VNS), Guided Lo
 and Iterated Local Search (ILS)
 
 Local Search (GSAT, WalkSAT)
-
+Memetic Algorithms
 Simulated Annealing
 
 Genetic Algorithms
@@ -27,3 +27,15 @@ Genetic operators,
 Neighborhood design,
 
 Fitness landscape analysis.
+
+Among the applications of GRASP we mention the JSS problem [13], the graph planarization
+problem [142] and assignment problems
+Squeaky Wheel Optimization (SWO)
+
+VNS and its variants have been successfully applied to graph based CO problems such as the p-Median
+problem [80], the degree constrained minimum spanning tree problem [143], the Steiner tree problem [168]
+and the k-Cardinality Tree (KCT) problem
+
+Successful applications of ACO include the application to routing in communication networks [36],
+the application to the Sequential Ordering Problem (SOP) [62], and the application to Resource Constraint
+Project Scheduling (RCPS) 

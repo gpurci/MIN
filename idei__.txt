@@ -1,0 +1,7 @@
+operatie cross over care colecteaza grupe de chromosomi de la unii indivizi pentru a infecta alti indivizi
+sau operatie de infectie prin stres
+o functie care creaza grupe de cele mai bune bacterii
+prin stres se verifica daca nu sunt schimbari trimite semnal la manager penttru a schimba operatiile de crossover, mutate etc.
+mutatie, o functie care memoreaza cele mai bune rute, si face o selectie random doar pentru o alela
+fitnes calculeaza secvente din populatie cu fitnes diferit
+calculeaza fitnes cu functii cos sau sinus, creaza 2 sau 3 fitnesuri de individ dupa creaza o statistica care metoda este mai eficienta, creaza un log cu toate selectiile, crossover, mutatie, etc. pentru a vedea ce configuratii ofera un rezultat mai bun.
